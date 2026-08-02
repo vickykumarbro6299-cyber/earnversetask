@@ -14,16 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      deposits: {
+        Row: {
+          amount_inr: number
+          coins: number
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["req_status"]
+          user_id: string
+          utr: string
+        }
+        Insert: {
+          amount_inr: number
+          coins: number
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id: string
+          utr?: string
+        }
+        Update: {
+          amount_inr?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id?: string
+          utr?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          coins: number
+          created_at: string
+          email: string
+          id: string
+          mobile: string
+          name: string
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          email?: string
+          id: string
+          mobile?: string
+          name?: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          email?: string
+          id?: string
+          mobile?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          claimed_at: string
+          id: string
+          note: string | null
+          proof_url: string | null
+          reviewed_at: string | null
+          reward_coins: number
+          status: Database["public"]["Enums"]["req_status"]
+          submitted_at: string | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          id?: string
+          note?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reward_coins?: number
+          status?: Database["public"]["Enums"]["req_status"]
+          submitted_at?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          id?: string
+          note?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reward_coins?: number
+          status?: Database["public"]["Enums"]["req_status"]
+          submitted_at?: string | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          active: boolean
+          claimed_count: number
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          is_admin_task: boolean
+          link: string | null
+          reward_coins: number
+          title: string
+          total_slots: number
+        }
+        Insert: {
+          active?: boolean
+          claimed_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_admin_task?: boolean
+          link?: string | null
+          reward_coins: number
+          title: string
+          total_slots?: number
+        }
+        Update: {
+          active?: boolean
+          claimed_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_admin_task?: boolean
+          link?: string | null
+          reward_coins?: number
+          title?: string
+          total_slots?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          amount_inr: number
+          coins: number
+          created_at: string
+          id: string
+          method: string
+          payout_detail: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["req_status"]
+          user_id: string
+        }
+        Insert: {
+          amount_inr: number
+          coins: number
+          created_at?: string
+          id?: string
+          method: string
+          payout_detail?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id: string
+        }
+        Update: {
+          amount_inr?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          method?: string
+          payout_detail?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      req_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      req_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
