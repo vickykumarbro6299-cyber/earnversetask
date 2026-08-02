@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 
@@ -29,6 +30,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -43,12 +49,14 @@ const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/wallet': typeof AuthenticatedWalletRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/wallet': typeof AuthenticatedWalletRoute
 }
@@ -57,19 +65,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/tasks' | '/wallet'
+  fullPaths: '/' | '/auth' | '/profile' | '/tasks' | '/wallet'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/tasks' | '/wallet'
+  to: '/' | '/auth' | '/profile' | '/tasks' | '/wallet'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/profile'
     | '/_authenticated/tasks'
     | '/_authenticated/wallet'
   fileRoutesById: FileRoutesById
@@ -103,6 +113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks': {
       id: '/_authenticated/tasks'
       path: '/tasks'
@@ -121,11 +138,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
 }
