@@ -179,8 +179,9 @@ function ProofForm({ submissionId, onDone }: { submissionId: string; onDone: () 
       toast.error("Select a proof screenshot");
       return;
     }
-
+    setBusy(true);
     try {
+
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) throw new Error("Session expired");
