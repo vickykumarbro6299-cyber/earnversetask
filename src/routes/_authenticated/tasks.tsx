@@ -175,8 +175,11 @@ function ProofForm({ submissionId, onDone }: { submissionId: string; onDone: () 
   const [busy, setBusy] = useState(false);
 
   async function upload() {
-    if (!file) return toast.error("Select a proof screenshot");
-    setBusy(true);
+    if (!file) {
+      toast.error("Select a proof screenshot");
+      return;
+    }
+
     try {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
