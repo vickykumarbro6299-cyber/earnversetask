@@ -119,8 +119,10 @@ function AdminPage() {
                 sub={`${x.user?.name ?? "User"} • ${x.user?.email ?? ""}`}
                 note={`UTR: ${x.utr ?? "—"}`}
                 status={x.status}
+                extra={x.proof_url ? <ProofButton path={x.proof_url} /> : null}
                 onApprove={() => review("deposit", x.id, true)}
                 onReject={() => review("deposit", x.id, false)}
+
               />
             )}
           />
