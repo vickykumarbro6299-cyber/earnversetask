@@ -1,4 +1,11 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  DEPOSIT_PACKS,
+  WITHDRAW_PACKS,
+  CLAIM_MINUTES,
+  payableAmount,
+  TASK_CATEGORIES,
+} from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
 export const MIN_DEPOSIT_COINS = 1000;
@@ -7,7 +14,12 @@ export const MIN_TASK_REWARD = 50;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.02;
 
+const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
+const normalizeCategory = (c: string | undefined) =>
+  c && VALID_CATEGORIES.includes(c) ? c : "other";
+
 type Ctx = { userId: string };
+
 
 export async function isAdmin(userId: string) {
   const { data } = await supabaseAdmin
