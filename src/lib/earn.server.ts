@@ -213,7 +213,7 @@ export async function createUserTaskImpl(
 
 export async function createDepositImpl(
   { userId }: Ctx,
-  data: { rupees: number; utr: string; proofPath?: string },
+  data: { rupees: number; utr: string; proofPath?: string | undefined },
 ) {
   const pack = DEPOSIT_PACKS.find((p) => p.rupees === data.rupees);
   if (!pack) throw new Error("Please choose a valid coin pack");
