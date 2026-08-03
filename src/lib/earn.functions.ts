@@ -103,8 +103,10 @@ export const adminCreateTask = createServerFn({ method: "POST" })
       link: string;
       rewardCoins: number;
       totalSlots: number;
+      category?: string;
     }) => d,
   )
+
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.adminCreateTaskImpl({ userId: context.userId }, data);
