@@ -199,6 +199,55 @@ function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () =
 const inputClass =
   "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ring/40";
 
+function PackGrid({
+  packs,
+  selected,
+  onSelect,
+  tone,
+}: {
+  packs: { rupees: number; coins: number }[];
+  selected: number | null;
+  onSelect: (rupees: number) => void;
+  tone: "brand" | "success";
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {packs.map((p) => {
+        const active = selected === p.rupees;
+        return (
+          <button
+            key={p.rupees}
+            type="button"
+            onClick={() => onSelect(p.rupees)}
+            className={`rounded-2xl border-2 p-3 text-left transition active:scale-95 ${
+              active
+                ? tone === "brand"
+                  ? "border-primary bg-secondary shadow-pop"
+                  : "border-success bg-success/10 shadow-pop"
+                : "border-border bg-card shadow-card"
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <CoinIcon className="h-6 w-6" />
+              <span className="text-lg font-extrabold text-foreground">{p.coins}</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">coins</p>
+            <p
+              className={`mt-2 rounded-lg px-2 py-1 text-center text-sm font-extrabold ${
+                tone === "brand"
+                  ? "bg-gradient-brand text-primary-foreground"
+                  : "bg-success text-success-foreground"
+              }`}
+            >
+              ₹{p.rupees}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function DepositSheet({
   upi,
   upiName,
@@ -211,16 +260,32 @@ function DepositSheet({
   onDone: () => void;
 }) {
   const fn = useServerFn(createDeposit);
-  const [coins, setCoins] = useState(MIN_DEPOSIT_COINS);
+  const [rupees, setRupees] = useState<number | null>(null);
+  const [step, setStep] = useState<1 | 2>(1);
   const [utr, setUtr] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const amount = ((coins / COINS_PER_RUPEE) * 1.01).toFixed(2);
+
+  const pack = DEPOSIT_PACKS.find((p) => p.rupees === rupees) ?? null;
+  const payable = pack ? payableAmount(pack.rupees) : 0;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!pack) return;
     setBusy(true);
     try {
-      await fn({ data: { coins, utr: utr.trim() } });
+      let proofPath: string | undefined;
+      if (file) {
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData.user?.id;
+        if (!uid) throw new Error("Session expired");
+        const ext = file.name.split(".").pop() ?? "png";
+        const path = `${uid}/deposits/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from("proofs").upload(path, file);
+        if (error) throw error;
+        proofPath = path;
+      }
+      await fn({ data: { rupees: pack.rupees, utr: utr.trim(), proofPath } });
       toast.success("Deposit request sent for admin approval");
       onDone();
       onClose();
@@ -233,44 +298,84 @@ function DepositSheet({
 
   return (
     <Sheet onClose={onClose}>
-      <h3 className="text-lg font-extrabold">Buy Coins (Deposit)</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Minimum {MIN_DEPOSIT_COINS} coins • 1% deposit tax • UPI only
-      </p>
-      <div className="mt-3 rounded-xl bg-secondary p-3">
-        <p className="text-xs font-semibold text-muted-foreground">Pay to UPI ID</p>
-        <p className="select-all text-lg font-extrabold text-primary">{upi}</p>
-        <p className="text-xs text-muted-foreground">{upiName}</p>
-      </div>
-      <form onSubmit={submit} className="mt-4 space-y-3">
-        <label className="block text-xs font-semibold text-muted-foreground">
-          Coins to buy
-          <input
-            type="number"
-            min={MIN_DEPOSIT_COINS}
-            className={inputClass}
-            value={coins}
-            onChange={(e) => setCoins(Number(e.target.value))}
-          />
-        </label>
-        <div className="rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
-          Pay amount (incl. 1% tax): <span className="text-primary">₹{amount}</span>
-        </div>
-        <input
-          className={inputClass}
-          placeholder="UPI transaction / UTR number"
-          required
-          maxLength={40}
-          value={utr}
-          onChange={(e) => setUtr(e.target.value)}
-        />
-        <button
-          disabled={busy}
-          className="w-full rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-60"
-        >
-          {busy ? "Sending…" : "Submit Deposit Request"}
-        </button>
-      </form>
+      {step === 1 ? (
+        <>
+          <h3 className="text-lg font-extrabold">Buy Coins</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose a coin pack • 1% tax added at payment
+          </p>
+          <div className="mt-4">
+            <PackGrid packs={DEPOSIT_PACKS} selected={rupees} onSelect={setRupees} tone="brand" />
+          </div>
+          <button
+            disabled={!pack}
+            onClick={() => setStep(2)}
+            className="mt-5 w-full rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-50"
+          >
+            {pack ? `Continue • ₹${pack.rupees}` : "Select a pack"}
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            className="mb-2 text-sm font-bold text-primary"
+          >
+            ← Change pack
+          </button>
+          <h3 className="text-lg font-extrabold">Complete Payment</h3>
+          <div className="mt-3 rounded-xl bg-secondary p-3">
+            <p className="text-xs font-semibold text-muted-foreground">Pay to UPI ID</p>
+            <p className="select-all text-lg font-extrabold text-primary">{upi}</p>
+            <p className="text-xs text-muted-foreground">{upiName}</p>
+          </div>
+          <div className="mt-3 space-y-1 rounded-xl bg-muted p-3 text-sm font-semibold">
+            <div className="flex justify-between">
+              <span>Coins</span>
+              <span>{pack?.coins}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Pack price</span>
+              <span>₹{pack?.rupees}.00</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Tax (1%)</span>
+              <span>₹{((pack?.rupees ?? 0) * 0.01).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-1 text-base font-extrabold text-primary">
+              <span>Pay now</span>
+              <span>₹{payable.toFixed(2)}</span>
+            </div>
+          </div>
+          <form onSubmit={submit} className="mt-4 space-y-3">
+            <input
+              className={inputClass}
+              placeholder="UPI transaction / UTR number"
+              required
+              maxLength={40}
+              value={utr}
+              onChange={(e) => setUtr(e.target.value)}
+            />
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border bg-muted px-3 py-2.5 text-sm font-semibold text-muted-foreground">
+              <Upload className="h-4 w-4" />
+              {file ? file.name.slice(0, 28) : "Submit payment screenshot"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <button
+              disabled={busy}
+              className="w-full rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-60"
+            >
+              {busy ? "Sending…" : "Submit Deposit Request"}
+            </button>
+          </form>
+        </>
+      )}
     </Sheet>
   );
 }
@@ -285,17 +390,23 @@ function WithdrawSheet({
   onDone: () => void;
 }) {
   const fn = useServerFn(createWithdrawal);
-  const [amountCoins, setAmountCoins] = useState(MIN_WITHDRAW_COINS);
+  const [rupees, setRupees] = useState<number | null>(null);
   const [method, setMethod] = useState<"UPI" | "Google Play Redeem Code">("UPI");
   const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const pack = WITHDRAW_PACKS.find((p) => p.rupees === rupees) ?? null;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!pack) {
+      toast.error("Select a withdrawal amount");
+      return;
+    }
     setBusy(true);
     try {
-      if (amountCoins > coins) throw new Error("Not enough coins");
-      await fn({ data: { coins: amountCoins, method, payoutDetail: detail.trim() } });
+      if (pack.coins > coins) throw new Error("Not enough coins");
+      await fn({ data: { rupees: pack.rupees, method, payoutDetail: detail.trim() } });
       toast.success("Withdrawal request submitted");
       onDone();
       onClose();
@@ -310,10 +421,16 @@ function WithdrawSheet({
     <Sheet onClose={onClose}>
       <h3 className="text-lg font-extrabold">Withdraw</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Minimum {MIN_WITHDRAW_COINS} coins • manual payout by admin
+        Choose a fixed amount • minimum {MIN_WITHDRAW_COINS} coins • manual payout
       </p>
       <form onSubmit={submit} className="mt-4 space-y-3">
-        <div className="grid grid-cols-2 gap-2">
+        <PackGrid
+          packs={WITHDRAW_PACKS}
+          selected={rupees}
+          onSelect={setRupees}
+          tone="success"
+        />
+        <div className="grid grid-cols-2 gap-2 pt-1">
           {(["UPI", "Google Play Redeem Code"] as const).map((m) => (
             <button
               key={m}
@@ -329,19 +446,15 @@ function WithdrawSheet({
             </button>
           ))}
         </div>
-        <label className="block text-xs font-semibold text-muted-foreground">
-          Coins to withdraw
-          <input
-            type="number"
-            min={MIN_WITHDRAW_COINS}
-            max={coins}
-            className={inputClass}
-            value={amountCoins}
-            onChange={(e) => setAmountCoins(Number(e.target.value))}
-          />
-        </label>
         <div className="rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
-          You receive: <span className="text-primary">₹{toRupees(amountCoins)}</span>
+          {pack ? (
+            <>
+              Debit <span className="text-primary">{pack.coins} coins</span> • You receive{" "}
+              <span className="text-primary">₹{pack.rupees}.00</span>
+            </>
+          ) : (
+            "Select an amount above"
+          )}
         </div>
         <input
           className={inputClass}
@@ -361,3 +474,4 @@ function WithdrawSheet({
     </Sheet>
   );
 }
+
