@@ -57,7 +57,7 @@ export const createUserTask = createServerFn({ method: "POST" })
 
 export const createDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { rupees: number; utr: string; proofPath?: string }) => d)
+  .inputValidator((d: { rupees: number; utr: string; proofPath?: string | undefined }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.createDepositImpl({ userId: context.userId }, data);
