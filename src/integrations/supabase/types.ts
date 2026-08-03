@@ -35,6 +35,7 @@ export type Database = {
           coins: number
           created_at: string
           id: string
+          proof_url: string | null
           reviewed_at: string | null
           status: Database["public"]["Enums"]["req_status"]
           user_id: string
@@ -45,6 +46,7 @@ export type Database = {
           coins: number
           created_at?: string
           id?: string
+          proof_url?: string | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["req_status"]
           user_id: string
@@ -55,6 +57,7 @@ export type Database = {
           coins?: number
           created_at?: string
           id?: string
+          proof_url?: string | null
           reviewed_at?: string | null
           status?: Database["public"]["Enums"]["req_status"]
           user_id?: string
@@ -92,6 +95,7 @@ export type Database = {
       submissions: {
         Row: {
           claimed_at: string
+          expires_at: string | null
           id: string
           note: string | null
           proof_url: string | null
@@ -104,6 +108,7 @@ export type Database = {
         }
         Insert: {
           claimed_at?: string
+          expires_at?: string | null
           id?: string
           note?: string | null
           proof_url?: string | null
@@ -116,6 +121,7 @@ export type Database = {
         }
         Update: {
           claimed_at?: string
+          expires_at?: string | null
           id?: string
           note?: string | null
           proof_url?: string | null
@@ -139,6 +145,7 @@ export type Database = {
       tasks: {
         Row: {
           active: boolean
+          category: string
           claimed_count: number
           created_at: string
           created_by: string | null
@@ -152,6 +159,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          category?: string
           claimed_count?: number
           created_at?: string
           created_by?: string | null
@@ -165,6 +173,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          category?: string
           claimed_count?: number
           created_at?: string
           created_by?: string | null
