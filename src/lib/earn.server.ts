@@ -315,6 +315,7 @@ export async function adminCreateTaskImpl(
     link: string;
     rewardCoins: number;
     totalSlots: number;
+    category?: string;
   },
 ) {
   await requireAdmin(userId);
@@ -326,7 +327,9 @@ export async function adminCreateTaskImpl(
     total_slots: data.totalSlots,
     created_by: userId,
     is_admin_task: true,
+    category: normalizeCategory(data.category),
   });
+
   if (error) throw error;
   return { ok: true };
 }
