@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpFromLine, ReceiptText } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, ReceiptText, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
@@ -11,10 +12,13 @@ import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { getWallet, createDeposit, createWithdrawal } from "@/lib/earn.functions";
 import {
   COINS_PER_RUPEE,
-  MIN_DEPOSIT_COINS,
   MIN_WITHDRAW_COINS,
+  DEPOSIT_PACKS,
+  WITHDRAW_PACKS,
+  payableAmount,
   toRupees,
 } from "@/lib/earn-constants";
+
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({
