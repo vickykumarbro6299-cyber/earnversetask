@@ -68,7 +68,44 @@ export async function meImpl({ userId }: Ctx) {
   return { profile, isAdmin: await isAdmin(userId), settings: map };
 }
 
+/** Release reservations that were not submitted within CLAIM_MINUTES. */
+export async function expireStaleClaims() {
+  const { data: stale } = await supabaseAdmin
+    .from("submissions")
+    .select("id, task_id")
+    .eq("status", "pending")
+    .is("submitted_at", null)
+    .not("expires_at", "is", null)
+    .lt("expires_at", new Date().toISOString());
+
+  if (!stale?.length) return;
+
+  await supabaseAdmin
+    .from("submissions")
+    .delete()
+    .in(
+      "id",
+      stale.map((s) => s.id),
+    );
+
+  for (const taskId of [...new Set(stale.map((s) => s.task_id))]) {
+    const freed = stale.filter((s) => s.task_id === taskId).length;
+    const { data: task } = await supabaseAdmin
+      .from("tasks")
+      .select("claimed_count, total_slots")
+      .eq("id", taskId)
+      .maybeSingle();
+    if (!task) continue;
+    const next = Math.max(0, task.claimed_count - freed);
+    await supabaseAdmin
+      .from("tasks")
+      .update({ claimed_count: next, active: next < task.total_slots })
+      .eq("id", taskId);
+  }
+}
+
 export async function listTasksImpl({ userId }: Ctx) {
+  await expireStaleClaims();
   const { data: tasks } = await supabaseAdmin
     .from("tasks")
     .select("*")
@@ -81,7 +118,18 @@ export async function listTasksImpl({ userId }: Ctx) {
   return { tasks: tasks ?? [], mySubmissions: mine ?? [] };
 }
 
+export async function myTasksImpl({ userId }: Ctx) {
+  await expireStaleClaims();
+  const { data } = await supabaseAdmin
+    .from("submissions")
+    .select("*, tasks(*)")
+    .eq("user_id", userId)
+    .order("claimed_at", { ascending: false });
+  return { items: data ?? [] };
+}
+
 export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
+  await expireStaleClaims();
   const { data: task, error } = await supabaseAdmin
     .from("tasks")
     .select("*")
@@ -96,6 +144,7 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
     task_id: task.id,
     user_id: userId,
     reward_coins: task.reward_coins,
+    expires_at: new Date(Date.now() + CLAIM_MINUTES * 60_000).toISOString(),
   });
   if (insErr) throw new Error("Already claimed");
 
@@ -108,6 +157,7 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
     .eq("id", task.id);
   return { ok: true };
 }
+
 
 export async function submitProofImpl(
   { userId }: Ctx,
