@@ -1,4 +1,11 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  DEPOSIT_PACKS,
+  WITHDRAW_PACKS,
+  CLAIM_MINUTES,
+  payableAmount,
+  TASK_CATEGORIES,
+} from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
 export const MIN_DEPOSIT_COINS = 1000;
@@ -7,7 +14,12 @@ export const MIN_TASK_REWARD = 50;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.02;
 
+const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
+const normalizeCategory = (c: string | undefined) =>
+  c && VALID_CATEGORIES.includes(c) ? c : "other";
+
 type Ctx = { userId: string };
+
 
 export async function isAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -56,7 +68,44 @@ export async function meImpl({ userId }: Ctx) {
   return { profile, isAdmin: await isAdmin(userId), settings: map };
 }
 
+/** Release reservations that were not submitted within CLAIM_MINUTES. */
+export async function expireStaleClaims() {
+  const { data: stale } = await supabaseAdmin
+    .from("submissions")
+    .select("id, task_id")
+    .eq("status", "pending")
+    .is("submitted_at", null)
+    .not("expires_at", "is", null)
+    .lt("expires_at", new Date().toISOString());
+
+  if (!stale?.length) return;
+
+  await supabaseAdmin
+    .from("submissions")
+    .delete()
+    .in(
+      "id",
+      stale.map((s) => s.id),
+    );
+
+  for (const taskId of [...new Set(stale.map((s) => s.task_id))]) {
+    const freed = stale.filter((s) => s.task_id === taskId).length;
+    const { data: task } = await supabaseAdmin
+      .from("tasks")
+      .select("claimed_count, total_slots")
+      .eq("id", taskId)
+      .maybeSingle();
+    if (!task) continue;
+    const next = Math.max(0, task.claimed_count - freed);
+    await supabaseAdmin
+      .from("tasks")
+      .update({ claimed_count: next, active: next < task.total_slots })
+      .eq("id", taskId);
+  }
+}
+
 export async function listTasksImpl({ userId }: Ctx) {
+  await expireStaleClaims();
   const { data: tasks } = await supabaseAdmin
     .from("tasks")
     .select("*")
@@ -69,7 +118,18 @@ export async function listTasksImpl({ userId }: Ctx) {
   return { tasks: tasks ?? [], mySubmissions: mine ?? [] };
 }
 
+export async function myTasksImpl({ userId }: Ctx) {
+  await expireStaleClaims();
+  const { data } = await supabaseAdmin
+    .from("submissions")
+    .select("*, tasks(*)")
+    .eq("user_id", userId)
+    .order("claimed_at", { ascending: false });
+  return { items: data ?? [] };
+}
+
 export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
+  await expireStaleClaims();
   const { data: task, error } = await supabaseAdmin
     .from("tasks")
     .select("*")
@@ -84,6 +144,7 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
     task_id: task.id,
     user_id: userId,
     reward_coins: task.reward_coins,
+    expires_at: new Date(Date.now() + CLAIM_MINUTES * 60_000).toISOString(),
   });
   if (insErr) throw new Error("Already claimed");
 
@@ -96,6 +157,7 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
     .eq("id", task.id);
   return { ok: true };
 }
+
 
 export async function submitProofImpl(
   { userId }: Ctx,
@@ -123,6 +185,7 @@ export async function createUserTaskImpl(
     link: string;
     rewardCoins: number;
     totalSlots: number;
+    category?: string;
   },
 ) {
   if (data.rewardCoins < MIN_TASK_REWARD)
@@ -139,6 +202,7 @@ export async function createUserTaskImpl(
     total_slots: data.totalSlots,
     created_by: userId,
     is_admin_task: false,
+    category: normalizeCategory(data.category),
   });
   if (error) {
     await addCoins(userId, total);
@@ -149,38 +213,45 @@ export async function createUserTaskImpl(
 
 export async function createDepositImpl(
   { userId }: Ctx,
-  data: { coins: number; utr: string },
+  data: { rupees: number; utr: string; proofPath?: string | undefined },
 ) {
-  if (data.coins < MIN_DEPOSIT_COINS)
-    throw new Error(`Minimum deposit is ${MIN_DEPOSIT_COINS} coins`);
-  const amount = Number(((data.coins / COINS_PER_RUPEE) * (1 + DEPOSIT_TAX)).toFixed(2));
-  const { error } = await supabaseAdmin
-    .from("deposits")
-    .insert({ user_id: userId, coins: data.coins, amount_inr: amount, utr: data.utr });
+  const pack = DEPOSIT_PACKS.find((p) => p.rupees === data.rupees);
+  if (!pack) throw new Error("Please choose a valid coin pack");
+  const amount = payableAmount(pack.rupees);
+  const { error } = await supabaseAdmin.from("deposits").insert({
+    user_id: userId,
+    coins: pack.coins,
+    amount_inr: amount,
+    utr: data.utr,
+    proof_url: data.proofPath ?? null,
+  });
   if (error) throw error;
-  return { amount };
+  return { amount, coins: pack.coins };
 }
 
 export async function createWithdrawalImpl(
   { userId }: Ctx,
-  data: { coins: number; method: string; payoutDetail: string },
+  data: { rupees: number; method: string; payoutDetail: string },
 ) {
-  if (data.coins < MIN_WITHDRAW_COINS)
+  const pack = WITHDRAW_PACKS.find((p) => p.rupees === data.rupees);
+  if (!pack) throw new Error("Please choose a valid withdrawal amount");
+  if (pack.coins < MIN_WITHDRAW_COINS)
     throw new Error(`You can withdraw after reaching ${MIN_WITHDRAW_COINS} coins`);
-  const amount = Number((data.coins / COINS_PER_RUPEE).toFixed(2));
-  await addCoins(userId, -data.coins);
+  const amount = Number(pack.rupees.toFixed(2));
+  await addCoins(userId, -pack.coins);
   const { error } = await supabaseAdmin.from("withdrawals").insert({
     user_id: userId,
-    coins: data.coins,
+    coins: pack.coins,
     amount_inr: amount,
     method: data.method,
     payout_detail: data.payoutDetail,
   });
   if (error) {
-    await addCoins(userId, data.coins);
+    await addCoins(userId, pack.coins);
     throw error;
   }
   return { amount };
+
 }
 
 export async function walletImpl({ userId }: Ctx) {
@@ -244,6 +315,7 @@ export async function adminCreateTaskImpl(
     link: string;
     rewardCoins: number;
     totalSlots: number;
+    category?: string;
   },
 ) {
   await requireAdmin(userId);
@@ -255,7 +327,9 @@ export async function adminCreateTaskImpl(
     total_slots: data.totalSlots,
     created_by: userId,
     is_admin_task: true,
+    category: normalizeCategory(data.category),
   });
+
   if (error) throw error;
   return { ok: true };
 }

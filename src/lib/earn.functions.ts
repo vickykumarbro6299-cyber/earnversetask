@@ -31,6 +31,13 @@ export const submitProof = createServerFn({ method: "POST" })
     return m.submitProofImpl({ userId: context.userId }, data);
   });
 
+export const listMyTasks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.myTasksImpl({ userId: context.userId });
+  });
+
 export const createUserTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -40,6 +47,7 @@ export const createUserTask = createServerFn({ method: "POST" })
       link: string;
       rewardCoins: number;
       totalSlots: number;
+      category?: string;
     }) => d,
   )
   .handler(async ({ context, data }) => {
@@ -49,7 +57,7 @@ export const createUserTask = createServerFn({ method: "POST" })
 
 export const createDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { coins: number; utr: string }) => d)
+  .inputValidator((d: { rupees: number; utr: string; proofPath?: string | undefined }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.createDepositImpl({ userId: context.userId }, data);
@@ -57,11 +65,12 @@ export const createDeposit = createServerFn({ method: "POST" })
 
 export const createWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { coins: number; method: string; payoutDetail: string }) => d)
+  .inputValidator((d: { rupees: number; method: string; payoutDetail: string }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.createWithdrawalImpl({ userId: context.userId }, data);
   });
+
 
 export const getWallet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -94,8 +103,10 @@ export const adminCreateTask = createServerFn({ method: "POST" })
       link: string;
       rewardCoins: number;
       totalSlots: number;
+      category?: string;
     }) => d,
   )
+
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.adminCreateTaskImpl({ userId: context.userId }, data);

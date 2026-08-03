@@ -1,11 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ListChecks, Wallet, User } from "lucide-react";
+import { ListChecks, Wallet, User, ClipboardCheck } from "lucide-react";
 
 const items = [
   { to: "/tasks", label: "Tasks", Icon: ListChecks },
+  { to: "/my-tasks", label: "My Tasks", Icon: ClipboardCheck },
   { to: "/wallet", label: "Wallet", Icon: Wallet },
   { to: "/profile", label: "Profile", Icon: User },
 ] as const;
+
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

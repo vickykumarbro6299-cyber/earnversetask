@@ -3,14 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Clock, CheckCircle2, XCircle, Upload, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { listTasks, claimTask, submitProof, createUserTask } from "@/lib/earn.functions";
-import { MIN_TASK_REWARD, TASK_PLATFORM_FEE } from "@/lib/earn-constants";
+import { listTasks, claimTask, createUserTask } from "@/lib/earn.functions";
+import {
+  MIN_TASK_REWARD,
+  TASK_PLATFORM_FEE,
+  TASK_CATEGORIES,
+  CLAIM_MINUTES,
+} from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
@@ -19,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/tasks")({
       {
         name: "description",
         content:
-          "Claim limited tasks, submit your proof screenshot and get coins credited after admin approval.",
+          "Claim video, Gmail and app tasks, submit your proof screenshot and get coins credited after admin approval.",
       },
       { property: "og:title", content: "Tasks — Earn Coins on EarnVerse" },
       { property: "og:description", content: "Claim tasks, submit proof, earn coins." },
@@ -28,6 +32,15 @@ export const Route = createFileRoute("/_authenticated/tasks")({
   component: TasksPage,
 });
 
+const CAT_ICON: Record<string, typeof Video> = {
+  video: Video,
+  gmail: Mail,
+  app: Smartphone,
+  other: Sparkles,
+};
+
+const FILTERS = [{ key: "all", label: "All" }, ...TASK_CATEGORIES];
+
 function TasksPage() {
   const me = useMe();
   const refresh = useRefreshAll();
@@ -35,18 +48,20 @@ function TasksPage() {
   const claimFn = useServerFn(claimTask);
   const tasksQ = useQuery({ queryKey: ["tasks"], queryFn: () => listFn() });
   const [showAdd, setShowAdd] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
   const [busy, setBusy] = useState<string | null>(null);
 
   const coins = me.data?.profile?.coins ?? 0;
-  const tasks = tasksQ.data?.tasks ?? [];
+  const allTasks = tasksQ.data?.tasks ?? [];
   const subs = tasksQ.data?.mySubmissions ?? [];
-  const subFor = (taskId: string) => subs.find((s) => s.task_id === taskId);
+  const claimedIds = new Set(subs.map((s) => s.task_id));
+  const tasks = allTasks.filter((t) => filter === "all" || t.category === filter);
 
   async function onClaim(taskId: string) {
     setBusy(taskId);
     try {
       await claimFn({ data: { taskId } });
-      toast.success("Task claimed! Complete it and upload proof.");
+      toast.success(`Task reserved for you • finish it within ${CLAIM_MINUTES} minutes`);
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not claim task");
@@ -56,18 +71,44 @@ function TasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-28">
       <TopBar coins={coins} name={me.data?.profile?.name ?? ""} />
 
       <main className="mx-auto max-w-md px-4 pt-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold text-foreground">Available Tasks</h2>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1 rounded-full bg-gradient-purple px-3 py-2 text-sm font-bold text-primary-foreground shadow-card active:scale-95"
-          >
-            <Plus className="h-4 w-4" /> Add Task
-          </button>
+        <section className="rounded-2xl bg-gradient-purple p-4 shadow-pop">
+          <p className="text-xs font-bold uppercase tracking-wide text-primary-foreground/70">
+            Today&apos;s pulse
+          </p>
+          <div className="mt-1 flex items-end justify-between">
+            <div>
+              <p className="text-2xl font-extrabold text-primary-foreground">
+                {allTasks.length} tasks live
+              </p>
+              <p className="text-sm text-primary-foreground/80">
+                Claim • Complete in {CLAIM_MINUTES} min • Get paid
+              </p>
+            </div>
+            <span className="flex items-center gap-1 rounded-full bg-gold/25 px-3 py-1.5 text-sm font-extrabold text-gold">
+              <CoinIcon className="h-6 w-6" />
+              {coins}
+            </span>
+          </div>
+        </section>
+
+        <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition ${
+                filter === f.key
+                  ? "bg-gradient-brand text-primary-foreground shadow-card"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
         {tasksQ.isLoading && (
@@ -75,51 +116,41 @@ function TasksPage() {
         )}
         {!tasksQ.isLoading && tasks.length === 0 && (
           <p className="mt-10 text-center text-muted-foreground">
-            No tasks available right now. Check back soon.
+            No tasks in this category right now. Check back soon.
           </p>
         )}
 
         <div className="mt-4 space-y-3">
           {tasks.map((t) => {
-            const sub = subFor(t.id);
             const left = Math.max(0, t.total_slots - t.claimed_count);
+            const mine = claimedIds.has(t.id);
+            const Icon = CAT_ICON[t.category] ?? Sparkles;
+            const catLabel =
+              TASK_CATEGORIES.find((c) => c.key === t.category)?.label ?? "Task";
             return (
               <article key={t.id} className="rounded-2xl bg-card p-4 shadow-card">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-bold text-foreground">{t.title}</h3>
-                    {t.description && (
-                      <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
-                        {t.description}
-                      </p>
-                    )}
-                    {t.link && (
-                      <a
-                        href={t.link}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="mt-1 inline-block break-all text-sm font-semibold text-primary underline"
-                      >
-                        Open task link
-                      </a>
-                    )}
+                  <div className="flex min-w-0 gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-bold text-foreground">{t.title}</h3>
+                      <p className="text-xs font-semibold text-muted-foreground">{catLabel}</p>
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <span className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-sm font-bold text-secondary-foreground">
                       <CoinIcon className="h-5 w-5" />
                       {t.reward_coins}
                     </span>
-                    {!sub ? (
-                      <button
-                        disabled={left === 0 || busy === t.id}
-                        onClick={() => onClaim(t.id)}
-                        className="rounded-xl bg-gradient-brand px-4 py-2 text-sm font-bold text-primary-foreground shadow-card active:scale-95 disabled:opacity-50"
-                      >
-                        {left === 0 ? "Full" : busy === t.id ? "…" : "Claim"}
-                      </button>
-                    ) : (
-                      <StatusPill sub={sub} />
-                    )}
+                    <button
+                      disabled={left === 0 || mine || busy === t.id}
+                      onClick={() => onClaim(t.id)}
+                      className="rounded-xl bg-gradient-brand px-4 py-2 text-sm font-bold text-primary-foreground shadow-card active:scale-95 disabled:opacity-50"
+                    >
+                      {mine ? "Claimed" : left === 0 ? "Full" : busy === t.id ? "…" : "Claim"}
+                    </button>
                   </div>
                 </div>
 
@@ -132,99 +163,33 @@ function TasksPage() {
                     </span>
                   )}
                 </div>
-
-                {sub && sub.status === "pending" && !sub.submitted_at && (
-                  <ProofForm submissionId={sub.id} onDone={refresh} />
-                )}
               </article>
             );
           })}
         </div>
+
+        <section className="mt-6 rounded-2xl bg-gradient-brand p-4 shadow-pop">
+          <div className="flex items-center gap-2">
+            <Megaphone className="h-5 w-5 text-primary-foreground" />
+            <h3 className="text-lg font-extrabold text-primary-foreground">
+              Promote Your Platform
+            </h3>
+          </div>
+          <p className="mt-1 text-sm text-primary-foreground/85">
+            Post your own task and get real users to complete it. Minimum {MIN_TASK_REWARD} coins
+            reward, 2% platform fee.
+          </p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-card py-3 font-extrabold text-primary active:scale-95"
+          >
+            <Plus className="h-4 w-4" /> Add Your Task
+          </button>
+        </section>
       </main>
 
       {showAdd && <AddTaskSheet coins={coins} onClose={() => setShowAdd(false)} onDone={refresh} />}
       <BottomNav />
-    </div>
-  );
-}
-
-function StatusPill({ sub }: { sub: { status: string; submitted_at: string | null } }) {
-  if (sub.status === "approved")
-    return (
-      <span className="flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-xs font-bold text-success">
-        <CheckCircle2 className="h-3.5 w-3.5" /> Approved
-      </span>
-    );
-  if (sub.status === "rejected")
-    return (
-      <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-bold text-destructive">
-        <XCircle className="h-3.5 w-3.5" /> Rejected
-      </span>
-    );
-  return (
-    <span className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-accent-foreground">
-      <Clock className="h-3.5 w-3.5" /> {sub.submitted_at ? "In verification" : "Claimed"}
-    </span>
-  );
-}
-
-function ProofForm({ submissionId, onDone }: { submissionId: string; onDone: () => void }) {
-  const submitFn = useServerFn(submitProof);
-  const [file, setFile] = useState<File | null>(null);
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function upload() {
-    if (!file) {
-      toast.error("Select a proof screenshot");
-      return;
-    }
-    setBusy(true);
-    try {
-
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) throw new Error("Session expired");
-      const ext = file.name.split(".").pop() ?? "png";
-      const path = `${uid}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("proofs").upload(path, file);
-      if (error) throw error;
-      await submitFn({ data: { submissionId, proofPath: path, note: note.slice(0, 300) } });
-      toast.success("Proof submitted — waiting for admin verification");
-      onDone();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="mt-3 space-y-2 rounded-xl bg-muted p-3">
-      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground">
-        <Upload className="h-4 w-4" />
-        {file ? file.name.slice(0, 28) : "Choose proof screenshot"}
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        maxLength={300}
-        placeholder="Note (optional)"
-        className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none"
-      />
-      <button
-        onClick={upload}
-        disabled={busy}
-        className="w-full rounded-lg bg-gradient-brand py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
-      >
-        {busy ? "Submitting…" : "Submit Proof"}
-      </button>
     </div>
   );
 }
@@ -245,6 +210,7 @@ function AddTaskSheet({
     link: "",
     rewardCoins: MIN_TASK_REWARD,
     totalSlots: 1,
+    category: "other" as string,
   });
   const [busy, setBusy] = useState(false);
   const base = form.rewardCoins * form.totalSlots;
@@ -275,11 +241,27 @@ function AddTaskSheet({
         className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-extrabold">Add Your Task</h3>
+        <h3 className="text-lg font-extrabold">Promote Your Platform</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Minimum {MIN_TASK_REWARD} coins reward. 2% platform fee applies.
         </p>
         <form onSubmit={submit} className="mt-4 space-y-3">
+          <div className="grid grid-cols-4 gap-2">
+            {TASK_CATEGORIES.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setForm({ ...form, category: c.key })}
+                className={`rounded-xl px-2 py-2 text-xs font-bold ${
+                  form.category === c.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {c.label.replace(" Task", "")}
+              </button>
+            ))}
+          </div>
           <input
             className={input}
             placeholder="Task title"
@@ -290,8 +272,8 @@ function AddTaskSheet({
           />
           <textarea
             className={input}
-            placeholder="What should the user do?"
-            rows={3}
+            placeholder="Full instructions — how should the user complete this task?"
+            rows={4}
             maxLength={600}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
