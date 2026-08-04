@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Eye } from "lucide-react";
+import { ArrowLeft, Check, X, Eye, KeyRound } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import {
   getAdminData,
@@ -13,9 +13,11 @@ import {
   adminReviewDeposit,
   adminReviewWithdrawal,
   adminUpdateSettings,
+  adminSetUserPassword,
   getProofUrl,
 } from "@/lib/earn.functions";
 import { MIN_TASK_REWARD } from "@/lib/earn-constants";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
