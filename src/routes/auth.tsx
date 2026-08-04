@@ -174,13 +174,8 @@ function AuthPage() {
               disabled={loading}
               className="mt-2 w-full rounded-2xl bg-gradient-purple py-3.5 text-base font-extrabold text-primary-foreground shadow-pop transition active:scale-[0.98] disabled:opacity-60"
             >
-              {loading
-                ? "Please wait…"
-                : mode === "signin"
-                  ? "Sign In"
-                  : mode === "signup"
-                    ? "Create Account"
-                    : "Send Reset Link"}
+              {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
+
             </button>
           </form>
 
