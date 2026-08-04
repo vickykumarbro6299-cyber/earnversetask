@@ -100,7 +100,7 @@ function AdminPage() {
                 sub={`${s.user?.name ?? "User"} • ${s.user?.email ?? ""} • ${s.reward_coins} coins`}
                 note={s.note}
                 status={s.status}
-                extra={<ProofButton path={s.proof_path} />}
+                extra={<ProofButton path={s.proof_url} />}
                 onApprove={() => review("submission", s.id, true)}
                 onReject={() => review("submission", s.id, false)}
               />
