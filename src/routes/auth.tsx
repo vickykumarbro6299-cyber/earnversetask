@@ -46,16 +46,8 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "forgot") {
-        if (!form.email.trim()) throw new Error("Enter your Gmail address");
-        const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        if (error) throw error;
-        toast.success("Password reset link sent. Check your inbox.");
-        setMode("signin");
-        return;
-      }
+      if (mode === "signup") {
+
 
       if (mode === "signup") {
         if (form.name.trim().length < 2) throw new Error("Please enter your name");
