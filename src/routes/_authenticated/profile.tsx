@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
 import { useMe } from "@/lib/use-earn";
-import { APP_VERSION, toRupees } from "@/lib/earn-constants";
+import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -128,13 +128,26 @@ function Item({
         {label}
         <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
       </summary>
-      <p className="px-4 pb-4 text-sm text-muted-foreground">
-        {label === "Contact Us"
-          ? "For any help write to support on the admin UPI contact or reply to your deposit request."
-          : label === "Delete Account"
+      {label === "Contact Us" ? (
+        <p className="px-4 pb-4 text-sm text-muted-foreground">
+          Join our Telegram channel for support and task updates:{" "}
+          <a
+            href={TELEGRAM_CHANNEL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="font-bold text-primary underline"
+          >
+            @EarnVerseTask
+          </a>
+        </p>
+      ) : (
+        <p className="px-4 pb-4 text-sm text-muted-foreground">
+          {label === "Delete Account"
             ? "To delete your account and all data, contact support from your registered email."
             : "EarnVerse coins have no cash value outside the platform. Complete tasks honestly; fake proofs get rejected and may lead to account suspension."}
-      </p>
+        </p>
+      )}
+
     </details>
   );
 }

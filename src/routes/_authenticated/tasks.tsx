@@ -13,8 +13,10 @@ import {
   MIN_TASK_REWARD,
   TASK_PLATFORM_FEE,
   TASK_CATEGORIES,
+  CATEGORY_MIN_REWARD,
   CLAIM_MINUTES,
 } from "@/lib/earn-constants";
+
 
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
