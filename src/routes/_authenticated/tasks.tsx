@@ -13,8 +13,10 @@ import {
   MIN_TASK_REWARD,
   TASK_PLATFORM_FEE,
   TASK_CATEGORIES,
+  CATEGORY_MIN_REWARD,
   CLAIM_MINUTES,
 } from "@/lib/earn-constants";
+
 
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
@@ -176,9 +178,11 @@ function TasksPage() {
             </h3>
           </div>
           <p className="mt-1 text-sm text-primary-foreground/85">
-            Post your own task and get real users to complete it. Minimum {MIN_TASK_REWARD} coins
-            reward, 2% platform fee.
+            Post your own task and get real users to complete it. Minimum reward: Video{" "}
+            {CATEGORY_MIN_REWARD["video"]}, Gmail {CATEGORY_MIN_REWARD["gmail"]}, App{" "}
+            {CATEGORY_MIN_REWARD["app"]} coins • {Math.round(TASK_PLATFORM_FEE * 100)}% platform fee.
           </p>
+
           <button
             onClick={() => setShowAdd(true)}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-card py-3 font-extrabold text-primary active:scale-95"
@@ -208,18 +212,31 @@ function AddTaskSheet({
     title: "",
     description: "",
     link: "",
-    rewardCoins: MIN_TASK_REWARD,
+    rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
     totalSlots: 1,
     category: "other" as string,
   });
   const [busy, setBusy] = useState(false);
+  const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
   const base = form.rewardCoins * form.totalSlots;
+  const feePct = Math.round(TASK_PLATFORM_FEE * 100);
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
+
+  function pickCategory(key: string) {
+    const min = CATEGORY_MIN_REWARD[key] ?? MIN_TASK_REWARD;
+    setForm((f) => ({
+      ...f,
+      category: key,
+      rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
+    }));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
+      if (form.rewardCoins < minReward)
+        throw new Error(`Minimum reward for this category is ${minReward} coins`);
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
       toast.success(`Task published • ${total} coins deducted`);
@@ -243,15 +260,17 @@ function AddTaskSheet({
       >
         <h3 className="text-lg font-extrabold">Promote Your Platform</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Minimum {MIN_TASK_REWARD} coins reward. 2% platform fee applies.
+          Minimum reward: Video {CATEGORY_MIN_REWARD["video"]} • Gmail {CATEGORY_MIN_REWARD["gmail"]}{" "}
+          • App {CATEGORY_MIN_REWARD["app"]} coins. {feePct}% platform fee applies.
         </p>
+
         <form onSubmit={submit} className="mt-4 space-y-3">
           <div className="grid grid-cols-4 gap-2">
             {TASK_CATEGORIES.map((c) => (
               <button
                 key={c.key}
                 type="button"
-                onClick={() => setForm({ ...form, category: c.key })}
+                onClick={() => pickCategory(c.key)}
                 className={`rounded-xl px-2 py-2 text-xs font-bold ${
                   form.category === c.key
                     ? "bg-primary text-primary-foreground"
@@ -287,11 +306,12 @@ function AddTaskSheet({
           />
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs font-semibold text-muted-foreground">
-              Reward coins
+              Reward coins (min {minReward})
               <input
                 type="number"
-                min={MIN_TASK_REWARD}
+                min={minReward}
                 className={input}
+
                 value={form.rewardCoins}
                 onChange={(e) => setForm({ ...form, rewardCoins: Number(e.target.value) })}
               />
@@ -308,7 +328,9 @@ function AddTaskSheet({
             </label>
           </div>
           <div className="rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
-            Total cost: {base} + 2% fee = <span className="text-primary">{total} coins</span>
+            Total cost: {base} + {feePct}% fee ={" "}
+            <span className="text-primary">{total} coins</span>
+
             <div className="text-xs font-medium text-muted-foreground">
               Your balance: {coins} coins
             </div>

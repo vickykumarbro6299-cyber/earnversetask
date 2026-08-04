@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand";
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "signup";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -46,18 +46,8 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "forgot") {
-        if (!form.email.trim()) throw new Error("Enter your Gmail address");
-        const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        if (error) throw error;
-        toast.success("Password reset link sent. Check your inbox.");
-        setMode("signin");
-        return;
-      }
-
       if (mode === "signup") {
+
         if (form.name.trim().length < 2) throw new Error("Please enter your name");
         if (!/^\d{10,15}$/.test(form.mobile.trim()))
           throw new Error("Enter a valid mobile number");
@@ -96,18 +86,12 @@ function AuthPage() {
     }
   }
 
-  const heading =
-    mode === "signup"
-      ? "Welcome to EarnVerse"
-      : mode === "forgot"
-        ? "Reset your password"
-        : "Good to see you again";
+  const heading = mode === "signup" ? "Welcome to EarnVerse" : "Good to see you again";
   const subheading =
     mode === "signup"
       ? "Create your account and get 50 coins instantly"
-      : mode === "forgot"
-        ? "We'll email you a secure reset link"
-        : "Sign in and continue earning coins daily";
+      : "Sign in and continue earning coins daily";
+
 
   return (
     <main className="min-h-screen bg-background pb-12">
@@ -121,32 +105,23 @@ function AuthPage() {
 
       <div className="mx-auto -mt-8 w-full max-w-md px-5">
         <div className="rounded-3xl bg-card p-5 shadow-pop">
-          {mode !== "forgot" ? (
-            <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
-              {(["signup", "signin"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`rounded-xl py-2.5 text-sm font-bold transition ${
-                    mode === m
-                      ? "bg-gradient-brand text-primary-foreground shadow-card"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {m === "signin" ? "Sign In" : "Create Account"}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setMode("signin")}
-              className="mb-4 flex items-center gap-1 text-sm font-bold text-primary"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to sign in
-            </button>
-          )}
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
+            {(["signup", "signin"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`rounded-xl py-2.5 text-sm font-bold transition ${
+                  mode === m
+                    ? "bg-gradient-brand text-primary-foreground shadow-card"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {m === "signin" ? "Sign In" : "Create Account"}
+              </button>
+            ))}
+          </div>
+
 
           <form onSubmit={onSubmit} className="space-y-3">
             {mode === "signup" && (
@@ -176,39 +151,31 @@ function AuthPage() {
               onChange={set("email")}
               maxLength={255}
             />
-            {mode !== "forgot" && (
-              <Field
-                icon={<Lock className="h-4 w-4" />}
-                type="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={set("password")}
-                maxLength={72}
-              />
-            )}
+            <Field
+              icon={<Lock className="h-4 w-4" />}
+              type="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={set("password")}
+              maxLength={72}
+            />
+
 
             {mode === "signin" && (
-              <button
-                type="button"
-                onClick={() => setMode("forgot")}
-                className="ml-auto block text-sm font-bold text-primary"
-              >
-                Forgot password?
-              </button>
+              <p className="text-xs font-medium text-muted-foreground">
+                Forgot your password? Contact us on Telegram @EarnVerseTask and the admin will reset
+                it for you.
+              </p>
             )}
+
 
             <button
               type="submit"
               disabled={loading}
               className="mt-2 w-full rounded-2xl bg-gradient-purple py-3.5 text-base font-extrabold text-primary-foreground shadow-pop transition active:scale-[0.98] disabled:opacity-60"
             >
-              {loading
-                ? "Please wait…"
-                : mode === "signin"
-                  ? "Sign In"
-                  : mode === "signup"
-                    ? "Create Account"
-                    : "Send Reset Link"}
+              {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
+
             </button>
           </form>
 

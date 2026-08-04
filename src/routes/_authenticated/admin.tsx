@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Eye } from "lucide-react";
+import { ArrowLeft, Check, X, Eye, KeyRound } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import {
   getAdminData,
@@ -13,9 +13,11 @@ import {
   adminReviewDeposit,
   adminReviewWithdrawal,
   adminUpdateSettings,
+  adminSetUserPassword,
   getProofUrl,
 } from "@/lib/earn.functions";
 import { MIN_TASK_REWARD } from "@/lib/earn-constants";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -100,7 +102,7 @@ function AdminPage() {
                 sub={`${s.user?.name ?? "User"} • ${s.user?.email ?? ""} • ${s.reward_coins} coins`}
                 note={s.note}
                 status={s.status}
-                extra={<ProofButton path={s.proof_path} />}
+                extra={<ProofButton path={s.proof_url} />}
                 onApprove={() => review("submission", s.id, true)}
                 onReject={() => review("submission", s.id, false)}
               />
@@ -151,19 +153,14 @@ function AdminPage() {
         {d && tab === "Users" && (
           <div className="mt-4 space-y-2">
             {d.users.map((u: any) => (
-              <div key={u.id} className="rounded-xl bg-card p-3 shadow-card">
-                <p className="font-bold">{u.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {u.email} • {u.mobile}
-                </p>
-                <p className="mt-1 text-sm font-bold text-primary">{u.coins} coins</p>
-              </div>
+              <UserRow key={u.id} user={u} />
             ))}
             {!d.users.length && (
               <p className="mt-8 text-center text-muted-foreground">No users yet.</p>
             )}
           </div>
         )}
+
 
         {d && tab === "Settings" && <SettingsTab settings={d.settings} onDone={refresh} />}
       </div>
@@ -441,5 +438,66 @@ function SettingsTab({
         {busy ? "Saving…" : "Save"}
       </button>
     </form>
+  );
+}
+
+function UserRow({ user }: { user: any }) {
+  const fn = useServerFn(adminSetUserPassword);
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="rounded-xl bg-card p-3 shadow-card">
+      <p className="font-bold">{user.name}</p>
+      <p className="text-sm text-muted-foreground">
+        {user.email} • {user.mobile}
+      </p>
+      <p className="mt-1 text-sm font-bold text-primary">{user.coins} coins</p>
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="mt-2 flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+      >
+        <KeyRound className="h-3.5 w-3.5" /> Change password
+      </button>
+
+      {open && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            try {
+              await fn({ data: { targetUserId: user.id, password } });
+              toast.success("Password updated");
+              setPassword("");
+              setOpen(false);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="mt-2 flex gap-2"
+        >
+          <input
+            className={inputClass}
+            type="text"
+            required
+            minLength={6}
+            maxLength={72}
+            placeholder="New password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            disabled={busy}
+            className="shrink-0 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
+          >
+            {busy ? "…" : "Save"}
+          </button>
+        </form>
+      )}
+    </div>
   );
 }

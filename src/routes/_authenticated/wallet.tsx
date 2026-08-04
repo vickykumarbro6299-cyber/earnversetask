@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
+import { UpiLogo, GooglePlayLogo } from "@/components/payment-logos";
+
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { getWallet, createDeposit, createWithdrawal } from "@/lib/earn.functions";
 import {
@@ -440,16 +442,24 @@ function WithdrawSheet({
               key={m}
               type="button"
               onClick={() => setMethod(m)}
-              className={`rounded-xl px-3 py-2.5 text-sm font-bold ${
+              className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-bold transition ${
                 method === m
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+                  ? "border-primary bg-secondary text-secondary-foreground shadow-pop"
+                  : "border-border bg-muted text-muted-foreground"
               }`}
             >
-              {m}
+              <span className="flex h-8 items-center justify-center rounded-md bg-card px-2">
+                {m === "UPI" ? (
+                  <UpiLogo className="h-6" />
+                ) : (
+                  <GooglePlayLogo className="h-6 w-6" />
+                )}
+              </span>
+              {m === "UPI" ? "UPI" : "Google Play Code"}
             </button>
           ))}
         </div>
+
         <div className="rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
           {pack ? (
             <>

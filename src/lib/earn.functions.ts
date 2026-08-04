@@ -151,3 +151,11 @@ export const adminUpdateSettings = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminUpdateSettingsImpl({ userId: context.userId }, data);
   });
+
+export const adminSetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { targetUserId: string; password: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminSetUserPasswordImpl({ userId: context.userId }, data);
+  });

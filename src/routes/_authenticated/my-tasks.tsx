@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Clock, CheckCircle2, XCircle, Upload, Hourglass } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Upload, Hourglass, PlayCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -146,7 +146,19 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
         </div>
       )}
 
+      {waiting && task?.link && (
+        <a
+          href={task.link}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-success py-2.5 text-sm font-extrabold text-success-foreground active:scale-95"
+        >
+          <PlayCircle className="h-4 w-4" /> Start Task
+        </a>
+      )}
+
       <div className="mt-3">
+
         {sub.status === "approved" ? (
           <span className="flex items-center gap-1 rounded-full bg-success/15 px-3 py-1.5 text-sm font-bold text-success">
             <CheckCircle2 className="h-4 w-4" /> Approved • coins credited

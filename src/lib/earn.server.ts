@@ -5,18 +5,20 @@ import {
   CLAIM_MINUTES,
   payableAmount,
   TASK_CATEGORIES,
+  CATEGORY_MIN_REWARD,
 } from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
 export const MIN_DEPOSIT_COINS = 1000;
-export const MIN_WITHDRAW_COINS = 1000;
-export const MIN_TASK_REWARD = 50;
+export const MIN_WITHDRAW_COINS = 1500;
+export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
-export const TASK_PLATFORM_FEE = 0.02;
+export const TASK_PLATFORM_FEE = 0.13;
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
 const normalizeCategory = (c: string | undefined) =>
   c && VALID_CATEGORIES.includes(c) ? c : "other";
+
 
 type Ctx = { userId: string };
 
@@ -188,12 +190,15 @@ export async function createUserTaskImpl(
     category?: string;
   },
 ) {
-  if (data.rewardCoins < MIN_TASK_REWARD)
-    throw new Error(`Minimum reward is ${MIN_TASK_REWARD} coins`);
+  const category = normalizeCategory(data.category);
+  const min = CATEGORY_MIN_REWARD[category] ?? MIN_TASK_REWARD;
+  if (data.rewardCoins < min)
+    throw new Error(`Minimum reward for this category is ${min} coins`);
   if (data.totalSlots < 1) throw new Error("At least 1 slot required");
   const base = data.rewardCoins * data.totalSlots;
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
   await addCoins(userId, -total);
+
   const { error } = await supabaseAdmin.from("tasks").insert({
     title: data.title,
     description: data.description,
@@ -202,7 +207,8 @@ export async function createUserTaskImpl(
     total_slots: data.totalSlots,
     created_by: userId,
     is_admin_task: false,
-    category: normalizeCategory(data.category),
+    category,
+
   });
   if (error) {
     await addCoins(userId, total);
@@ -434,4 +440,17 @@ export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
     .createSignedUrl(data.path, 60 * 10);
   if (error) throw error;
   return { url: signed.signedUrl };
+}
+
+export async function adminSetUserPasswordImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string; password: string },
+) {
+  await requireAdmin(userId);
+  if (data.password.length < 6) throw new Error("Password must be at least 6 characters");
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(data.targetUserId, {
+    password: data.password,
+  });
+  if (error) throw error;
+  return { ok: true };
 }
