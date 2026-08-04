@@ -207,7 +207,8 @@ export async function createUserTaskImpl(
     total_slots: data.totalSlots,
     created_by: userId,
     is_admin_task: false,
-    category: normalizeCategory(data.category),
+    category,
+
   });
   if (error) {
     await addCoins(userId, total);
