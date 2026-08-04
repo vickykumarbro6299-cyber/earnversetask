@@ -86,18 +86,12 @@ function AuthPage() {
     }
   }
 
-  const heading =
-    mode === "signup"
-      ? "Welcome to EarnVerse"
-      : mode === "forgot"
-        ? "Reset your password"
-        : "Good to see you again";
+  const heading = mode === "signup" ? "Welcome to EarnVerse" : "Good to see you again";
   const subheading =
     mode === "signup"
       ? "Create your account and get 50 coins instantly"
-      : mode === "forgot"
-        ? "We'll email you a secure reset link"
-        : "Sign in and continue earning coins daily";
+      : "Sign in and continue earning coins daily";
+
 
   return (
     <main className="min-h-screen bg-background pb-12">
