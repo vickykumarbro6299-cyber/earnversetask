@@ -1,12 +1,13 @@
 export const COINS_PER_RUPEE = 100;
 export const MIN_DEPOSIT_COINS = 1000;
-export const MIN_WITHDRAW_COINS = 1000;
-export const MIN_TASK_REWARD = 50;
+export const MIN_WITHDRAW_COINS = 1500;
+export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
-export const TASK_PLATFORM_FEE = 0.02;
+export const TASK_PLATFORM_FEE = 0.13;
 export const ADMIN_EMAIL = "trustmeiamjonathan12@gmail.com";
 export const APP_VERSION = "1.0.0";
 export const CLAIM_MINUTES = 10;
+export const TELEGRAM_CHANNEL = "https://t.me/EarnVerseTask";
 
 export const toRupees = (coins: number) => (coins / COINS_PER_RUPEE).toFixed(2);
 
@@ -23,8 +24,11 @@ export const DEPOSIT_PACKS: { rupees: number; coins: number }[] = [
 
 /** Fixed withdrawal packs — users can only withdraw these amounts. */
 export const WITHDRAW_PACKS: { rupees: number; coins: number }[] = [
-  10, 20, 30, 50, 100, 200, 500,
-].map((rupees) => ({ rupees, coins: rupees * COINS_PER_RUPEE }));
+  { coins: 1500, rupees: 10 },
+  { coins: 3000, rupees: 25 },
+  { coins: 5500, rupees: 50 },
+  { coins: 11000, rupees: 100 },
+];
 
 export const payableAmount = (rupees: number) =>
   Number((rupees * (1 + DEPOSIT_TAX)).toFixed(2));
@@ -36,4 +40,13 @@ export const TASK_CATEGORIES = [
   { key: "other", label: "Other" },
 ] as const;
 
+/** Minimum reward coins a user must offer per task category. */
+export const CATEGORY_MIN_REWARD: Record<string, number> = {
+  video: 20,
+  gmail: 2000,
+  app: 300,
+  other: 50,
+};
+
 export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
+
