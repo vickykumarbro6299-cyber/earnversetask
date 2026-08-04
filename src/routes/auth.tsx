@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand";
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "signup";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -105,32 +105,23 @@ function AuthPage() {
 
       <div className="mx-auto -mt-8 w-full max-w-md px-5">
         <div className="rounded-3xl bg-card p-5 shadow-pop">
-          {mode !== "forgot" ? (
-            <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
-              {(["signup", "signin"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`rounded-xl py-2.5 text-sm font-bold transition ${
-                    mode === m
-                      ? "bg-gradient-brand text-primary-foreground shadow-card"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {m === "signin" ? "Sign In" : "Create Account"}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setMode("signin")}
-              className="mb-4 flex items-center gap-1 text-sm font-bold text-primary"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to sign in
-            </button>
-          )}
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
+            {(["signup", "signin"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`rounded-xl py-2.5 text-sm font-bold transition ${
+                  mode === m
+                    ? "bg-gradient-brand text-primary-foreground shadow-card"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {m === "signin" ? "Sign In" : "Create Account"}
+              </button>
+            ))}
+          </div>
+
 
           <form onSubmit={onSubmit} className="space-y-3">
             {mode === "signup" && (
@@ -160,16 +151,15 @@ function AuthPage() {
               onChange={set("email")}
               maxLength={255}
             />
-            {mode !== "forgot" && (
-              <Field
-                icon={<Lock className="h-4 w-4" />}
-                type="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={set("password")}
-                maxLength={72}
-              />
-            )}
+            <Field
+              icon={<Lock className="h-4 w-4" />}
+              type="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={set("password")}
+              maxLength={72}
+            />
+
 
             {mode === "signin" && (
               <p className="text-xs font-medium text-muted-foreground">
