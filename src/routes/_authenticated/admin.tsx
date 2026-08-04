@@ -151,19 +151,14 @@ function AdminPage() {
         {d && tab === "Users" && (
           <div className="mt-4 space-y-2">
             {d.users.map((u: any) => (
-              <div key={u.id} className="rounded-xl bg-card p-3 shadow-card">
-                <p className="font-bold">{u.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {u.email} • {u.mobile}
-                </p>
-                <p className="mt-1 text-sm font-bold text-primary">{u.coins} coins</p>
-              </div>
+              <UserRow key={u.id} user={u} />
             ))}
             {!d.users.length && (
               <p className="mt-8 text-center text-muted-foreground">No users yet.</p>
             )}
           </div>
         )}
+
 
         {d && tab === "Settings" && <SettingsTab settings={d.settings} onDone={refresh} />}
       </div>
