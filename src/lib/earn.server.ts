@@ -5,18 +5,20 @@ import {
   CLAIM_MINUTES,
   payableAmount,
   TASK_CATEGORIES,
+  CATEGORY_MIN_REWARD,
 } from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
 export const MIN_DEPOSIT_COINS = 1000;
-export const MIN_WITHDRAW_COINS = 1000;
-export const MIN_TASK_REWARD = 50;
+export const MIN_WITHDRAW_COINS = 1500;
+export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
-export const TASK_PLATFORM_FEE = 0.02;
+export const TASK_PLATFORM_FEE = 0.13;
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
 const normalizeCategory = (c: string | undefined) =>
   c && VALID_CATEGORIES.includes(c) ? c : "other";
+
 
 type Ctx = { userId: string };
 
