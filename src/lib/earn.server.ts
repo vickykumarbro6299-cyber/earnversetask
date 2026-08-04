@@ -190,12 +190,15 @@ export async function createUserTaskImpl(
     category?: string;
   },
 ) {
-  if (data.rewardCoins < MIN_TASK_REWARD)
-    throw new Error(`Minimum reward is ${MIN_TASK_REWARD} coins`);
+  const category = normalizeCategory(data.category);
+  const min = CATEGORY_MIN_REWARD[category] ?? MIN_TASK_REWARD;
+  if (data.rewardCoins < min)
+    throw new Error(`Minimum reward for this category is ${min} coins`);
   if (data.totalSlots < 1) throw new Error("At least 1 slot required");
   const base = data.rewardCoins * data.totalSlots;
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
   await addCoins(userId, -total);
+
   const { error } = await supabaseAdmin.from("tasks").insert({
     title: data.title,
     description: data.description,
