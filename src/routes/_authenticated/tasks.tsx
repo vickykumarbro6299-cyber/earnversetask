@@ -208,18 +208,31 @@ function AddTaskSheet({
     title: "",
     description: "",
     link: "",
-    rewardCoins: MIN_TASK_REWARD,
+    rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
     totalSlots: 1,
     category: "other" as string,
   });
   const [busy, setBusy] = useState(false);
+  const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
   const base = form.rewardCoins * form.totalSlots;
+  const feePct = Math.round(TASK_PLATFORM_FEE * 100);
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
+
+  function pickCategory(key: string) {
+    const min = CATEGORY_MIN_REWARD[key] ?? MIN_TASK_REWARD;
+    setForm((f) => ({
+      ...f,
+      category: key,
+      rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
+    }));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
+      if (form.rewardCoins < minReward)
+        throw new Error(`Minimum reward for this category is ${minReward} coins`);
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
       toast.success(`Task published • ${total} coins deducted`);
@@ -243,8 +256,10 @@ function AddTaskSheet({
       >
         <h3 className="text-lg font-extrabold">Promote Your Platform</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Minimum {MIN_TASK_REWARD} coins reward. 2% platform fee applies.
+          Minimum reward: Video {CATEGORY_MIN_REWARD["video"]} • Gmail {CATEGORY_MIN_REWARD["gmail"]}{" "}
+          • App {CATEGORY_MIN_REWARD["app"]} coins. {feePct}% platform fee applies.
         </p>
+
         <form onSubmit={submit} className="mt-4 space-y-3">
           <div className="grid grid-cols-4 gap-2">
             {TASK_CATEGORIES.map((c) => (
