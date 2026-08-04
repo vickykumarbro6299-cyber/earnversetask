@@ -438,3 +438,64 @@ function SettingsTab({
     </form>
   );
 }
+
+function UserRow({ user }: { user: any }) {
+  const fn = useServerFn(adminSetUserPassword);
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="rounded-xl bg-card p-3 shadow-card">
+      <p className="font-bold">{user.name}</p>
+      <p className="text-sm text-muted-foreground">
+        {user.email} • {user.mobile}
+      </p>
+      <p className="mt-1 text-sm font-bold text-primary">{user.coins} coins</p>
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="mt-2 flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+      >
+        <KeyRound className="h-3.5 w-3.5" /> Change password
+      </button>
+
+      {open && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            try {
+              await fn({ data: { targetUserId: user.id, password } });
+              toast.success("Password updated");
+              setPassword("");
+              setOpen(false);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="mt-2 flex gap-2"
+        >
+          <input
+            className={inputClass}
+            type="text"
+            required
+            minLength={6}
+            maxLength={72}
+            placeholder="New password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            disabled={busy}
+            className="shrink-0 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
+          >
+            {busy ? "…" : "Save"}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
