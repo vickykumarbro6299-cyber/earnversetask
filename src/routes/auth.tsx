@@ -48,8 +48,6 @@ function AuthPage() {
     try {
       if (mode === "signup") {
 
-
-      if (mode === "signup") {
         if (form.name.trim().length < 2) throw new Error("Please enter your name");
         if (!/^\d{10,15}$/.test(form.mobile.trim()))
           throw new Error("Enter a valid mobile number");
