@@ -441,3 +441,16 @@ export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
   if (error) throw error;
   return { url: signed.signedUrl };
 }
+
+export async function adminSetUserPasswordImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string; password: string },
+) {
+  await requireAdmin(userId);
+  if (data.password.length < 6) throw new Error("Password must be at least 6 characters");
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(data.targetUserId, {
+    password: data.password,
+  });
+  if (error) throw error;
+  return { ok: true };
+}
