@@ -188,14 +188,12 @@ function AuthPage() {
             )}
 
             {mode === "signin" && (
-              <button
-                type="button"
-                onClick={() => setMode("forgot")}
-                className="ml-auto block text-sm font-bold text-primary"
-              >
-                Forgot password?
-              </button>
+              <p className="text-xs font-medium text-muted-foreground">
+                Forgot your password? Contact us on Telegram @EarnVerseTask and the admin will reset
+                it for you.
+              </p>
             )}
+
 
             <button
               type="submit"
