@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ListChecks, Wallet, User, ClipboardCheck } from "lucide-react";
+import { ListChecks, Wallet, User, ClipboardCheck, History } from "lucide-react";
 
 const items = [
   { to: "/tasks", label: "Tasks", Icon: ListChecks },
   { to: "/my-tasks", label: "My Tasks", Icon: ClipboardCheck },
   { to: "/wallet", label: "Wallet", Icon: Wallet },
+  { to: "/history", label: "History", Icon: History },
   { to: "/profile", label: "Profile", Icon: User },
 ] as const;
 
@@ -20,7 +21,7 @@ export function BottomNav() {
             <Link
               key={to}
               to={to}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-xs font-semibold transition-colors ${
+              className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold transition-colors ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >
