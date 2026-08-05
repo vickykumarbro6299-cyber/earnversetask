@@ -37,6 +37,7 @@ export const TASK_CATEGORIES = [
   { key: "video", label: "Video Task" },
   { key: "gmail", label: "Gmail Task" },
   { key: "app", label: "App Task" },
+  { key: "telegram", label: "Telegram Task" },
   { key: "other", label: "Other" },
 ] as const;
 
@@ -45,8 +46,24 @@ export const CATEGORY_MIN_REWARD: Record<string, number> = {
   video: 20,
   gmail: 2000,
   app: 300,
+  telegram: 10,
   other: 50,
 };
 
+/** Categories where a task link makes no sense. */
+export const NO_LINK_CATEGORIES = ["gmail"];
+
+/** Fixed instructions auto-filled for Video tasks. */
+export const VIDEO_TASK_DESCRIPTION = `1. Click on Start Task
+2. Watch Video Atleast 2 Minutes
+3. Like Comment Subscribe The Channel
+4. Task Screenshot And Submit
+
+Note: Submitting before 2 minutes will be marked as a failed submission.`;
+
+/** Video tasks must be watched for at least this long before proof is accepted. */
+export const VIDEO_MIN_WATCH_SECONDS = 120;
+
 export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
+
 
