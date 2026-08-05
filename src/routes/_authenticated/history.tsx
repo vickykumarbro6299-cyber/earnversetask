@@ -60,13 +60,13 @@ function HistoryPage() {
           <div className="rounded-2xl bg-card p-4 shadow-card">
             <p className="text-xs font-bold uppercase text-muted-foreground">Total withdrawn</p>
             <p className="mt-1 text-2xl font-extrabold text-success">
-              ₹{toRupees((q.data?.totalWithdrawn ?? 0) * 0)}
-              <span className="sr-only">placeholder</span>
-            </p>
-            <p className="-mt-8 text-2xl font-extrabold text-success">
               {q.data?.totalWithdrawn ?? 0} coins
             </p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              ₹{toRupees(q.data?.totalWithdrawn ?? 0)} value
+            </p>
           </div>
+
         </div>
 
         {q.isLoading && <p className="mt-8 text-center text-muted-foreground">Loading…</p>}
