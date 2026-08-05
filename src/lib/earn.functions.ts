@@ -38,6 +38,13 @@ export const listMyTasks = createServerFn({ method: "GET" })
     return m.myTasksImpl({ userId: context.userId });
   });
 
+export const getEarningHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.earningHistoryImpl({ userId: context.userId });
+  });
+
 export const createUserTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -138,7 +145,7 @@ export const adminReviewDeposit = createServerFn({ method: "POST" })
 
 export const adminReviewWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; approve: boolean }) => d)
+  .inputValidator((d: { id: string; approve: boolean; note?: string | undefined }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.adminReviewWithdrawalImpl({ userId: context.userId }, data);

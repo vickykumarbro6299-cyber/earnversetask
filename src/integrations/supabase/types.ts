@@ -207,6 +207,7 @@ export type Database = {
       }
       withdrawals: {
         Row: {
+          admin_note: string | null
           amount_inr: number
           coins: number
           created_at: string
@@ -218,6 +219,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_note?: string | null
           amount_inr: number
           coins: number
           created_at?: string
@@ -229,6 +231,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_note?: string | null
           amount_inr?: number
           coins?: number
           created_at?: string

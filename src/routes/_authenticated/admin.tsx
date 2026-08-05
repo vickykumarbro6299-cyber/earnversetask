@@ -16,7 +16,13 @@ import {
   adminSetUserPassword,
   getProofUrl,
 } from "@/lib/earn.functions";
-import { MIN_TASK_REWARD } from "@/lib/earn-constants";
+import {
+  MIN_TASK_REWARD,
+  TASK_CATEGORIES,
+  CATEGORY_MIN_REWARD,
+  NO_LINK_CATEGORIES,
+  VIDEO_TASK_DESCRIPTION,
+} from "@/lib/earn-constants";
 
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -135,14 +141,12 @@ function AdminPage() {
             empty="No withdrawal requests."
             items={d.withdrawals}
             render={(x: any) => (
-              <Card
+              <WithdrawalCard
                 key={x.id}
-                title={`${x.coins} coins • ₹${x.amount_inr} • ${x.method}`}
-                sub={`${x.user?.name ?? "User"} • ${x.user?.email ?? ""}`}
-                note={`Payout: ${x.payout_detail}`}
-                status={x.status}
-                onApprove={() => review("withdrawal", x.id, true)}
-                onReject={() => review("withdrawal", x.id, false)}
+                item={x}
+                onReview={(approve, adminNote) =>
+                  review("withdrawal", x.id, approve, adminNote)
+                }
               />
             )}
           />
@@ -167,12 +171,22 @@ function AdminPage() {
     </div>
   );
 
-  async function review(kind: "submission" | "deposit" | "withdrawal", id: string, approve: boolean) {
+  async function review(
+    kind: "submission" | "deposit" | "withdrawal",
+    id: string,
+    approve: boolean,
+    adminNote?: string,
+  ) {
     try {
+      if (kind === "withdrawal") {
+        await adminReviewWithdrawal({ data: { id, approve, note: adminNote ?? "" } });
+        toast.success(approve ? "Approved" : "Rejected");
+        refresh();
+        return;
+      }
       const map = {
         submission: adminReviewSubmission,
         deposit: adminReviewDeposit,
-        withdrawal: adminReviewWithdrawal,
       } as const;
       await map[kind]({ data: { id, approve } });
       toast.success(approve ? "Approved" : "Rejected");
@@ -181,6 +195,73 @@ function AdminPage() {
       toast.error(e instanceof Error ? e.message : "Action failed");
     }
   }
+}
+
+function WithdrawalCard({
+  item,
+  onReview,
+}: {
+  item: any;
+  onReview: (approve: boolean, note: string) => void;
+}) {
+  const [note, setNote] = useState("");
+  const pending = item.status === "pending";
+  return (
+    <div className="rounded-2xl bg-card p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-bold">
+            {item.coins} coins • ₹{item.amount_inr} • {item.method}
+          </p>
+          <p className="truncate text-sm text-muted-foreground">
+            {item.user?.name ?? "User"} • {item.user?.email ?? ""}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Payout: {item.payout_detail}</p>
+          {item.admin_note && (
+            <p className="mt-1 text-sm font-semibold text-foreground">Note: {item.admin_note}</p>
+          )}
+        </div>
+        <span
+          className={`rounded-full px-2 py-1 text-xs font-bold capitalize ${
+            item.status === "approved"
+              ? "bg-success/15 text-success"
+              : item.status === "rejected"
+                ? "bg-destructive/15 text-destructive"
+                : "bg-accent text-accent-foreground"
+          }`}
+        >
+          {item.status}
+        </span>
+      </div>
+
+      {pending && (
+        <div className="mt-3 space-y-2">
+          <textarea
+            className={inputClass}
+            rows={2}
+            maxLength={300}
+            placeholder="Note for user (shown in their withdrawal history)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => onReview(true, note)}
+              className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-success py-2.5 text-sm font-bold text-success-foreground active:scale-95"
+            >
+              <Check className="h-4 w-4" /> Approve
+            </button>
+            <button
+              onClick={() => onReview(false, note)}
+              className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-destructive py-2.5 text-sm font-bold text-destructive-foreground active:scale-95"
+            >
+              <X className="h-4 w-4" /> Reject
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Center({ children }: { children: React.ReactNode }) {
@@ -297,6 +378,7 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
     link: "",
     rewardCoins: MIN_TASK_REWARD,
     totalSlots: 10,
+    category: "other" as string,
   });
   const [busy, setBusy] = useState(false);
 
@@ -320,6 +402,38 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
         className="space-y-3 rounded-2xl bg-card p-4 shadow-card"
       >
         <h3 className="font-extrabold">Add Official Task</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {TASK_CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() =>
+                setForm((f) => ({
+                  ...f,
+                  category: c.key,
+                  rewardCoins:
+                    f.rewardCoins < (CATEGORY_MIN_REWARD[c.key] ?? MIN_TASK_REWARD)
+                      ? (CATEGORY_MIN_REWARD[c.key] ?? MIN_TASK_REWARD)
+                      : f.rewardCoins,
+                  link: NO_LINK_CATEGORIES.includes(c.key) ? "" : f.link,
+                  description:
+                    c.key === "video"
+                      ? VIDEO_TASK_DESCRIPTION
+                      : f.description === VIDEO_TASK_DESCRIPTION
+                        ? ""
+                        : f.description,
+                }))
+              }
+              className={`rounded-xl px-2 py-2 text-xs font-bold ${
+                form.category === c.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {c.label.replace(" Task", "")}
+            </button>
+          ))}
+        </div>
         <input
           className={inputClass}
           required
@@ -336,13 +450,15 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
-        <input
-          className={inputClass}
-          maxLength={300}
-          placeholder="Task link (optional)"
-          value={form.link}
-          onChange={(e) => setForm({ ...form, link: e.target.value })}
-        />
+        {!NO_LINK_CATEGORIES.includes(form.category) && (
+          <input
+            className={inputClass}
+            maxLength={300}
+            placeholder="Task link"
+            value={form.link}
+            onChange={(e) => setForm({ ...form, link: e.target.value })}
+          />
+        )}
         <div className="grid grid-cols-2 gap-3">
           <input
             type="number"
