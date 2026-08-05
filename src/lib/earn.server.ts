@@ -6,6 +6,7 @@ import {
   payableAmount,
   TASK_CATEGORIES,
   CATEGORY_MIN_REWARD,
+  VIDEO_MIN_WATCH_SECONDS,
 } from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
@@ -165,6 +166,33 @@ export async function submitProofImpl(
   { userId }: Ctx,
   data: { submissionId: string; proofPath: string; note: string },
 ) {
+  const { data: sub, error: subErr } = await supabaseAdmin
+    .from("submissions")
+    .select("*, tasks(category)")
+    .eq("id", data.submissionId)
+    .eq("user_id", userId)
+    .single();
+  if (subErr) throw subErr;
+  if (sub.submitted_at) throw new Error("Already submitted");
+
+  const category = (sub.tasks as { category: string } | null)?.category;
+  const heldSeconds = (Date.now() - new Date(sub.claimed_at).getTime()) / 1000;
+  if (category === "video" && heldSeconds < VIDEO_MIN_WATCH_SECONDS) {
+    await supabaseAdmin
+      .from("submissions")
+      .update({
+        proof_url: data.proofPath,
+        note: data.note,
+        submitted_at: new Date().toISOString(),
+        status: "rejected",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.submissionId);
+    throw new Error(
+      "Failed submission — you must watch the video for at least 2 minutes before submitting proof",
+    );
+  }
+
   const { error } = await supabaseAdmin
     .from("submissions")
     .update({
@@ -177,6 +205,75 @@ export async function submitProofImpl(
     .eq("user_id", userId);
   if (error) throw error;
   return { ok: true };
+}
+
+/** Approved task earnings + deposits/withdrawals as one chronological ledger. */
+export async function earningHistoryImpl({ userId }: Ctx) {
+  const [subs, deps, wds] = await Promise.all([
+    supabaseAdmin
+      .from("submissions")
+      .select("id, reward_coins, status, reviewed_at, submitted_at, tasks(title, category)")
+      .eq("user_id", userId)
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false }),
+    supabaseAdmin
+      .from("deposits")
+      .select("id, coins, amount_inr, status, created_at")
+      .eq("user_id", userId),
+    supabaseAdmin
+      .from("withdrawals")
+      .select("id, coins, amount_inr, method, status, created_at, admin_note")
+      .eq("user_id", userId),
+  ]);
+
+  type Entry = {
+    id: string;
+    kind: "task" | "deposit" | "withdrawal";
+    title: string;
+    coins: number;
+    status: string;
+    date: string;
+    note: string | null;
+  };
+
+  const items: Entry[] = [
+    ...(subs.data ?? []).map((s) => ({
+      id: s.id,
+      kind: "task" as const,
+      title: (s.tasks as { title: string } | null)?.title ?? "Task",
+      coins: s.status === "approved" ? s.reward_coins : 0,
+      status: s.status,
+      date: s.reviewed_at ?? s.submitted_at ?? new Date().toISOString(),
+      note: null,
+    })),
+    ...(deps.data ?? []).map((d) => ({
+      id: d.id,
+      kind: "deposit" as const,
+      title: `Deposit • ₹${d.amount_inr}`,
+      coins: d.status === "approved" ? d.coins : 0,
+      status: d.status,
+      date: d.created_at,
+      note: null,
+    })),
+    ...(wds.data ?? []).map((w) => ({
+      id: w.id,
+      kind: "withdrawal" as const,
+      title: `Withdrawal • ${w.method} • ₹${w.amount_inr}`,
+      coins: w.status === "rejected" ? 0 : -w.coins,
+      status: w.status,
+      date: w.created_at,
+      note: w.admin_note ?? null,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const totalEarned = (subs.data ?? [])
+    .filter((s) => s.status === "approved")
+    .reduce((n, s) => n + s.reward_coins, 0);
+  const totalWithdrawn = (wds.data ?? [])
+    .filter((w) => w.status === "approved")
+    .reduce((n, w) => n + w.coins, 0);
+
+  return { items, totalEarned, totalWithdrawn };
 }
 
 export async function createUserTaskImpl(
@@ -397,7 +494,7 @@ export async function adminReviewDepositImpl(
 
 export async function adminReviewWithdrawalImpl(
   { userId }: Ctx,
-  data: { id: string; approve: boolean },
+  data: { id: string; approve: boolean; note?: string | undefined },
 ) {
   await requireAdmin(userId);
   const { data: wd, error } = await supabaseAdmin
@@ -413,6 +510,7 @@ export async function adminReviewWithdrawalImpl(
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
+      admin_note: data.note?.trim() ? data.note.trim() : null,
     })
     .eq("id", data.id);
   return { ok: true };
