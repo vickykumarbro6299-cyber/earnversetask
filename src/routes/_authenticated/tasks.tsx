@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles } from "lucide-react";
+import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles, Send } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
@@ -15,6 +15,8 @@ import {
   TASK_CATEGORIES,
   CATEGORY_MIN_REWARD,
   CLAIM_MINUTES,
+  NO_LINK_CATEGORIES,
+  VIDEO_TASK_DESCRIPTION,
 } from "@/lib/earn-constants";
 
 
@@ -38,6 +40,7 @@ const CAT_ICON: Record<string, typeof Video> = {
   video: Video,
   gmail: Mail,
   app: Smartphone,
+  telegram: Send,
   other: Sparkles,
 };
 
@@ -180,7 +183,8 @@ function TasksPage() {
           <p className="mt-1 text-sm text-primary-foreground/85">
             Post your own task and get real users to complete it. Minimum reward: Video{" "}
             {CATEGORY_MIN_REWARD["video"]}, Gmail {CATEGORY_MIN_REWARD["gmail"]}, App{" "}
-            {CATEGORY_MIN_REWARD["app"]} coins • {Math.round(TASK_PLATFORM_FEE * 100)}% platform fee.
+            {CATEGORY_MIN_REWARD["app"]}, Telegram {CATEGORY_MIN_REWARD["telegram"]} coins •{" "}
+            {Math.round(TASK_PLATFORM_FEE * 100)}% platform fee.
           </p>
 
           <button
@@ -228,6 +232,13 @@ function AddTaskSheet({
       ...f,
       category: key,
       rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
+      link: NO_LINK_CATEGORIES.includes(key) ? "" : f.link,
+      description:
+        key === "video"
+          ? VIDEO_TASK_DESCRIPTION
+          : f.description === VIDEO_TASK_DESCRIPTION
+            ? ""
+            : f.description,
     }));
   }
 
@@ -261,11 +272,12 @@ function AddTaskSheet({
         <h3 className="text-lg font-extrabold">Promote Your Platform</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Minimum reward: Video {CATEGORY_MIN_REWARD["video"]} • Gmail {CATEGORY_MIN_REWARD["gmail"]}{" "}
-          • App {CATEGORY_MIN_REWARD["app"]} coins. {feePct}% platform fee applies.
+          • App {CATEGORY_MIN_REWARD["app"]} • Telegram {CATEGORY_MIN_REWARD["telegram"]} coins.{" "}
+          {feePct}% platform fee applies.
         </p>
 
         <form onSubmit={submit} className="mt-4 space-y-3">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {TASK_CATEGORIES.map((c) => (
               <button
                 key={c.key}
@@ -289,6 +301,12 @@ function AddTaskSheet({
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
+          {form.category === "video" && (
+            <p className="rounded-lg bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground">
+              Video task rules are pre-filled. Users submitting before 2 minutes get a failed
+              submission.
+            </p>
+          )}
           <textarea
             className={input}
             placeholder="Full instructions — how should the user complete this task?"
@@ -297,13 +315,15 @@ function AddTaskSheet({
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
-          <input
-            className={input}
-            placeholder="Task link (optional)"
-            maxLength={300}
-            value={form.link}
-            onChange={(e) => setForm({ ...form, link: e.target.value })}
-          />
+          {!NO_LINK_CATEGORIES.includes(form.category) && (
+            <input
+              className={input}
+              placeholder="Task link"
+              maxLength={300}
+              value={form.link}
+              onChange={(e) => setForm({ ...form, link: e.target.value })}
+            />
+          )}
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs font-semibold text-muted-foreground">
               Reward coins (min {minReward})

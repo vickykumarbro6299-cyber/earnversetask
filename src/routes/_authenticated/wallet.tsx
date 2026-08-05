@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpFromLine, ReceiptText, Upload } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, ReceiptText, Upload, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -103,6 +103,7 @@ function WalletPage() {
                 sub={`${w.coins} coins → ₹${w.amount_inr}`}
                 status={w.status}
                 date={w.created_at}
+                note={w.admin_note}
               />
             ))}
             {(walletQ.data?.deposits ?? []).map((d) => (
@@ -158,12 +159,14 @@ function Row({
   sub,
   status,
   date,
+  note,
 }: {
   icon: React.ReactNode;
   title: string;
   sub: string;
   status: string;
   date: string;
+  note?: string | null;
 }) {
   const tone =
     status === "approved"
@@ -172,20 +175,52 @@ function Row({
         ? "bg-destructive/15 text-destructive"
         : "bg-accent text-accent-foreground";
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-card">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-primary">
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold">{title}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {sub} • {new Date(date).toLocaleDateString()}
-        </p>
+    <div className="rounded-xl bg-card p-3 shadow-card">
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-primary">
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">{title}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {sub} • {new Date(date).toLocaleDateString()}
+          </p>
+        </div>
+        <span className={`rounded-full px-2 py-1 text-xs font-bold capitalize ${tone}`}>
+          {status}
+        </span>
       </div>
-      <span className={`rounded-full px-2 py-1 text-xs font-bold capitalize ${tone}`}>
-        {status}
-      </span>
+      {note && (
+        <p className="mt-2 rounded-lg bg-muted p-2 text-xs font-semibold text-foreground">
+          Admin note: {note}
+        </p>
+      )}
     </div>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(value);
+        } catch {
+          toast.error("Could not copy");
+          return;
+        }
+        setCopied(true);
+        toast.success("UPI ID copied");
+        setTimeout(() => setCopied(false), 1800);
+      }}
+      aria-label="Copy UPI ID"
+      className="flex shrink-0 items-center gap-1 rounded-lg bg-gradient-brand px-3 py-2 text-xs font-extrabold text-primary-foreground active:scale-95"
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 
@@ -333,7 +368,12 @@ function DepositSheet({
           <h3 className="text-lg font-extrabold">Complete Payment</h3>
           <div className="mt-3 rounded-xl bg-secondary p-3">
             <p className="text-xs font-semibold text-muted-foreground">Pay to UPI ID</p>
-            <p className="select-all text-lg font-extrabold text-primary">{upi}</p>
+            <div className="flex items-center gap-2">
+              <p className="min-w-0 flex-1 select-all break-all text-lg font-extrabold text-primary">
+                {upi}
+              </p>
+              <CopyButton value={upi} />
+            </div>
             <p className="text-xs text-muted-foreground">{upiName}</p>
           </div>
           <div className="mt-3 space-y-1 rounded-xl bg-muted p-3 text-sm font-semibold">
