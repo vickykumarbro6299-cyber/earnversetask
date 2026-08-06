@@ -111,10 +111,58 @@ function ProfilePage() {
   );
 }
 
+function PromoRedeem() {
+  const fn = useServerFn(redeemPromo);
+  const refresh = useRefreshAll();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        try {
+          const r = await fn({ data: { code } });
+          toast.success(`Promo applied • ${r.coins} coins added`);
+          setCode("");
+          refresh();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Invalid promo code");
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className="mt-4 rounded-2xl bg-card p-4 shadow-card"
+    >
+      <h2 className="flex items-center gap-2 font-extrabold text-foreground">
+        <Ticket className="h-5 w-5 text-primary" /> Promo Code
+      </h2>
+      <div className="mt-2 flex gap-2">
+        <input
+          required
+          maxLength={30}
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="Enter code"
+          className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-bold outline-none focus:ring-2 ring-ring/40"
+        />
+        <button
+          disabled={busy}
+          className="shrink-0 rounded-xl bg-gradient-brand px-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "…" : "Redeem"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Item({
   icon,
   label,
   danger,
+
 }: {
   icon: React.ReactNode;
   label: string;
