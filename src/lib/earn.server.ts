@@ -152,8 +152,11 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
   if (existing?.length) {
     const open = existing.some((s) => !s.submitted_at || s.status === "pending");
     if (open) throw new Error("You already have this task in progress");
-    if (!task.allow_multiple) throw new Error("Already claimed");
+    // Rejected attempts are released — user can claim again.
+    if (!task.allow_multiple && existing.some((s) => s.status === "approved"))
+      throw new Error("Already claimed");
   }
+
 
   const { error: insErr } = await supabaseAdmin.from("submissions").insert({
     task_id: task.id,
