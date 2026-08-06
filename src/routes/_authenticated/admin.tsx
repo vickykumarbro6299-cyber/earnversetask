@@ -180,6 +180,10 @@ function AdminPage() {
         )}
 
 
+        {d && tab === "Overview" && <OverviewTab o={d.overview} />}
+
+        {d && tab === "Promo" && <PromoTab promos={d.promoCodes} onDone={refresh} />}
+
         {d && tab === "Settings" && <SettingsTab settings={d.settings} onDone={refresh} />}
       </div>
     </div>
