@@ -129,8 +129,12 @@ function TasksPage() {
         <div className="mt-4 space-y-3">
           {tasks.map((t) => {
             const left = Math.max(0, t.total_slots - t.claimed_count);
-            const mine = claimedIds.has(t.id);
+            const openSub = subs.some(
+              (s) => s.task_id === t.id && (!s.submitted_at || s.status === "pending"),
+            );
+            const mine = t.allow_multiple ? openSub : claimedIds.has(t.id);
             const Icon = CAT_ICON[t.category] ?? Sparkles;
+
             const catLabel =
               TASK_CATEGORIES.find((c) => c.key === t.category)?.label ?? "Task";
             return (
