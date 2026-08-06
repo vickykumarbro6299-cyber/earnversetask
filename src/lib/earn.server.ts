@@ -298,6 +298,8 @@ export async function createUserTaskImpl(
     rewardCoins: number;
     totalSlots: number;
     category?: string;
+    sampleImageUrl?: string;
+    allowMultiple?: boolean;
   },
 ) {
   const category = normalizeCategory(data.category);
@@ -305,6 +307,7 @@ export async function createUserTaskImpl(
   if (data.rewardCoins < min)
     throw new Error(`Minimum reward for this category is ${min} coins`);
   if (data.totalSlots < 1) throw new Error("At least 1 slot required");
+  if (!data.sampleImageUrl) throw new Error("Sample photo is required");
   const base = data.rewardCoins * data.totalSlots;
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
   await addCoins(userId, -total);
@@ -318,7 +321,8 @@ export async function createUserTaskImpl(
     created_by: userId,
     is_admin_task: false,
     category,
-
+    sample_image_url: data.sampleImageUrl,
+    allow_multiple: !!data.allowMultiple,
   });
   if (error) {
     await addCoins(userId, total);
@@ -326,6 +330,7 @@ export async function createUserTaskImpl(
   }
   return { charged: total };
 }
+
 
 export async function createDepositImpl(
   { userId }: Ctx,
