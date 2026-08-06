@@ -143,13 +143,25 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
   if (task.claimed_count >= task.total_slots) throw new Error("No slots left");
   if (task.created_by === userId) throw new Error("You cannot claim your own task");
 
+  const { data: existing } = await supabaseAdmin
+    .from("submissions")
+    .select("id, submitted_at, status")
+    .eq("task_id", task.id)
+    .eq("user_id", userId);
+
+  if (existing?.length) {
+    const open = existing.some((s) => !s.submitted_at || s.status === "pending");
+    if (open) throw new Error("You already have this task in progress");
+    if (!task.allow_multiple) throw new Error("Already claimed");
+  }
+
   const { error: insErr } = await supabaseAdmin.from("submissions").insert({
     task_id: task.id,
     user_id: userId,
     reward_coins: task.reward_coins,
     expires_at: new Date(Date.now() + CLAIM_MINUTES * 60_000).toISOString(),
   });
-  if (insErr) throw new Error("Already claimed");
+  if (insErr) throw new Error("Could not claim task");
 
   await supabaseAdmin
     .from("tasks")
@@ -160,6 +172,7 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
     .eq("id", task.id);
   return { ok: true };
 }
+
 
 
 export async function submitProofImpl(
