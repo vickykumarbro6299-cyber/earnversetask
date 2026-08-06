@@ -92,6 +92,74 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_codes: {
+        Row: {
+          active: boolean
+          code: string
+          coins: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_uses: number
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          coins: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          coins?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
+      promo_redemptions: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          promo_id: string
+          user_id: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          promo_id: string
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          promo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_redemptions_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           claimed_at: string
@@ -145,6 +213,7 @@ export type Database = {
       tasks: {
         Row: {
           active: boolean
+          allow_multiple: boolean
           category: string
           claimed_count: number
           created_at: string
@@ -154,11 +223,13 @@ export type Database = {
           is_admin_task: boolean
           link: string | null
           reward_coins: number
+          sample_image_url: string | null
           title: string
           total_slots: number
         }
         Insert: {
           active?: boolean
+          allow_multiple?: boolean
           category?: string
           claimed_count?: number
           created_at?: string
@@ -168,11 +239,13 @@ export type Database = {
           is_admin_task?: boolean
           link?: string | null
           reward_coins: number
+          sample_image_url?: string | null
           title: string
           total_slots?: number
         }
         Update: {
           active?: boolean
+          allow_multiple?: boolean
           category?: string
           claimed_count?: number
           created_at?: string
@@ -182,6 +255,7 @@ export type Database = {
           is_admin_task?: boolean
           link?: string | null
           reward_coins?: number
+          sample_image_url?: string | null
           title?: string
           total_slots?: number
         }
