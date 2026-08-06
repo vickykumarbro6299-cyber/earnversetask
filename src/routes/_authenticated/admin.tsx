@@ -379,6 +379,8 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
     rewardCoins: MIN_TASK_REWARD,
     totalSlots: 10,
     category: "other" as string,
+    sampleImageUrl: "",
+    allowMultiple: false,
   });
   const [busy, setBusy] = useState(false);
 
@@ -389,10 +391,12 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
           e.preventDefault();
           setBusy(true);
           try {
+            if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
             await createFn({ data: form });
             toast.success("Task added");
-            setForm({ ...form, title: "", description: "", link: "" });
+            setForm({ ...form, title: "", description: "", link: "", sampleImageUrl: "" });
             onDone();
+
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed");
           } finally {
