@@ -138,7 +138,10 @@ export const adminCreateTask = createServerFn({ method: "POST" })
       rewardCoins: number;
       totalSlots: number;
       category?: string;
+      sampleImageUrl?: string;
+      allowMultiple?: boolean;
     }) => d,
+
   )
 
   .handler(async ({ context, data }) => {
