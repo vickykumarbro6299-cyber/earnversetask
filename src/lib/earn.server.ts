@@ -641,8 +641,11 @@ export async function adminUpdateSettingsImpl(
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
-  const admin = await isAdmin(userId);
-  if (!admin && !data.path.startsWith(`${userId}/`)) throw new Error("Forbidden");
+  const isSample = data.path.includes("/samples/");
+  const admin = isSample ? false : await isAdmin(userId);
+  if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
+    throw new Error("Forbidden");
+
   const { data: signed, error } = await supabaseAdmin.storage
     .from("proofs")
     .createSignedUrl(data.path, 60 * 10);
