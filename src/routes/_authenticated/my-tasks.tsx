@@ -148,6 +148,10 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
         </div>
       )}
 
+      <SamplePhoto path={task?.sample_image_url ?? null} />
+
+
+
       {waiting && task?.link && (
         <a
           href={task.link}
