@@ -559,6 +559,42 @@ export async function adminSetTaskActiveImpl(
   return { ok: true };
 }
 
+/** Pay 10% lifetime commission to the referrer of `earnerId`. */
+async function payReferralCommission(earnerId: string, earnedCoins: number) {
+  if (earnedCoins <= 0) return;
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("referred_by")
+    .eq("id", earnerId)
+    .maybeSingle();
+  const referrer = prof?.referred_by;
+  if (!referrer) return;
+  const bonus = Math.floor(earnedCoins * REFERRAL_RATE);
+  if (bonus <= 0) return;
+  await addCoins(referrer, bonus);
+  await supabaseAdmin.from("referral_earnings").insert({
+    referrer_id: referrer,
+    referred_id: earnerId,
+    coins: bonus,
+    source: "task",
+  });
+}
+
+/** Give the reserved slot back to the pool. */
+async function releaseTaskSlot(taskId: string) {
+  const { data: task } = await supabaseAdmin
+    .from("tasks")
+    .select("claimed_count, total_slots")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task) return;
+  const next = Math.max(0, task.claimed_count - 1);
+  await supabaseAdmin
+    .from("tasks")
+    .update({ claimed_count: next, active: next < task.total_slots })
+    .eq("id", taskId);
+}
+
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
   data: { id: string; approve: boolean },
@@ -571,7 +607,12 @@ export async function adminReviewSubmissionImpl(
     .single();
   if (error) throw error;
   if (sub.status !== "pending") throw new Error("Already reviewed");
-  if (data.approve) await addCoins(sub.user_id, sub.reward_coins);
+  if (data.approve) {
+    await addCoins(sub.user_id, sub.reward_coins);
+    await payReferralCommission(sub.user_id, sub.reward_coins);
+  } else {
+    await releaseTaskSlot(sub.task_id);
+  }
   await supabaseAdmin
     .from("submissions")
     .update({
@@ -581,6 +622,41 @@ export async function adminReviewSubmissionImpl(
     .eq("id", data.id);
   return { ok: true };
 }
+
+export async function referralImpl({ userId }: Ctx) {
+  const { data: me } = await supabaseAdmin
+    .from("profiles")
+    .select("referral_code")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const [{ data: invited }, { data: earnings }] = await Promise.all([
+    supabaseAdmin
+      .from("profiles")
+      .select("id, name, created_at")
+      .eq("referred_by", userId)
+      .order("created_at", { ascending: false }),
+    supabaseAdmin.from("referral_earnings").select("referred_id, coins").eq("referrer_id", userId),
+  ]);
+
+  const perUser: Record<string, number> = {};
+  (earnings ?? []).forEach((e) => {
+    perUser[e.referred_id] = (perUser[e.referred_id] ?? 0) + e.coins;
+  });
+
+  return {
+    code: me?.referral_code ?? "",
+    rate: REFERRAL_RATE,
+    totalCoins: (earnings ?? []).reduce((n, e) => n + e.coins, 0),
+    invites: (invited ?? []).map((u) => ({
+      id: u.id,
+      name: u.name || "EarnVerse User",
+      joinedAt: u.created_at,
+      coins: perUser[u.id] ?? 0,
+    })),
+  };
+}
+
 
 export async function adminReviewDepositImpl(
   { userId }: Ctx,
