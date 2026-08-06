@@ -7,6 +7,7 @@ import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles, Send } from 
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
+import { SamplePhotoInput } from "@/components/sample-photo";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { listTasks, claimTask, createUserTask } from "@/lib/earn.functions";
 import {
@@ -128,8 +129,12 @@ function TasksPage() {
         <div className="mt-4 space-y-3">
           {tasks.map((t) => {
             const left = Math.max(0, t.total_slots - t.claimed_count);
-            const mine = claimedIds.has(t.id);
+            const openSub = subs.some(
+              (s) => s.task_id === t.id && (!s.submitted_at || s.status === "pending"),
+            );
+            const mine = t.allow_multiple ? openSub : claimedIds.has(t.id);
             const Icon = CAT_ICON[t.category] ?? Sparkles;
+
             const catLabel =
               TASK_CATEGORIES.find((c) => c.key === t.category)?.label ?? "Task";
             return (
@@ -162,11 +167,17 @@ function TasksPage() {
                 <div className="mt-3 flex items-center gap-2 border-t border-border pt-2 text-xs font-semibold text-muted-foreground">
                   <Users className="h-3.5 w-3.5" />
                   Limit: {t.claimed_count}/{t.total_slots} claimed • {left} left
+                  {t.allow_multiple && (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground">
+                      Multiple
+                    </span>
+                  )}
                   {t.is_admin_task && (
                     <span className="ml-auto rounded-full bg-gold/25 px-2 py-0.5 text-gold-foreground">
                       Official
                     </span>
                   )}
+
                 </div>
               </article>
             );
@@ -219,6 +230,8 @@ function AddTaskSheet({
     rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
     totalSlots: 1,
     category: "other" as string,
+    sampleImageUrl: "",
+    allowMultiple: false,
   });
   const [busy, setBusy] = useState(false);
   const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
@@ -248,6 +261,7 @@ function AddTaskSheet({
     try {
       if (form.rewardCoins < minReward)
         throw new Error(`Minimum reward for this category is ${minReward} coins`);
+      if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
       toast.success(`Task published • ${total} coins deducted`);
@@ -259,6 +273,7 @@ function AddTaskSheet({
       setBusy(false);
     }
   }
+
 
   const input =
     "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ring/40";
@@ -324,7 +339,24 @@ function AddTaskSheet({
               onChange={(e) => setForm({ ...form, link: e.target.value })}
             />
           )}
+          <SamplePhotoInput
+            value={form.sampleImageUrl}
+            onChange={(p) => setForm((f) => ({ ...f, sampleImageUrl: p }))}
+          />
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, allowMultiple: !f.allowMultiple }))}
+            className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-bold ${
+              form.allowMultiple
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            Allow Multiple Times
+            <span className="text-xs font-semibold">{form.allowMultiple ? "ON" : "OFF"}</span>
+          </button>
           <div className="grid grid-cols-2 gap-3">
+
             <label className="text-xs font-semibold text-muted-foreground">
               Reward coins (min {minReward})
               <input

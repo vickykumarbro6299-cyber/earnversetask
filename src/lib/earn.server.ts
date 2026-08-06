@@ -143,13 +143,25 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
   if (task.claimed_count >= task.total_slots) throw new Error("No slots left");
   if (task.created_by === userId) throw new Error("You cannot claim your own task");
 
+  const { data: existing } = await supabaseAdmin
+    .from("submissions")
+    .select("id, submitted_at, status")
+    .eq("task_id", task.id)
+    .eq("user_id", userId);
+
+  if (existing?.length) {
+    const open = existing.some((s) => !s.submitted_at || s.status === "pending");
+    if (open) throw new Error("You already have this task in progress");
+    if (!task.allow_multiple) throw new Error("Already claimed");
+  }
+
   const { error: insErr } = await supabaseAdmin.from("submissions").insert({
     task_id: task.id,
     user_id: userId,
     reward_coins: task.reward_coins,
     expires_at: new Date(Date.now() + CLAIM_MINUTES * 60_000).toISOString(),
   });
-  if (insErr) throw new Error("Already claimed");
+  if (insErr) throw new Error("Could not claim task");
 
   await supabaseAdmin
     .from("tasks")
@@ -160,6 +172,7 @@ export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
     .eq("id", task.id);
   return { ok: true };
 }
+
 
 
 export async function submitProofImpl(
@@ -285,6 +298,8 @@ export async function createUserTaskImpl(
     rewardCoins: number;
     totalSlots: number;
     category?: string;
+    sampleImageUrl?: string;
+    allowMultiple?: boolean;
   },
 ) {
   const category = normalizeCategory(data.category);
@@ -292,6 +307,7 @@ export async function createUserTaskImpl(
   if (data.rewardCoins < min)
     throw new Error(`Minimum reward for this category is ${min} coins`);
   if (data.totalSlots < 1) throw new Error("At least 1 slot required");
+  if (!data.sampleImageUrl) throw new Error("Sample photo is required");
   const base = data.rewardCoins * data.totalSlots;
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
   await addCoins(userId, -total);
@@ -305,7 +321,8 @@ export async function createUserTaskImpl(
     created_by: userId,
     is_admin_task: false,
     category,
-
+    sample_image_url: data.sampleImageUrl,
+    allow_multiple: !!data.allowMultiple,
   });
   if (error) {
     await addCoins(userId, total);
@@ -313,6 +330,7 @@ export async function createUserTaskImpl(
   }
   return { charged: total };
 }
+
 
 export async function createDepositImpl(
   { userId }: Ctx,
@@ -386,7 +404,7 @@ async function withUser<T extends { user_id: string }>(rows: T[]) {
 
 export async function adminDataImpl({ userId }: Ctx) {
   await requireAdmin(userId);
-  const [users, subs, deps, wds, tasks, settings] = await Promise.all([
+  const [users, subs, deps, wds, tasks, settings, promos] = await Promise.all([
     supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
     supabaseAdmin
       .from("submissions")
@@ -397,17 +415,103 @@ export async function adminDataImpl({ userId }: Ctx) {
     supabaseAdmin.from("withdrawals").select("*").order("created_at", { ascending: false }),
     supabaseAdmin.from("tasks").select("*").order("created_at", { ascending: false }),
     supabaseAdmin.from("app_settings").select("*"),
+    supabaseAdmin.from("promo_codes").select("*").order("created_at", { ascending: false }),
   ]);
   const map: Record<string, string> = {};
   (settings.data ?? []).forEach((s) => (map[s.key] = s.value));
+
+  const depRows = deps.data ?? [];
+  const wdRows = wds.data ?? [];
+  const subRows = subs.data ?? [];
+  const userRows = users.data ?? [];
+
+  const sum = <T,>(rows: T[], pick: (r: T) => number) => rows.reduce((n, r) => n + pick(r), 0);
+
+  const overview = {
+    totalUsers: userRows.length,
+    totalCoins: sum(userRows, (u) => u.coins),
+    totalTasks: (tasks.data ?? []).length,
+    activeTasks: (tasks.data ?? []).filter((t) => t.active).length,
+    pendingProofs: subRows.filter((s) => s.status === "pending").length,
+    depositApprovedInr: sum(
+      depRows.filter((d) => d.status === "approved"),
+      (d) => Number(d.amount_inr),
+    ),
+    depositPending: depRows.filter((d) => d.status === "pending").length,
+    withdrawApprovedInr: sum(
+      wdRows.filter((w) => w.status === "approved"),
+      (w) => Number(w.amount_inr),
+    ),
+    withdrawPending: wdRows.filter((w) => w.status === "pending").length,
+    coinsPaidOut: sum(
+      subRows.filter((s) => s.status === "approved"),
+      (s) => s.reward_coins,
+    ),
+  };
+
   return {
-    users: users.data ?? [],
-    submissions: await withUser((subs.data ?? []) as never[]),
-    deposits: await withUser((deps.data ?? []) as never[]),
-    withdrawals: await withUser((wds.data ?? []) as never[]),
+    users: userRows,
+    submissions: await withUser(subRows as never[]),
+    deposits: await withUser(depRows as never[]),
+    withdrawals: await withUser(wdRows as never[]),
     tasks: tasks.data ?? [],
     settings: map,
+    promoCodes: promos.data ?? [],
+    overview,
   };
+}
+
+/* ---------------- promo codes ---------------- */
+
+export async function adminCreatePromoImpl(
+  { userId }: Ctx,
+  data: { code: string; coins: number; maxUses: number },
+) {
+  await requireAdmin(userId);
+  const code = data.code.trim().toUpperCase();
+  if (code.length < 3) throw new Error("Code must be at least 3 characters");
+  if (data.coins < 1) throw new Error("Coins must be at least 1");
+  const { error } = await supabaseAdmin.from("promo_codes").insert({
+    code,
+    coins: Math.floor(data.coins),
+    max_uses: Math.max(1, Math.floor(data.maxUses)),
+  });
+  if (error) throw new Error("This promo code already exists");
+  return { ok: true };
+}
+
+export async function adminSetPromoActiveImpl(
+  { userId }: Ctx,
+  data: { id: string; active: boolean },
+) {
+  await requireAdmin(userId);
+  await supabaseAdmin.from("promo_codes").update({ active: data.active }).eq("id", data.id);
+  return { ok: true };
+}
+
+export async function redeemPromoImpl({ userId }: Ctx, data: { code: string }) {
+  const code = data.code.trim().toUpperCase();
+  const { data: promo } = await supabaseAdmin
+    .from("promo_codes")
+    .select("*")
+    .eq("code", code)
+    .maybeSingle();
+  if (!promo || !promo.active) throw new Error("Invalid promo code");
+  if (promo.expires_at && new Date(promo.expires_at).getTime() < Date.now())
+    throw new Error("This promo code has expired");
+  if (promo.used_count >= promo.max_uses) throw new Error("This promo code is fully used");
+
+  const { error: redErr } = await supabaseAdmin
+    .from("promo_redemptions")
+    .insert({ promo_id: promo.id, user_id: userId, coins: promo.coins });
+  if (redErr) throw new Error("You have already used this promo code");
+
+  await supabaseAdmin
+    .from("promo_codes")
+    .update({ used_count: promo.used_count + 1 })
+    .eq("id", promo.id);
+  await addCoins(userId, promo.coins);
+  return { coins: promo.coins };
 }
 
 export async function adminCreateTaskImpl(
@@ -419,9 +523,12 @@ export async function adminCreateTaskImpl(
     rewardCoins: number;
     totalSlots: number;
     category?: string;
+    sampleImageUrl?: string;
+    allowMultiple?: boolean;
   },
 ) {
   await requireAdmin(userId);
+  if (!data.sampleImageUrl) throw new Error("Sample photo is required");
   const { error } = await supabaseAdmin.from("tasks").insert({
     title: data.title,
     description: data.description,
@@ -431,10 +538,13 @@ export async function adminCreateTaskImpl(
     created_by: userId,
     is_admin_task: true,
     category: normalizeCategory(data.category),
+    sample_image_url: data.sampleImageUrl,
+    allow_multiple: !!data.allowMultiple,
   });
 
   if (error) throw error;
   return { ok: true };
+
 }
 
 export async function adminSetTaskActiveImpl(
@@ -531,8 +641,11 @@ export async function adminUpdateSettingsImpl(
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
-  const admin = await isAdmin(userId);
-  if (!admin && !data.path.startsWith(`${userId}/`)) throw new Error("Forbidden");
+  const isSample = data.path.includes("/samples/");
+  const admin = isSample ? false : await isAdmin(userId);
+  if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
+    throw new Error("Forbidden");
+
   const { data: signed, error } = await supabaseAdmin.storage
     .from("proofs")
     .createSignedUrl(data.path, 60 * 10);

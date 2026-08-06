@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Eye, KeyRound } from "lucide-react";
+import { ArrowLeft, Check, X, Eye, KeyRound, Ticket, Power } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
+import { SamplePhotoInput } from "@/components/sample-photo";
 import {
   getAdminData,
   adminCreateTask,
@@ -14,8 +15,11 @@ import {
   adminReviewWithdrawal,
   adminUpdateSettings,
   adminSetUserPassword,
+  adminCreatePromo,
+  adminSetPromoActive,
   getProofUrl,
 } from "@/lib/earn.functions";
+
 import {
   MIN_TASK_REWARD,
   TASK_CATEGORIES,
@@ -41,8 +45,18 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-const TABS = ["Proofs", "Deposits", "Withdrawals", "Tasks", "Users", "Settings"] as const;
+const TABS = [
+  "Overview",
+  "Proofs",
+  "Deposits",
+  "Withdrawals",
+  "Tasks",
+  "Users",
+  "Promo",
+  "Settings",
+] as const;
 type Tab = (typeof TABS)[number];
+
 
 function AdminPage() {
   const me = useMe();
@@ -54,7 +68,7 @@ function AdminPage() {
     queryFn: () => dataFn(),
     enabled: isAdmin,
   });
-  const [tab, setTab] = useState<Tab>("Proofs");
+  const [tab, setTab] = useState<Tab>("Overview");
 
   if (me.isLoading) return <Center>Loading…</Center>;
   if (!isAdmin)
@@ -165,6 +179,10 @@ function AdminPage() {
           </div>
         )}
 
+
+        {d && tab === "Overview" && <OverviewTab o={d.overview} />}
+
+        {d && tab === "Promo" && <PromoTab promos={d.promoCodes} onDone={refresh} />}
 
         {d && tab === "Settings" && <SettingsTab settings={d.settings} onDone={refresh} />}
       </div>
@@ -379,6 +397,8 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
     rewardCoins: MIN_TASK_REWARD,
     totalSlots: 10,
     category: "other" as string,
+    sampleImageUrl: "",
+    allowMultiple: false,
   });
   const [busy, setBusy] = useState(false);
 
@@ -389,10 +409,12 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
           e.preventDefault();
           setBusy(true);
           try {
+            if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
             await createFn({ data: form });
             toast.success("Task added");
-            setForm({ ...form, title: "", description: "", link: "" });
+            setForm({ ...form, title: "", description: "", link: "", sampleImageUrl: "" });
             onDone();
+
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed");
           } finally {
@@ -459,7 +481,24 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
             onChange={(e) => setForm({ ...form, link: e.target.value })}
           />
         )}
+        <SamplePhotoInput
+          value={form.sampleImageUrl}
+          onChange={(p) => setForm((f) => ({ ...f, sampleImageUrl: p }))}
+        />
+        <button
+          type="button"
+          onClick={() => setForm((f) => ({ ...f, allowMultiple: !f.allowMultiple }))}
+          className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-bold ${
+            form.allowMultiple
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          Allow Multiple Times
+          <span className="text-xs font-semibold">{form.allowMultiple ? "ON" : "OFF"}</span>
+        </button>
         <div className="grid grid-cols-2 gap-3">
+
           <input
             type="number"
             min={1}
@@ -617,3 +656,123 @@ function UserRow({ user }: { user: any }) {
     </div>
   );
 }
+
+function Stat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl bg-card p-4 shadow-card">
+      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-extrabold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function OverviewTab({ o }: { o: any }) {
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <Stat label="Total users" value={o.totalUsers} />
+      <Stat label="Total coin balance" value={o.totalCoins} />
+      <Stat label="Deposits approved" value={`₹${o.depositApprovedInr}`} />
+      <Stat label="Withdrawals paid" value={`₹${o.withdrawApprovedInr}`} />
+      <Stat label="Pending deposits" value={o.depositPending} />
+      <Stat label="Pending withdrawals" value={o.withdrawPending} />
+      <Stat label="Pending proofs" value={o.pendingProofs} />
+      <Stat label="Coins paid to users" value={o.coinsPaidOut} />
+      <Stat label="Total tasks" value={o.totalTasks} />
+      <Stat label="Active tasks" value={o.activeTasks} />
+    </div>
+  );
+}
+
+function PromoTab({ promos, onDone }: { promos: any[]; onDone: () => void }) {
+  const createFn = useServerFn(adminCreatePromo);
+  const toggleFn = useServerFn(adminSetPromoActive);
+  const [form, setForm] = useState({ code: "", coins: 100, maxUses: 100 });
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="mt-4 space-y-4">
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          try {
+            await createFn({ data: form });
+            toast.success("Promo code created");
+            setForm({ ...form, code: "" });
+            onDone();
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed");
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="space-y-3 rounded-2xl bg-card p-4 shadow-card"
+      >
+        <h3 className="flex items-center gap-2 font-extrabold">
+          <Ticket className="h-4 w-4" /> Create Promo Code
+        </h3>
+        <input
+          className={inputClass}
+          required
+          maxLength={30}
+          placeholder="Code e.g. WELCOME50"
+          value={form.code}
+          onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-xs font-semibold text-muted-foreground">
+            Coins
+            <input
+              type="number"
+              min={1}
+              className={inputClass}
+              value={form.coins}
+              onChange={(e) => setForm({ ...form, coins: Number(e.target.value) })}
+            />
+          </label>
+          <label className="text-xs font-semibold text-muted-foreground">
+            Max uses
+            <input
+              type="number"
+              min={1}
+              className={inputClass}
+              value={form.maxUses}
+              onChange={(e) => setForm({ ...form, maxUses: Number(e.target.value) })}
+            />
+          </label>
+        </div>
+        <button
+          disabled={busy}
+          className="w-full rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Creating…" : "Create Code"}
+        </button>
+      </form>
+
+      {!promos.length && <p className="mt-8 text-center text-muted-foreground">No promo codes.</p>}
+      {promos.map((p) => (
+        <div key={p.id} className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-card">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-extrabold">{p.code}</p>
+            <p className="text-xs text-muted-foreground">
+              {p.coins} coins • {p.used_count}/{p.max_uses} used
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              await toggleFn({ data: { id: p.id, active: !p.active } });
+              onDone();
+            }}
+            className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold ${
+              p.active ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"
+            }`}
+          >
+            <Power className="h-3.5 w-3.5" />
+            {p.active ? "Disable" : "Enable"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+

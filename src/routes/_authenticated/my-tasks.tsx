@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
+import { SamplePhoto } from "@/components/sample-photo";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { listMyTasks, submitProof } from "@/lib/earn.functions";
 import { CLAIM_MINUTES } from "@/lib/earn-constants";
@@ -91,7 +92,9 @@ type Sub = {
     description: string;
     link: string | null;
     category: string;
+    sample_image_url?: string | null;
   } | null;
+
 };
 
 function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
@@ -145,6 +148,10 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
           )}
         </div>
       )}
+
+      <SamplePhoto path={task?.sample_image_url ?? null} />
+
+
 
       {waiting && task?.link && (
         <a

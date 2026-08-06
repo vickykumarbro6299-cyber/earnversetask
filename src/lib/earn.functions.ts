@@ -55,12 +55,39 @@ export const createUserTask = createServerFn({ method: "POST" })
       rewardCoins: number;
       totalSlots: number;
       category?: string;
+      sampleImageUrl?: string;
+      allowMultiple?: boolean;
     }) => d,
   )
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.createUserTaskImpl({ userId: context.userId }, data);
   });
+
+export const redeemPromo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { code: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.redeemPromoImpl({ userId: context.userId }, data);
+  });
+
+export const adminCreatePromo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { code: string; coins: number; maxUses: number }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminCreatePromoImpl({ userId: context.userId }, data);
+  });
+
+export const adminSetPromoActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; active: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminSetPromoActiveImpl({ userId: context.userId }, data);
+  });
+
 
 export const createDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -111,7 +138,10 @@ export const adminCreateTask = createServerFn({ method: "POST" })
       rewardCoins: number;
       totalSlots: number;
       category?: string;
+      sampleImageUrl?: string;
+      allowMultiple?: boolean;
     }) => d,
+
   )
 
   .handler(async ({ context, data }) => {
