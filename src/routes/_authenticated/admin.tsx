@@ -45,8 +45,18 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-const TABS = ["Proofs", "Deposits", "Withdrawals", "Tasks", "Users", "Settings"] as const;
+const TABS = [
+  "Overview",
+  "Proofs",
+  "Deposits",
+  "Withdrawals",
+  "Tasks",
+  "Users",
+  "Promo",
+  "Settings",
+] as const;
 type Tab = (typeof TABS)[number];
+
 
 function AdminPage() {
   const me = useMe();
