@@ -68,7 +68,7 @@ function AdminPage() {
     queryFn: () => dataFn(),
     enabled: isAdmin,
   });
-  const [tab, setTab] = useState<Tab>("Proofs");
+  const [tab, setTab] = useState<Tab>("Overview");
 
   if (me.isLoading) return <Center>Loading…</Center>;
   if (!isAdmin)
