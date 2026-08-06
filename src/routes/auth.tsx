@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone } from "lucide-react";
+import { Mail, Lock, User, Phone, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand";
 
@@ -31,7 +31,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "", referral: "" });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -58,7 +58,11 @@ function AuthPage() {
           password: form.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { name: form.name.trim(), mobile: form.mobile.trim() },
+            data: {
+              name: form.name.trim(),
+              mobile: form.mobile.trim(),
+              referral_code: form.referral.trim().toUpperCase(),
+            },
           },
         });
         if (error) throw error;
@@ -159,6 +163,15 @@ function AuthPage() {
               onChange={set("password")}
               maxLength={72}
             />
+            {mode === "signup" && (
+              <Field
+                icon={<Gift className="h-4 w-4" />}
+                placeholder="Referral code (optional)"
+                value={form.referral}
+                onChange={set("referral")}
+                maxLength={12}
+              />
+            )}
 
 
             {mode === "signin" && (
