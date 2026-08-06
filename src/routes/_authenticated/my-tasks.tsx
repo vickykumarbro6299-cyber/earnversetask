@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
+import { SamplePhoto } from "@/components/sample-photo";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { listMyTasks, submitProof } from "@/lib/earn.functions";
 import { CLAIM_MINUTES } from "@/lib/earn-constants";
