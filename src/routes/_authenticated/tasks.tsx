@@ -219,6 +219,8 @@ function AddTaskSheet({
     rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
     totalSlots: 1,
     category: "other" as string,
+    sampleImageUrl: "",
+    allowMultiple: false,
   });
   const [busy, setBusy] = useState(false);
   const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
@@ -248,6 +250,7 @@ function AddTaskSheet({
     try {
       if (form.rewardCoins < minReward)
         throw new Error(`Minimum reward for this category is ${minReward} coins`);
+      if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
       toast.success(`Task published • ${total} coins deducted`);
@@ -259,6 +262,7 @@ function AddTaskSheet({
       setBusy(false);
     }
   }
+
 
   const input =
     "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ring/40";
