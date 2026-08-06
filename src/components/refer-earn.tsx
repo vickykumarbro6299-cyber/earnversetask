@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Share2, Users } from "lucide-react";
+import { Copy, Gift, Users } from "lucide-react";
 import { toast } from "sonner";
 import { getReferral } from "@/lib/earn.functions";
 import { CoinIcon } from "@/components/brand";
@@ -10,7 +10,6 @@ export function ReferEarn() {
   const { data } = useQuery({ queryKey: ["referral"], queryFn: () => fn() });
 
   const code = data?.code ?? "";
-  const link = typeof window !== "undefined" && code ? `${window.location.origin}/auth?ref=${code}` : "";
 
   const copy = async (text: string, label: string) => {
     try {
@@ -24,10 +23,10 @@ export function ReferEarn() {
   return (
     <section className="mt-4 rounded-2xl bg-card p-4 shadow-card">
       <h2 className="flex items-center gap-2 font-extrabold text-foreground">
-        <Share2 className="h-5 w-5 text-primary" /> Refer &amp; Earn
+        <Gift className="h-5 w-5 text-primary" /> Refer &amp; Earn
       </h2>
       <p className="mt-1 text-xs font-medium text-muted-foreground">
-        Share your code and get <span className="font-bold text-foreground">10% lifetime
+        Share your referral code and get <span className="font-bold text-foreground">10% lifetime
         commission</span> on every task your friends complete — coins add automatically.
       </p>
 
@@ -44,16 +43,6 @@ export function ReferEarn() {
           Copy
         </button>
       </div>
-
-      {link && (
-        <button
-          type="button"
-          onClick={() => copy(link, "Referral link")}
-          className="mt-2 w-full truncate rounded-xl border border-border px-3 py-2 text-left text-xs font-medium text-muted-foreground"
-        >
-          {link}
-        </button>
-      )}
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat label="Total Referrals" value={String(data?.invites.length ?? 0)} />
