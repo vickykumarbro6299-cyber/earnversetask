@@ -15,6 +15,8 @@ export const MIN_WITHDRAW_COINS = 1500;
 export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.13;
+export const REFERRAL_RATE = 0.1;
+
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
 const normalizeCategory = (c: string | undefined) =>
