@@ -7,6 +7,7 @@ import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles, Send } from 
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
+import { SamplePhotoInput } from "@/components/sample-photo";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { listTasks, claimTask, createUserTask } from "@/lib/earn.functions";
 import {
