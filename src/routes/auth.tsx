@@ -34,6 +34,14 @@ function AuthPage() {
   const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "", referral: "" });
 
   useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) {
+      setMode("signup");
+      setForm((f) => ({ ...f, referral: ref.toUpperCase() }));
+    }
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/tasks", replace: true });
     });
