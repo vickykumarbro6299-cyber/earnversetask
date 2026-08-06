@@ -73,6 +73,8 @@ export type Database = {
           id: string
           mobile: string
           name: string
+          referral_code: string
+          referred_by: string | null
         }
         Insert: {
           coins?: number
@@ -81,6 +83,8 @@ export type Database = {
           id: string
           mobile?: string
           name?: string
+          referral_code: string
+          referred_by?: string | null
         }
         Update: {
           coins?: number
@@ -89,6 +93,8 @@ export type Database = {
           id?: string
           mobile?: string
           name?: string
+          referral_code?: string
+          referred_by?: string | null
         }
         Relationships: []
       }
@@ -159,6 +165,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      referral_earnings: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          source: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          source?: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          source?: string
+        }
+        Relationships: []
       }
       submissions: {
         Row: {
@@ -323,6 +356,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      gen_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
