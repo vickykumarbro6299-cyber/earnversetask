@@ -459,7 +459,24 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
             onChange={(e) => setForm({ ...form, link: e.target.value })}
           />
         )}
+        <SamplePhotoInput
+          value={form.sampleImageUrl}
+          onChange={(p) => setForm((f) => ({ ...f, sampleImageUrl: p }))}
+        />
+        <button
+          type="button"
+          onClick={() => setForm((f) => ({ ...f, allowMultiple: !f.allowMultiple }))}
+          className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-bold ${
+            form.allowMultiple
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          Allow Multiple Times
+          <span className="text-xs font-semibold">{form.allowMultiple ? "ON" : "OFF"}</span>
+        </button>
         <div className="grid grid-cols-2 gap-3">
+
           <input
             type="number"
             min={1}
