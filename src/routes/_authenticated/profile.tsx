@@ -74,7 +74,10 @@ function ProfilePage() {
           </div>
         </section>
 
+        <PromoRedeem />
+
         <div className="mt-4 overflow-hidden rounded-2xl bg-card shadow-card">
+
           {isAdmin && (
             <Link
               to="/admin"
