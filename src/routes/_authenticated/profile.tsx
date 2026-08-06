@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
+import { ReferEarn } from "@/components/refer-earn";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { redeemPromo } from "@/lib/earn.functions";
 import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
@@ -79,6 +80,8 @@ function ProfilePage() {
             <Phone className="h-4 w-4" /> {p?.mobile ?? "—"}
           </div>
         </section>
+
+        <ReferEarn />
 
         <PromoRedeem />
 
