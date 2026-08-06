@@ -1,5 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   ShieldCheck,
   Mail,
@@ -9,12 +12,15 @@ import {
   LogOut,
   ChevronRight,
   Phone,
+  Ticket,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
-import { useMe } from "@/lib/use-earn";
+import { useMe, useRefreshAll } from "@/lib/use-earn";
+import { redeemPromo } from "@/lib/earn.functions";
 import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
+
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
