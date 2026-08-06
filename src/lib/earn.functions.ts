@@ -196,3 +196,10 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminSetUserPasswordImpl({ userId: context.userId }, data);
   });
+
+export const getReferral = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.referralImpl({ userId: context.userId });
+  });
