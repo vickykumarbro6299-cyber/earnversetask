@@ -167,11 +167,17 @@ function TasksPage() {
                 <div className="mt-3 flex items-center gap-2 border-t border-border pt-2 text-xs font-semibold text-muted-foreground">
                   <Users className="h-3.5 w-3.5" />
                   Limit: {t.claimed_count}/{t.total_slots} claimed • {left} left
+                  {t.allow_multiple && (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground">
+                      Multiple
+                    </span>
+                  )}
                   {t.is_admin_task && (
                     <span className="ml-auto rounded-full bg-gold/25 px-2 py-0.5 text-gold-foreground">
                       Official
                     </span>
                   )}
+
                 </div>
               </article>
             );
