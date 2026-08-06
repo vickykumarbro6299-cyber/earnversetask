@@ -91,7 +91,9 @@ type Sub = {
     description: string;
     link: string | null;
     category: string;
+    sample_image_url?: string | null;
   } | null;
+
 };
 
 function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
