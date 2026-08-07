@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { CoinIcon } from "./brand";
+import { ThemeToggle } from "./theme-toggle";
+
 
 export function TopBar({ coins, name }: { coins: number; name: string }) {
   const initial = (name || "U").charAt(0).toUpperCase();
@@ -13,13 +15,17 @@ export function TopBar({ coins, name }: { coins: number; name: string }) {
         >
           {initial}
         </Link>
-        <Link
-          to="/wallet"
-          className="flex items-center gap-2 rounded-full border border-primary-foreground/40 bg-brand-deep px-3 py-1.5 shadow-card"
-        >
-          <CoinIcon className="h-7 w-7" />
-          <span className="pr-1 text-lg font-bold text-primary-foreground">{coins}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link
+            to="/wallet"
+            className="flex items-center gap-2 rounded-full border border-primary-foreground/40 bg-brand-deep px-3 py-1.5 shadow-card"
+          >
+            <CoinIcon className="h-7 w-7" />
+            <span className="pr-1 text-lg font-bold text-primary-foreground">{coins}</span>
+          </Link>
+        </div>
+
       </div>
     </header>
   );
