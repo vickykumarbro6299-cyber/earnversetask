@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { CoinIcon } from "./brand";
+import { ThemeToggle } from "./theme-toggle";
+
 
 export function TopBar({ coins, name }: { coins: number; name: string }) {
   const initial = (name || "U").charAt(0).toUpperCase();
