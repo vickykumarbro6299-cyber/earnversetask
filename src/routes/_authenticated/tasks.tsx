@@ -60,7 +60,10 @@ function TasksPage() {
   const coins = me.data?.profile?.coins ?? 0;
   const allTasks = tasksQ.data?.tasks ?? [];
   const subs = tasksQ.data?.mySubmissions ?? [];
-  const claimedIds = new Set(subs.map((s) => s.task_id));
+  // Rejected attempts are released — task becomes claimable again.
+  const claimedIds = new Set(
+    subs.filter((s) => s.status !== "rejected").map((s) => s.task_id),
+  );
   const tasks = allTasks.filter((t) => filter === "all" || t.category === filter);
 
   async function onClaim(taskId: string) {
