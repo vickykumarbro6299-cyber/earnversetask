@@ -206,6 +206,7 @@ export async function submitProofImpl(
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.submissionId);
+    await releaseTaskSlot(sub.task_id);
     throw new Error(
       "Failed submission — you must watch the video for at least 2 minutes before submitting proof",
     );
