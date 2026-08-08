@@ -26,7 +26,7 @@ export function ReferEarn() {
         <Gift className="h-5 w-5 text-primary" /> Refer &amp; Earn
       </h2>
       <p className="mt-1 text-xs font-medium text-muted-foreground">
-        Share your referral code and get <span className="font-bold text-foreground">10% lifetime
+        Share your referral code and get <span className="font-bold text-foreground">3% lifetime
         commission</span> on every task your friends complete — coins add automatically.
       </p>
 
