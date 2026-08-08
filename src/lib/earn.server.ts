@@ -14,8 +14,8 @@ export const MIN_DEPOSIT_COINS = 1000;
 export const MIN_WITHDRAW_COINS = 1500;
 export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
-export const TASK_PLATFORM_FEE = 0.05;
-export const REFERRAL_RATE = 0.1;
+export const TASK_PLATFORM_FEE = 0.06;
+export const REFERRAL_RATE = 0.03;
 
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
@@ -206,6 +206,7 @@ export async function submitProofImpl(
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.submissionId);
+    await releaseTaskSlot(sub.task_id);
     throw new Error(
       "Failed submission — you must watch the video for at least 2 minutes before submitting proof",
     );
