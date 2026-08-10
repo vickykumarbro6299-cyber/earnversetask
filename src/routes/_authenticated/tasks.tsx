@@ -432,3 +432,26 @@ function AddTaskSheet({
     </div>
   );
 }
+
+function NotifyBanner() {
+  const { perm, request } = useNotificationPermission();
+  if (perm !== "default") return null;
+  return (
+    <button
+      onClick={() => void request()}
+      className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-primary/40 bg-card p-3 text-left shadow-card"
+    >
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">
+        <Bell className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-extrabold text-foreground">
+          Turn on task notifications
+        </span>
+        <span className="block text-xs text-muted-foreground">
+          Get a pop-up on your phone the moment a new task is added.
+        </span>
+      </span>
+    </button>
+  );
+}
