@@ -168,16 +168,8 @@ function AdminPage() {
 
         {d && tab === "Tasks" && <TasksTab tasks={d.tasks} onDone={refresh} />}
 
-        {d && tab === "Users" && (
-          <div className="mt-4 space-y-2">
-            {d.users.map((u: any) => (
-              <UserRow key={u.id} user={u} />
-            ))}
-            {!d.users.length && (
-              <p className="mt-8 text-center text-muted-foreground">No users yet.</p>
-            )}
-          </div>
-        )}
+        {d && tab === "Users" && <UsersTab users={d.users} onDone={refresh} />}
+
 
 
         {d && tab === "Overview" && <OverviewTab o={d.overview} />}
