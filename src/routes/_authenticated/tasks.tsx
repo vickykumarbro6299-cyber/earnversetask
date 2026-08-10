@@ -104,6 +104,24 @@ function TasksPage() {
           </div>
         </section>
 
+        <NotifyBanner />
+
+        <Link
+          to="/creator-studio"
+          className="mt-3 flex items-center gap-3 rounded-2xl bg-card p-4 shadow-card"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-primary">
+            <Rocket className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-extrabold text-foreground">Creator Studio</span>
+            <span className="block text-xs text-muted-foreground">
+              Manage or cancel the tasks you published
+            </span>
+          </span>
+          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+        </Link>
+
         <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
           {FILTERS.map((f) => (
             <button
