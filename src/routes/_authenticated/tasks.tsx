@@ -1,9 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles, Send } from "lucide-react";
+import {
+  Plus,
+  Users,
+  Megaphone,
+  Video,
+  Mail,
+  Smartphone,
+  Sparkles,
+  Send,
+  Rocket,
+  ChevronRight,
+  Bell,
+} from "lucide-react";
+import { useNotificationPermission } from "@/lib/use-task-notifications";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
