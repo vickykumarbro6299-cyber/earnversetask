@@ -3,7 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Eye, KeyRound, Ticket, Power } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Eye,
+  KeyRound,
+  Ticket,
+  Power,
+  Search,
+  Coins,
+  Trash2,
+} from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { SamplePhotoInput } from "@/components/sample-photo";
 import {
@@ -15,6 +26,8 @@ import {
   adminReviewWithdrawal,
   adminUpdateSettings,
   adminSetUserPassword,
+  adminSetUserCoins,
+  adminDeleteUser,
   adminCreatePromo,
   adminSetPromoActive,
   getProofUrl,
