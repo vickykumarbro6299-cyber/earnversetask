@@ -747,3 +747,91 @@ export async function adminSetUserPasswordImpl(
   if (error) throw error;
   return { ok: true };
 }
+
+/* ---------------- creator studio ---------------- */
+
+export async function myCreatedTasksImpl({ userId }: Ctx) {
+  await expireStaleClaims();
+  const { data: tasks } = await supabaseAdmin
+    .from("tasks")
+    .select("*")
+    .eq("created_by", userId)
+    .eq("is_admin_task", false)
+    .order("created_at", { ascending: false });
+
+  const ids = (tasks ?? []).map((t) => t.id);
+  const counts: Record<string, { pending: number; approved: number; rejected: number }> = {};
+  if (ids.length) {
+    const { data: subs } = await supabaseAdmin
+      .from("submissions")
+      .select("task_id, status")
+      .in("task_id", ids);
+    (subs ?? []).forEach((s) => {
+      const c = (counts[s.task_id] ??= { pending: 0, approved: 0, rejected: 0 });
+      c[s.status as "pending" | "approved" | "rejected"] += 1;
+    });
+  }
+
+  return {
+    items: (tasks ?? []).map((t) => ({
+      ...t,
+      stats: counts[t.id] ?? { pending: 0, approved: 0, rejected: 0 },
+      refundable: Math.max(0, t.total_slots - t.claimed_count) * t.reward_coins,
+    })),
+  };
+}
+
+/** Cancel own task — refund coins for slots that were never used (platform fee is not refunded). */
+export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }) {
+  await expireStaleClaims();
+  const { data: task, error } = await supabaseAdmin
+    .from("tasks")
+    .select("*")
+    .eq("id", data.taskId)
+    .eq("created_by", userId)
+    .single();
+  if (error) throw new Error("Task not found");
+  if (task.is_admin_task) throw new Error("This task cannot be cancelled");
+  if (!task.active && task.claimed_count >= task.total_slots)
+    throw new Error("This task is already finished");
+
+  const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
+  const refund = unusedSlots * task.reward_coins;
+
+  await supabaseAdmin
+    .from("tasks")
+    .update({ active: false, total_slots: task.claimed_count })
+    .eq("id", task.id);
+
+  if (refund > 0) await addCoins(userId, refund);
+  return { refund, unusedSlots };
+}
+
+/* ---------------- admin user management ---------------- */
+
+export async function adminSetUserCoinsImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string; coins: number },
+) {
+  await requireAdmin(userId);
+  const coins = Math.floor(data.coins);
+  if (!Number.isFinite(coins) || coins < 0) throw new Error("Enter a valid coin balance");
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ coins })
+    .eq("id", data.targetUserId);
+  if (error) throw error;
+  return { coins };
+}
+
+export async function adminDeleteUserImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string },
+) {
+  await requireAdmin(userId);
+  if (data.targetUserId === userId) throw new Error("You cannot delete your own account");
+  if (await isAdmin(data.targetUserId)) throw new Error("Admin accounts cannot be deleted");
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(data.targetUserId);
+  if (error) throw error;
+  return { ok: true };
+}

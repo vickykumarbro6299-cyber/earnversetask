@@ -203,3 +203,35 @@ export const getReferral = createServerFn({ method: "GET" })
     const m = await import("./earn.server");
     return m.referralImpl({ userId: context.userId });
   });
+
+
+export const listMyCreatedTasks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.myCreatedTasksImpl({ userId: context.userId });
+  });
+
+export const cancelMyTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { taskId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.cancelMyTaskImpl({ userId: context.userId }, data);
+  });
+
+export const adminSetUserCoins = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { targetUserId: string; coins: number }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminSetUserCoinsImpl({ userId: context.userId }, data);
+  });
+
+export const adminDeleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { targetUserId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminDeleteUserImpl({ userId: context.userId }, data);
+  });

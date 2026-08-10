@@ -1,9 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Users, Megaphone, Video, Mail, Smartphone, Sparkles, Send } from "lucide-react";
+import {
+  Plus,
+  Users,
+  Megaphone,
+  Video,
+  Mail,
+  Smartphone,
+  Sparkles,
+  Send,
+  Rocket,
+  ChevronRight,
+  Bell,
+} from "lucide-react";
+import { useNotificationPermission } from "@/lib/use-task-notifications";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
@@ -103,6 +116,24 @@ function TasksPage() {
             </span>
           </div>
         </section>
+
+        <NotifyBanner />
+
+        <Link
+          to="/creator-studio"
+          className="mt-3 flex items-center gap-3 rounded-2xl bg-card p-4 shadow-card"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-primary">
+            <Rocket className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-extrabold text-foreground">Creator Studio</span>
+            <span className="block text-xs text-muted-foreground">
+              Manage or cancel the tasks you published
+            </span>
+          </span>
+          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+        </Link>
 
         <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
           {FILTERS.map((f) => (
@@ -399,5 +430,28 @@ function AddTaskSheet({
         </form>
       </div>
     </div>
+  );
+}
+
+function NotifyBanner() {
+  const { perm, request } = useNotificationPermission();
+  if (perm !== "default") return null;
+  return (
+    <button
+      onClick={() => void request()}
+      className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-primary/40 bg-card p-3 text-left shadow-card"
+    >
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">
+        <Bell className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-extrabold text-foreground">
+          Turn on task notifications
+        </span>
+        <span className="block text-xs text-muted-foreground">
+          Get a pop-up on your phone the moment a new task is added.
+        </span>
+      </span>
+    </button>
   );
 }
