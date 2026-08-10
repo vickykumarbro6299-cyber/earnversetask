@@ -588,10 +588,48 @@ function SettingsTab({
   );
 }
 
-function UserRow({ user }: { user: any }) {
-  const fn = useServerFn(adminSetUserPassword);
-  const [open, setOpen] = useState(false);
+function UsersTab({ users, onDone }: { users: any[]; onDone: () => void }) {
+  const [q, setQ] = useState("");
+  const term = q.trim().toLowerCase();
+  const list = term
+    ? users.filter((u) =>
+        [u.name, u.email, u.mobile, u.referral_code, u.id]
+          .filter(Boolean)
+          .some((v: string) => String(v).toLowerCase().includes(term)),
+      )
+    : users;
+
+  return (
+    <div className="mt-4 space-y-2">
+      <div className="flex items-center gap-2 rounded-xl bg-card px-3 shadow-card">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input
+          className="w-full bg-transparent py-3 text-sm outline-none"
+          placeholder="Search by name, email, mobile or referral code"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+      <p className="px-1 text-xs font-semibold text-muted-foreground">
+        {list.length} of {users.length} users
+      </p>
+      {list.map((u: any) => (
+        <UserRow key={u.id} user={u} onDone={onDone} />
+      ))}
+      {!list.length && (
+        <p className="mt-8 text-center text-muted-foreground">No matching users.</p>
+      )}
+    </div>
+  );
+}
+
+function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
+  const passFn = useServerFn(adminSetUserPassword);
+  const coinsFn = useServerFn(adminSetUserCoins);
+  const deleteFn = useServerFn(adminDeleteUser);
+  const [open, setOpen] = useState<"" | "pass" | "coins">("");
   const [password, setPassword] = useState("");
+  const [coins, setCoins] = useState<number>(user.coins);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -602,23 +640,55 @@ function UserRow({ user }: { user: any }) {
       </p>
       <p className="mt-1 text-sm font-bold text-primary">{user.coins} coins</p>
 
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="mt-2 flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
-      >
-        <KeyRound className="h-3.5 w-3.5" /> Change password
-      </button>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          onClick={() => setOpen((v) => (v === "pass" ? "" : "pass"))}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+        >
+          <KeyRound className="h-3.5 w-3.5" /> Change password
+        </button>
+        <button
+          onClick={() => setOpen((v) => (v === "coins" ? "" : "coins"))}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+        >
+          <Coins className="h-3.5 w-3.5" /> Adjust balance
+        </button>
+        <button
+          disabled={busy}
+          onClick={async () => {
+            if (
+              !window.confirm(
+                `Delete ${user.email}? This permanently removes the account and all its data.`,
+              )
+            )
+              return;
+            setBusy(true);
+            try {
+              await deleteFn({ data: { targetUserId: user.id } });
+              toast.success("Account deleted");
+              onDone();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="flex items-center gap-1 rounded-lg bg-destructive/15 px-3 py-2 text-xs font-bold text-destructive disabled:opacity-60"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Delete account
+        </button>
+      </div>
 
-      {open && (
+      {open === "pass" && (
         <form
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
             try {
-              await fn({ data: { targetUserId: user.id, password } });
+              await passFn({ data: { targetUserId: user.id, password } });
               toast.success("Password updated");
               setPassword("");
-              setOpen(false);
+              setOpen("");
             } catch (err) {
               toast.error(err instanceof Error ? err.message : "Failed");
             } finally {
@@ -645,9 +715,45 @@ function UserRow({ user }: { user: any }) {
           </button>
         </form>
       )}
+
+      {open === "coins" && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            try {
+              await coinsFn({ data: { targetUserId: user.id, coins } });
+              toast.success("Balance updated");
+              setOpen("");
+              onDone();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="mt-2 flex gap-2"
+        >
+          <input
+            className={inputClass}
+            type="number"
+            min={0}
+            required
+            value={coins}
+            onChange={(e) => setCoins(Number(e.target.value))}
+          />
+          <button
+            disabled={busy}
+            className="shrink-0 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
+          >
+            {busy ? "…" : "Set"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
+
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
