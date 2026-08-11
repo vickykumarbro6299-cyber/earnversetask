@@ -195,12 +195,6 @@ function Item({
   icon,
   label,
   danger,
-
-function Item({
-  icon,
-  label,
-  danger,
-
 }: {
   icon: React.ReactNode;
   label: string;
@@ -217,25 +211,19 @@ function Item({
         {label}
         <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
       </summary>
-      {label === "Contact Us" ? (
-        <p className="px-4 pb-4 text-sm text-muted-foreground">
-          Join our Telegram channel for support and task updates:{" "}
-          <a
-            href={TELEGRAM_CHANNEL}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="font-bold text-primary underline"
-          >
-            @EarnVerseTask
-          </a>
-        </p>
-      ) : (
-        <p className="px-4 pb-4 text-sm text-muted-foreground">
-          {label === "Delete Account"
-            ? "To delete your account and all data, contact support from your registered email."
-            : "EarnVerse coins have no cash value outside the platform. Complete tasks honestly; fake proofs get rejected and may lead to account suspension."}
-        </p>
-      )}
+      <p className="px-4 pb-4 text-sm text-muted-foreground">
+        To delete your account and all data, contact support on our{" "}
+        <a
+          href={TELEGRAM_CHANNEL}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="font-bold text-primary underline"
+        >
+          Telegram channel
+        </a>{" "}
+        from your registered email.
+      </p>
+
 
     </details>
   );
