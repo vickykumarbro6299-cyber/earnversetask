@@ -857,6 +857,56 @@ function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
           </button>
         </form>
       )}
+
+      {open === "history" && <UserHistory userId={user.id} />}
+    </div>
+  );
+}
+
+function UserHistory({ userId }: { userId: string }) {
+  const fn = useServerFn(adminUserHistory);
+  const q = useQuery({
+    queryKey: ["admin-user-history", userId],
+    queryFn: () => fn({ data: { targetUserId: userId } }),
+  });
+
+  if (q.isLoading) return <p className="mt-2 text-xs text-muted-foreground">Loading history…</p>;
+  const items = q.data?.items ?? [];
+
+  return (
+    <div className="mt-2 rounded-xl bg-muted p-3">
+      <p className="text-xs font-bold text-foreground">
+        Earned {q.data?.totalEarned ?? 0} coins • Withdrawn {q.data?.totalWithdrawn ?? 0} coins
+      </p>
+      {!items.length && (
+        <p className="mt-2 text-xs text-muted-foreground">No history for this user yet.</p>
+      )}
+      <div className="mt-2 max-h-72 space-y-1.5 overflow-y-auto">
+        {items.map((it) => (
+          <div
+            key={`${it.kind}-${it.id}`}
+            className="flex items-center gap-2 rounded-lg bg-card px-2.5 py-2"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-foreground">{it.title}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {new Date(it.date).toLocaleString()} • {it.status}
+              </p>
+            </div>
+            <span
+              className={`text-xs font-extrabold ${
+                it.coins > 0
+                  ? "text-success"
+                  : it.coins < 0
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+              }`}
+            >
+              {it.coins > 0 ? `+${it.coins}` : it.coins}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
