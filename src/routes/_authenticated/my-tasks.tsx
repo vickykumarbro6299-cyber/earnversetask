@@ -196,12 +196,12 @@ function ProofForm({
   onDone: () => void;
 }) {
   const submitFn = useServerFn(submitProof);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function upload() {
-    if (!file) {
+    if (!files.length) {
       toast.error("Select a proof screenshot");
       return;
     }
@@ -210,11 +210,17 @@ function ProofForm({
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) throw new Error("Session expired");
-      const ext = file.name.split(".").pop() ?? "png";
-      const path = `${uid}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("proofs").upload(path, file);
-      if (error) throw error;
-      await submitFn({ data: { submissionId, proofPath: path, note: note.slice(0, 300) } });
+      const paths: string[] = [];
+      for (const file of files) {
+        const ext = file.name.split(".").pop() ?? "png";
+        const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from("proofs").upload(path, file);
+        if (error) throw error;
+        paths.push(path);
+      }
+      await submitFn({
+        data: { submissionId, proofPath: paths.join(","), note: note.slice(0, 300) },
+      });
       toast.success("Proof submitted — waiting for admin verification");
       onDone();
     } catch (e) {
@@ -228,12 +234,20 @@ function ProofForm({
     <div className="space-y-2 rounded-xl bg-muted p-3">
       <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground">
         <Upload className="h-4 w-4" />
-        {file ? file.name.slice(0, 28) : "Choose proof screenshot"}
+        {files.length
+          ? `${files.length}/${MAX_SCREENSHOTS} screenshot${files.length > 1 ? "s" : ""} selected`
+          : `Choose proof screenshots (max ${MAX_SCREENSHOTS})`}
         <input
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []);
+            if (picked.length > MAX_SCREENSHOTS)
+              toast.error(`Only the first ${MAX_SCREENSHOTS} screenshots will be used`);
+            setFiles(picked.slice(0, MAX_SCREENSHOTS));
+          }}
         />
       </label>
       <input
@@ -242,7 +256,7 @@ function ProofForm({
         maxLength={300}
         placeholder="Note (optional)"
         className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none"
-      />
+      />>
       <button
         onClick={upload}
         disabled={busy || disabled}
