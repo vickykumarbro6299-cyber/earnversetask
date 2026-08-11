@@ -11,7 +11,7 @@ import { CoinIcon } from "@/components/brand";
 import { SamplePhoto } from "@/components/sample-photo";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { listMyTasks, submitProof } from "@/lib/earn.functions";
-import { CLAIM_MINUTES } from "@/lib/earn-constants";
+import { CLAIM_MINUTES, MAX_SCREENSHOTS } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/my-tasks")({
   head: () => ({
@@ -256,7 +256,7 @@ function ProofForm({
         maxLength={300}
         placeholder="Note (optional)"
         className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none"
-      />>
+      />
       <button
         onClick={upload}
         disabled={busy || disabled}
