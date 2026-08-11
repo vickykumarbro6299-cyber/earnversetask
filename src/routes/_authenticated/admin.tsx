@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { SamplePhotoInput } from "@/components/sample-photo";
+import { SamplePhotoInput, splitPaths } from "@/components/sample-photo";
 import {
   getAdminData,
   adminCreateTask,
@@ -30,6 +30,7 @@ import {
   adminDeleteUser,
   adminCreatePromo,
   adminSetPromoActive,
+  adminUserHistory,
   getProofUrl,
 } from "@/lib/earn.functions";
 
@@ -371,21 +372,27 @@ function Card({
 
 function ProofButton({ path }: { path: string | null }) {
   const fn = useServerFn(getProofUrl);
-  if (!path) return null;
+  const paths = splitPaths(path);
+  if (!paths.length) return null;
   return (
-    <button
-      onClick={async () => {
-        try {
-          const res = await fn({ data: { path } });
-          if (res?.url) window.open(res.url, "_blank", "noopener");
-        } catch {
-          toast.error("Could not open proof");
-        }
-      }}
-      className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-sm font-bold text-foreground"
-    >
-      <Eye className="h-4 w-4" /> View proof
-    </button>
+    <>
+      {paths.map((p, i) => (
+        <button
+          key={p}
+          onClick={async () => {
+            try {
+              const res = await fn({ data: { path: p } });
+              if (res?.url) window.open(res.url, "_blank", "noopener");
+            } catch {
+              toast.error("Could not open proof");
+            }
+          }}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-sm font-bold text-foreground"
+        >
+          <Eye className="h-4 w-4" /> View proof {paths.length > 1 ? i + 1 : ""}
+        </button>
+      ))}
+    </>
   );
 }
 
