@@ -235,3 +235,11 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminDeleteUserImpl({ userId: context.userId }, data);
   });
+
+export const adminUserHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { targetUserId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminUserHistoryImpl({ userId: context.userId }, data);
+  });

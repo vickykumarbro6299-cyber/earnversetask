@@ -97,9 +97,13 @@ function ProfilePage() {
               <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
             </Link>
           )}
-          <Item icon={<Mail className="h-5 w-5" />} label="Contact Us" />
-          <Item icon={<FileText className="h-5 w-5" />} label="Privacy Policy" />
-          <Item icon={<ScrollText className="h-5 w-5" />} label="Terms & Conditions" />
+          <LinkItem to="/contact" icon={<Mail className="h-5 w-5" />} label="Contact Us" />
+          <LinkItem to="/privacy" icon={<FileText className="h-5 w-5" />} label="Privacy Policy" />
+          <LinkItem
+            to="/terms"
+            icon={<ScrollText className="h-5 w-5" />}
+            label="Terms & Conditions"
+          />
           <Item icon={<Trash2 className="h-5 w-5" />} label="Delete Account" danger />
           <button
             onClick={signOut}
@@ -166,12 +170,31 @@ function PromoRedeem() {
     </form>
   );
 }
+function LinkItem({
+  to,
+  icon,
+  label,
+}: {
+  to: "/contact" | "/privacy" | "/terms";
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-3 border-b border-border px-4 py-4 font-semibold text-foreground"
+    >
+      <span className="text-primary">{icon}</span>
+      {label}
+      <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+    </Link>
+  );
+}
 
 function Item({
   icon,
   label,
   danger,
-
 }: {
   icon: React.ReactNode;
   label: string;
@@ -188,25 +211,19 @@ function Item({
         {label}
         <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
       </summary>
-      {label === "Contact Us" ? (
-        <p className="px-4 pb-4 text-sm text-muted-foreground">
-          Join our Telegram channel for support and task updates:{" "}
-          <a
-            href={TELEGRAM_CHANNEL}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="font-bold text-primary underline"
-          >
-            @EarnVerseTask
-          </a>
-        </p>
-      ) : (
-        <p className="px-4 pb-4 text-sm text-muted-foreground">
-          {label === "Delete Account"
-            ? "To delete your account and all data, contact support from your registered email."
-            : "EarnVerse coins have no cash value outside the platform. Complete tasks honestly; fake proofs get rejected and may lead to account suspension."}
-        </p>
-      )}
+      <p className="px-4 pb-4 text-sm text-muted-foreground">
+        To delete your account and all data, contact support on our{" "}
+        <a
+          href={TELEGRAM_CHANNEL}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="font-bold text-primary underline"
+        >
+          Telegram channel
+        </a>{" "}
+        from your registered email.
+      </p>
+
 
     </details>
   );

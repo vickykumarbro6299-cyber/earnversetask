@@ -14,9 +14,11 @@ import {
   Search,
   Coins,
   Trash2,
+  Plus,
+  History,
 } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { SamplePhotoInput } from "@/components/sample-photo";
+import { SamplePhotoInput, splitPaths } from "@/components/sample-photo";
 import {
   getAdminData,
   adminCreateTask,
@@ -30,6 +32,7 @@ import {
   adminDeleteUser,
   adminCreatePromo,
   adminSetPromoActive,
+  adminUserHistory,
   getProofUrl,
 } from "@/lib/earn.functions";
 
@@ -371,159 +374,244 @@ function Card({
 
 function ProofButton({ path }: { path: string | null }) {
   const fn = useServerFn(getProofUrl);
-  if (!path) return null;
+  const paths = splitPaths(path);
+  if (!paths.length) return null;
   return (
-    <button
-      onClick={async () => {
-        try {
-          const res = await fn({ data: { path } });
-          if (res?.url) window.open(res.url, "_blank", "noopener");
-        } catch {
-          toast.error("Could not open proof");
-        }
-      }}
-      className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-sm font-bold text-foreground"
-    >
-      <Eye className="h-4 w-4" /> View proof
-    </button>
+    <>
+      {paths.map((p, i) => (
+        <button
+          key={p}
+          onClick={async () => {
+            try {
+              const res = await fn({ data: { path: p } });
+              if (res?.url) window.open(res.url, "_blank", "noopener");
+            } catch {
+              toast.error("Could not open proof");
+            }
+          }}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-sm font-bold text-foreground"
+        >
+          <Eye className="h-4 w-4" /> View proof {paths.length > 1 ? i + 1 : ""}
+        </button>
+      ))}
+    </>
   );
 }
 
 const inputClass =
   "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ring/40";
 
+type TaskDraft = {
+  key: string;
+  title: string;
+  description: string;
+  link: string;
+  rewardCoins: number;
+  totalSlots: number;
+  category: string;
+  sampleImageUrl: string;
+  allowMultiple: boolean;
+};
+
+const newDraft = (): TaskDraft => ({
+  key: crypto.randomUUID(),
+  title: "",
+  description: "",
+  link: "",
+  rewardCoins: MIN_TASK_REWARD,
+  totalSlots: 10,
+  category: "other",
+  sampleImageUrl: "",
+  allowMultiple: false,
+});
+
 function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
   const createFn = useServerFn(adminCreateTask);
   const toggleFn = useServerFn(adminSetTaskActive);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    link: "",
-    rewardCoins: MIN_TASK_REWARD,
-    totalSlots: 10,
-    category: "other" as string,
-    sampleImageUrl: "",
-    allowMultiple: false,
-  });
+  const [drafts, setDrafts] = useState<TaskDraft[]>([newDraft()]);
   const [busy, setBusy] = useState(false);
+
+  function patch(key: string, p: Partial<TaskDraft>) {
+    setDrafts((ds) => ds.map((d) => (d.key === key ? { ...d, ...p } : d)));
+  }
+
+  async function publishAll(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    let added = 0;
+    try {
+      for (const [i, d] of drafts.entries()) {
+        if (!d.title.trim()) throw new Error(`Task ${i + 1}: title is required`);
+        if (!d.sampleImageUrl) throw new Error(`Task ${i + 1}: upload a sample photo`);
+      }
+      for (const d of drafts) {
+        await createFn({
+          data: {
+            title: d.title,
+            description: d.description,
+            link: d.link,
+            rewardCoins: d.rewardCoins,
+            totalSlots: d.totalSlots,
+            category: d.category,
+            sampleImageUrl: d.sampleImageUrl,
+            allowMultiple: d.allowMultiple,
+          },
+        });
+        added += 1;
+      }
+      toast.success(`${added} task${added > 1 ? "s" : ""} added`);
+      setDrafts([newDraft()]);
+      onDone();
+    } catch (err) {
+      if (added) {
+        toast.error(
+          `${added} task(s) added, then failed: ${err instanceof Error ? err.message : "Error"}`,
+        );
+        setDrafts((ds) => ds.slice(added));
+        onDone();
+      } else {
+        toast.error(err instanceof Error ? err.message : "Failed");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="mt-4 space-y-4">
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          try {
-            if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
-            await createFn({ data: form });
-            toast.success("Task added");
-            setForm({ ...form, title: "", description: "", link: "", sampleImageUrl: "" });
-            onDone();
+      <form onSubmit={publishAll} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-extrabold">Add Official Tasks</h3>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {drafts.length} in this batch
+          </span>
+        </div>
 
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed");
-          } finally {
-            setBusy(false);
-          }
-        }}
-        className="space-y-3 rounded-2xl bg-card p-4 shadow-card"
-      >
-        <h3 className="font-extrabold">Add Official Task</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {TASK_CATEGORIES.map((c) => (
+        {drafts.map((form, idx) => (
+          <div key={form.key} className="space-y-3 rounded-2xl bg-card p-4 shadow-card">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-extrabold text-primary">Task {idx + 1}</p>
+              {drafts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setDrafts((ds) => ds.filter((d) => d.key !== form.key))}
+                  className="flex items-center gap-1 rounded-lg bg-destructive/15 px-2.5 py-1.5 text-xs font-bold text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {TASK_CATEGORIES.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() =>
+                    patch(form.key, {
+                      category: c.key,
+                      rewardCoins:
+                        form.rewardCoins < (CATEGORY_MIN_REWARD[c.key] ?? MIN_TASK_REWARD)
+                          ? (CATEGORY_MIN_REWARD[c.key] ?? MIN_TASK_REWARD)
+                          : form.rewardCoins,
+                      link: NO_LINK_CATEGORIES.includes(c.key) ? "" : form.link,
+                      description:
+                        c.key === "video"
+                          ? VIDEO_TASK_DESCRIPTION
+                          : form.description === VIDEO_TASK_DESCRIPTION
+                            ? ""
+                            : form.description,
+                    })
+                  }
+                  className={`rounded-xl px-2 py-2 text-xs font-bold ${
+                    form.category === c.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {c.label.replace(" Task", "")}
+                </button>
+              ))}
+            </div>
+            <input
+              className={inputClass}
+              required
+              maxLength={100}
+              placeholder="Task title"
+              value={form.title}
+              onChange={(e) => patch(form.key, { title: e.target.value })}
+            />
+            <textarea
+              className={inputClass}
+              rows={3}
+              maxLength={600}
+              placeholder="Instructions"
+              value={form.description}
+              onChange={(e) => patch(form.key, { description: e.target.value })}
+            />
+            {!NO_LINK_CATEGORIES.includes(form.category) && (
+              <input
+                className={inputClass}
+                maxLength={300}
+                placeholder="Task link"
+                value={form.link}
+                onChange={(e) => patch(form.key, { link: e.target.value })}
+              />
+            )}
+            <SamplePhotoInput
+              value={form.sampleImageUrl}
+              onChange={(p) => patch(form.key, { sampleImageUrl: p })}
+            />
             <button
-              key={c.key}
               type="button"
-              onClick={() =>
-                setForm((f) => ({
-                  ...f,
-                  category: c.key,
-                  rewardCoins:
-                    f.rewardCoins < (CATEGORY_MIN_REWARD[c.key] ?? MIN_TASK_REWARD)
-                      ? (CATEGORY_MIN_REWARD[c.key] ?? MIN_TASK_REWARD)
-                      : f.rewardCoins,
-                  link: NO_LINK_CATEGORIES.includes(c.key) ? "" : f.link,
-                  description:
-                    c.key === "video"
-                      ? VIDEO_TASK_DESCRIPTION
-                      : f.description === VIDEO_TASK_DESCRIPTION
-                        ? ""
-                        : f.description,
-                }))
-              }
-              className={`rounded-xl px-2 py-2 text-xs font-bold ${
-                form.category === c.key
+              onClick={() => patch(form.key, { allowMultiple: !form.allowMultiple })}
+              className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-bold ${
+                form.allowMultiple
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
               }`}
             >
-              {c.label.replace(" Task", "")}
+              Allow Multiple Times
+              <span className="text-xs font-semibold">{form.allowMultiple ? "ON" : "OFF"}</span>
             </button>
-          ))}
-        </div>
-        <input
-          className={inputClass}
-          required
-          maxLength={100}
-          placeholder="Task title"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-        />
-        <textarea
-          className={inputClass}
-          rows={3}
-          maxLength={600}
-          placeholder="Instructions"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-        />
-        {!NO_LINK_CATEGORIES.includes(form.category) && (
-          <input
-            className={inputClass}
-            maxLength={300}
-            placeholder="Task link"
-            value={form.link}
-            onChange={(e) => setForm({ ...form, link: e.target.value })}
-          />
-        )}
-        <SamplePhotoInput
-          value={form.sampleImageUrl}
-          onChange={(p) => setForm((f) => ({ ...f, sampleImageUrl: p }))}
-        />
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-xs font-semibold text-muted-foreground">
+                Reward coins
+                <input
+                  type="number"
+                  min={1}
+                  className={inputClass}
+                  value={form.rewardCoins}
+                  onChange={(e) => patch(form.key, { rewardCoins: Number(e.target.value) })}
+                />
+              </label>
+              <label className="text-xs font-semibold text-muted-foreground">
+                Task limit (slots)
+                <input
+                  type="number"
+                  min={1}
+                  className={inputClass}
+                  value={form.totalSlots}
+                  onChange={(e) => patch(form.key, { totalSlots: Number(e.target.value) })}
+                />
+              </label>
+            </div>
+          </div>
+        ))}
+
         <button
           type="button"
-          onClick={() => setForm((f) => ({ ...f, allowMultiple: !f.allowMultiple }))}
-          className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-bold ${
-            form.allowMultiple
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
-          }`}
+          onClick={() => setDrafts((ds) => [...ds, newDraft()])}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card py-3 text-sm font-extrabold text-primary"
         >
-          Allow Multiple Times
-          <span className="text-xs font-semibold">{form.allowMultiple ? "ON" : "OFF"}</span>
+          <Plus className="h-4 w-4" /> Add another task
         </button>
-        <div className="grid grid-cols-2 gap-3">
 
-          <input
-            type="number"
-            min={1}
-            className={inputClass}
-            value={form.rewardCoins}
-            onChange={(e) => setForm({ ...form, rewardCoins: Number(e.target.value) })}
-          />
-          <input
-            type="number"
-            min={1}
-            className={inputClass}
-            value={form.totalSlots}
-            onChange={(e) => setForm({ ...form, totalSlots: Number(e.target.value) })}
-          />
-        </div>
         <button
           disabled={busy}
           className="w-full rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? "Adding…" : "Add Task"}
+          {busy ? "Adding…" : `Publish ${drafts.length} Task${drafts.length > 1 ? "s" : ""}`}
         </button>
       </form>
 
@@ -640,7 +728,7 @@ function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
   const passFn = useServerFn(adminSetUserPassword);
   const coinsFn = useServerFn(adminSetUserCoins);
   const deleteFn = useServerFn(adminDeleteUser);
-  const [open, setOpen] = useState<"" | "pass" | "coins">("");
+  const [open, setOpen] = useState<"" | "pass" | "coins" | "history">("");
   const [password, setPassword] = useState("");
   const [coins, setCoins] = useState<number>(user.coins);
   const [busy, setBusy] = useState(false);
@@ -665,6 +753,12 @@ function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
           className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
         >
           <Coins className="h-3.5 w-3.5" /> Adjust balance
+        </button>
+        <button
+          onClick={() => setOpen((v) => (v === "history" ? "" : "history"))}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+        >
+          <History className="h-3.5 w-3.5" /> Earning history
         </button>
         <button
           disabled={busy}
@@ -763,6 +857,56 @@ function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
           </button>
         </form>
       )}
+
+      {open === "history" && <UserHistory userId={user.id} />}
+    </div>
+  );
+}
+
+function UserHistory({ userId }: { userId: string }) {
+  const fn = useServerFn(adminUserHistory);
+  const q = useQuery({
+    queryKey: ["admin-user-history", userId],
+    queryFn: () => fn({ data: { targetUserId: userId } }),
+  });
+
+  if (q.isLoading) return <p className="mt-2 text-xs text-muted-foreground">Loading history…</p>;
+  const items = q.data?.items ?? [];
+
+  return (
+    <div className="mt-2 rounded-xl bg-muted p-3">
+      <p className="text-xs font-bold text-foreground">
+        Earned {q.data?.totalEarned ?? 0} coins • Withdrawn {q.data?.totalWithdrawn ?? 0} coins
+      </p>
+      {!items.length && (
+        <p className="mt-2 text-xs text-muted-foreground">No history for this user yet.</p>
+      )}
+      <div className="mt-2 max-h-72 space-y-1.5 overflow-y-auto">
+        {items.map((it) => (
+          <div
+            key={`${it.kind}-${it.id}`}
+            className="flex items-center gap-2 rounded-lg bg-card px-2.5 py-2"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-foreground">{it.title}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {new Date(it.date).toLocaleString()} • {it.status}
+              </p>
+            </div>
+            <span
+              className={`text-xs font-extrabold ${
+                it.coins > 0
+                  ? "text-success"
+                  : it.coins < 0
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+              }`}
+            >
+              {it.coins > 0 ? `+${it.coins}` : it.coins}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
