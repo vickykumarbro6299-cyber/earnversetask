@@ -14,6 +14,8 @@ import {
   Search,
   Coins,
   Trash2,
+  Plus,
+  History,
 } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { SamplePhotoInput, splitPaths } from "@/components/sample-photo";
