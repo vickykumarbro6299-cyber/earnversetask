@@ -728,7 +728,7 @@ function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
   const passFn = useServerFn(adminSetUserPassword);
   const coinsFn = useServerFn(adminSetUserCoins);
   const deleteFn = useServerFn(adminDeleteUser);
-  const [open, setOpen] = useState<"" | "pass" | "coins">("");
+  const [open, setOpen] = useState<"" | "pass" | "coins" | "history">("");
   const [password, setPassword] = useState("");
   const [coins, setCoins] = useState<number>(user.coins);
   const [busy, setBusy] = useState(false);
@@ -753,6 +753,12 @@ function UserRow({ user, onDone }: { user: any; onDone: () => void }) {
           className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
         >
           <Coins className="h-3.5 w-3.5" /> Adjust balance
+        </button>
+        <button
+          onClick={() => setOpen((v) => (v === "history" ? "" : "history"))}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+        >
+          <History className="h-3.5 w-3.5" /> Earning history
         </button>
         <button
           disabled={busy}
