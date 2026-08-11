@@ -170,6 +170,31 @@ function PromoRedeem() {
     </form>
   );
 }
+function LinkItem({
+  to,
+  icon,
+  label,
+}: {
+  to: "/contact" | "/privacy" | "/terms";
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-3 border-b border-border px-4 py-4 font-semibold text-foreground"
+    >
+      <span className="text-primary">{icon}</span>
+      {label}
+      <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+    </Link>
+  );
+}
+
+function Item({
+  icon,
+  label,
+  danger,
 
 function Item({
   icon,
