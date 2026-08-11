@@ -31,6 +31,8 @@ import {
   CLAIM_MINUTES,
   NO_LINK_CATEGORIES,
   VIDEO_TASK_DESCRIPTION,
+  PROMOTE_TAGLINE,
+  greeting,
 } from "@/lib/earn-constants";
 
 
@@ -99,7 +101,8 @@ function TasksPage() {
       <main className="mx-auto max-w-md px-4 pt-4">
         <section className="rounded-2xl bg-gradient-purple p-4 shadow-pop">
           <p className="text-xs font-bold uppercase tracking-wide text-primary-foreground/70">
-            Today&apos;s pulse
+            {greeting()}
+            {me.data?.profile?.name ? `, ${me.data.profile.name.split(" ")[0]}` : ""}
           </p>
           <div className="mt-1 flex items-end justify-between">
             <div>
@@ -225,12 +228,7 @@ function TasksPage() {
               Promote Your Platform
             </h3>
           </div>
-          <p className="mt-1 text-sm text-primary-foreground/85">
-            Post your own task and get real users to complete it. Minimum reward: Video{" "}
-            {CATEGORY_MIN_REWARD["video"]}, Gmail {CATEGORY_MIN_REWARD["gmail"]}, App{" "}
-            {CATEGORY_MIN_REWARD["app"]}, Telegram {CATEGORY_MIN_REWARD["telegram"]} coins •{" "}
-            {Math.round(TASK_PLATFORM_FEE * 100)}% platform fee.
-          </p>
+          <p className="mt-1 text-sm text-primary-foreground/85">{PROMOTE_TAGLINE}</p>
 
           <button
             onClick={() => setShowAdd(true)}

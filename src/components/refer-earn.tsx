@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Gift, Users } from "lucide-react";
+import { ChevronDown, Copy, Gift, Users } from "lucide-react";
 import { toast } from "sonner";
 import { getReferral } from "@/lib/earn.functions";
 import { CoinIcon } from "@/components/brand";
@@ -8,6 +9,7 @@ import { CoinIcon } from "@/components/brand";
 export function ReferEarn() {
   const fn = useServerFn(getReferral);
   const { data } = useQuery({ queryKey: ["referral"], queryFn: () => fn() });
+  const [showList, setShowList] = useState(false);
 
   const code = data?.code ?? "";
 
@@ -49,29 +51,44 @@ export function ReferEarn() {
         <Stat label="Commission Earned" value={`${data?.totalCoins ?? 0}`} coin />
       </div>
 
-      <h3 className="mt-4 flex items-center gap-2 text-sm font-bold text-foreground">
-        <Users className="h-4 w-4 text-primary" /> My Referrals
-      </h3>
-      {data && data.invites.length === 0 ? (
-        <p className="mt-2 text-xs font-medium text-muted-foreground">
-          No referrals yet. Share your code to start earning.
-        </p>
-      ) : (
-        <ul className="mt-2 divide-y divide-border">
-          {(data?.invites ?? []).map((u) => (
-            <li key={u.id} className="flex items-center gap-3 py-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-brand text-sm font-bold text-primary-foreground">
-                {u.name.charAt(0).toUpperCase()}
-              </span>
-              <span className="flex-1 truncate text-sm font-semibold text-foreground">{u.name}</span>
-              <span className="flex items-center gap-1 text-sm font-bold text-foreground">
-                <CoinIcon className="h-4 w-4" />
-                {u.coins}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <button
+        type="button"
+        onClick={() => setShowList((v) => !v)}
+        className="mt-4 flex w-full items-center gap-2 rounded-xl bg-secondary px-3 py-3 text-sm font-extrabold text-secondary-foreground active:scale-[0.99]"
+      >
+        <Users className="h-4 w-4 text-primary" />
+        Check Referral List
+        <span className="ml-auto flex items-center gap-1 text-xs font-bold text-muted-foreground">
+          {data?.invites.length ?? 0}
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${showList ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
+
+      {showList &&
+        (data && data.invites.length === 0 ? (
+          <p className="mt-2 text-xs font-medium text-muted-foreground">
+            No referrals yet. Share your code to start earning.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border">
+            {(data?.invites ?? []).map((u) => (
+              <li key={u.id} className="flex items-center gap-3 py-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-brand text-sm font-bold text-primary-foreground">
+                  {u.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="flex-1 truncate text-sm font-semibold text-foreground">
+                  {u.name}
+                </span>
+                <span className="flex items-center gap-1 text-sm font-bold text-foreground">
+                  <CoinIcon className="h-4 w-4" />
+                  {u.coins}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ))}
     </section>
   );
 }
