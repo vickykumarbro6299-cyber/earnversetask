@@ -835,3 +835,12 @@ export async function adminDeleteUserImpl(
   if (error) throw error;
   return { ok: true };
 }
+
+/** Admin: read any user's earning / deposit / withdrawal ledger. */
+export async function adminUserHistoryImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string },
+) {
+  await requireAdmin(userId);
+  return earningHistoryImpl({ userId: data.targetUserId });
+}
