@@ -11,6 +11,21 @@ export const TELEGRAM_CHANNEL = "https://t.me/EarnVerseTask";
 
 export const toRupees = (coins: number) => (coins / COINS_PER_RUPEE).toFixed(2);
 
+/** Time-of-day greeting shown on the tasks dashboard. */
+export function greeting(date: Date = new Date()) {
+  const h = date.getHours();
+  if (h >= 5 && h < 12) return "Good Morning";
+  if (h >= 12 && h < 17) return "Good Afternoon";
+  if (h >= 17 && h < 21) return "Good Evening";
+  return "Good Night";
+}
+
+/** Maximum screenshots a user can upload per sample / proof submission. */
+export const MAX_SCREENSHOTS = 3;
+
+export const PROMOTE_TAGLINE =
+  "Grown Your Own Platform And Get Real And Active Users With EarnVerse.";
+
 /** Fixed deposit packs — users can only buy these. rupees -> coins */
 export const DEPOSIT_PACKS: { rupees: number; coins: number }[] = [
   { rupees: 10, coins: 900 },
