@@ -97,9 +97,13 @@ function ProfilePage() {
               <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
             </Link>
           )}
-          <Item icon={<Mail className="h-5 w-5" />} label="Contact Us" />
-          <Item icon={<FileText className="h-5 w-5" />} label="Privacy Policy" />
-          <Item icon={<ScrollText className="h-5 w-5" />} label="Terms & Conditions" />
+          <LinkItem to="/contact" icon={<Mail className="h-5 w-5" />} label="Contact Us" />
+          <LinkItem to="/privacy" icon={<FileText className="h-5 w-5" />} label="Privacy Policy" />
+          <LinkItem
+            to="/terms"
+            icon={<ScrollText className="h-5 w-5" />}
+            label="Terms & Conditions"
+          />
           <Item icon={<Trash2 className="h-5 w-5" />} label="Delete Account" danger />
           <button
             onClick={signOut}
