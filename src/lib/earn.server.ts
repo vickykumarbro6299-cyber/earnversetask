@@ -843,3 +843,88 @@ export async function adminUserHistoryImpl(
   await requireAdmin(userId);
   return earningHistoryImpl({ userId: data.targetUserId });
 }
+
+/* ---------------- device / multi-account guard ---------------- */
+
+/** Public check used before sign-up: has any account already been created on this device? */
+export async function checkDeviceImpl(data: { deviceId: string }) {
+  const id = (data.deviceId ?? "").trim();
+  if (!id) return { blocked: false };
+  const { count } = await supabaseAdmin
+    .from("device_accounts")
+    .select("id", { count: "exact", head: true })
+    .eq("device_id", id);
+  return { blocked: (count ?? 0) > 0 };
+}
+
+/**
+ * Called right after sign-up. If the device already belongs to another account the
+ * freshly created account is removed again and the caller gets the warning.
+ */
+export async function registerDeviceImpl(
+  { userId }: Ctx,
+  data: { deviceId: string; userAgent?: string },
+) {
+  const id = (data.deviceId ?? "").trim();
+  if (!id) return { ok: true };
+
+  const { data: existing } = await supabaseAdmin
+    .from("device_accounts")
+    .select("user_id")
+    .eq("device_id", id);
+
+  const other = (existing ?? []).filter((r) => r.user_id !== userId);
+  if (other.length) {
+    if (!(await isAdmin(userId))) {
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(
+        "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
+      );
+    }
+    return { ok: true };
+  }
+
+  await supabaseAdmin
+    .from("device_accounts")
+    .upsert(
+      { device_id: id, user_id: userId, user_agent: (data.userAgent ?? "").slice(0, 300) },
+      { onConflict: "device_id,user_id" },
+    );
+  return { ok: true };
+}
+
+/** Admin: devices that carry more than one account. */
+export async function adminDeviceReportImpl({ userId }: Ctx) {
+  await requireAdmin(userId);
+  const { data: rows } = await supabaseAdmin
+    .from("device_accounts")
+    .select("device_id, user_id, user_agent, created_at")
+    .order("created_at", { ascending: false });
+
+  const byDevice = new Map<string, typeof rows extends null ? never : NonNullable<typeof rows>>();
+  (rows ?? []).forEach((r) => {
+    const list = byDevice.get(r.device_id) ?? [];
+    list.push(r);
+    byDevice.set(r.device_id, list as never);
+  });
+
+  const flagged = [...byDevice.entries()].filter(([, list]) => list.length > 1);
+  const ids = [...new Set(flagged.flatMap(([, list]) => list.map((r) => r.user_id)))];
+  const { data: profiles } = ids.length
+    ? await supabaseAdmin.from("profiles").select("id,name,email,mobile,coins").in("id", ids)
+    : { data: [] };
+  const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return {
+    totalDevices: byDevice.size,
+    groups: flagged.map(([deviceId, list]) => ({
+      deviceId,
+      userAgent: list[0]?.user_agent ?? "",
+      accounts: list.map((r) => ({
+        userId: r.user_id,
+        createdAt: r.created_at,
+        profile: map.get(r.user_id) ?? null,
+      })),
+    })),
+  };
+}
