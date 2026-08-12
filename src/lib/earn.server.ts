@@ -537,9 +537,37 @@ export async function adminSetTaskActiveImpl(
   data: { taskId: string; active: boolean },
 ) {
   await requireAdmin(userId);
-  await supabaseAdmin.from("tasks").update({ active: data.active }).eq("id", data.taskId);
+  await supabaseAdmin
+    .from("tasks")
+    .update({ disabled: !data.active, active: data.active })
+    .eq("id", data.taskId);
+  await recountTask(data.taskId);
   return { ok: true };
 }
+
+/** Admin cancels any task and refunds the creator for the slots nobody used. */
+export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: string }) {
+  await requireAdmin(userId);
+  await expireStaleClaims();
+  const { data: task, error } = await supabaseAdmin
+    .from("tasks")
+    .select("*")
+    .eq("id", data.taskId)
+    .single();
+  if (error) throw new Error("Task not found");
+
+  const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
+  const refund = task.is_admin_task || !task.created_by ? 0 : unusedSlots * task.reward_coins;
+
+  await supabaseAdmin
+    .from("tasks")
+    .update({ disabled: true, active: false, total_slots: task.claimed_count })
+    .eq("id", task.id);
+
+  if (refund > 0 && task.created_by) await addCoins(task.created_by, refund);
+  return { refund, unusedSlots };
+}
+
 
 /** Pay 10% lifetime commission to the referrer of `earnerId`. */
 async function payReferralCommission(earnerId: string, earnedCoins: number) {
