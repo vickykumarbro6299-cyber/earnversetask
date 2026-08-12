@@ -73,6 +73,11 @@ export async function meImpl({ userId }: Ctx) {
   return { profile, isAdmin: await isAdmin(userId), settings: map };
 }
 
+/** Recalculate a task's claimed slots from real submissions (never releases finished work). */
+async function recountTask(taskId: string) {
+  await supabaseAdmin.rpc("recount_task_slots", { p_task_id: taskId });
+}
+
 /** Release reservations that were not submitted within CLAIM_MINUTES. */
 export async function expireStaleClaims() {
   const { data: stale } = await supabaseAdmin
@@ -94,18 +99,7 @@ export async function expireStaleClaims() {
     );
 
   for (const taskId of [...new Set(stale.map((s) => s.task_id))]) {
-    const freed = stale.filter((s) => s.task_id === taskId).length;
-    const { data: task } = await supabaseAdmin
-      .from("tasks")
-      .select("claimed_count, total_slots")
-      .eq("id", taskId)
-      .maybeSingle();
-    if (!task) continue;
-    const next = Math.max(0, task.claimed_count - freed);
-    await supabaseAdmin
-      .from("tasks")
-      .update({ claimed_count: next, active: next < task.total_slots })
-      .eq("id", taskId);
+    await recountTask(taskId);
   }
 }
 
@@ -135,48 +129,33 @@ export async function myTasksImpl({ userId }: Ctx) {
 
 export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
   await expireStaleClaims();
-  const { data: task, error } = await supabaseAdmin
-    .from("tasks")
-    .select("*")
-    .eq("id", data.taskId)
-    .single();
-  if (error) throw error;
-  if (!task.active) throw new Error("Task closed");
-  if (task.claimed_count >= task.total_slots) throw new Error("No slots left");
-  if (task.created_by === userId) throw new Error("You cannot claim your own task");
-
-  const { data: existing } = await supabaseAdmin
-    .from("submissions")
-    .select("id, submitted_at, status")
-    .eq("task_id", task.id)
-    .eq("user_id", userId);
-
-  if (existing?.length) {
-    const open = existing.some((s) => !s.submitted_at || s.status === "pending");
-    if (open) throw new Error("You already have this task in progress");
-    // Rejected attempts are released — user can claim again.
-    if (!task.allow_multiple && existing.some((s) => s.status === "approved"))
-      throw new Error("Already claimed");
-  }
-
-
-  const { error: insErr } = await supabaseAdmin.from("submissions").insert({
-    task_id: task.id,
-    user_id: userId,
-    reward_coins: task.reward_coins,
-    expires_at: new Date(Date.now() + CLAIM_MINUTES * 60_000).toISOString(),
+  // Atomic: the database locks the task row so two users can never take the same slot.
+  const { error } = await supabaseAdmin.rpc("claim_task_slot", {
+    p_task_id: data.taskId,
+    p_user_id: userId,
+    p_minutes: CLAIM_MINUTES,
   });
-  if (insErr) throw new Error("Could not claim task");
-
-  await supabaseAdmin
-    .from("tasks")
-    .update({
-      claimed_count: task.claimed_count + 1,
-      active: task.claimed_count + 1 < task.total_slots,
-    })
-    .eq("id", task.id);
+  if (error) throw new Error(error.message.replace(/^.*?:\s*/, "") || "Could not claim task");
   return { ok: true };
 }
+
+/** User cancels a claimed (not yet submitted) task — the slot goes back to the pool. */
+export async function cancelMyClaimImpl({ userId }: Ctx, data: { submissionId: string }) {
+  const { data: sub, error } = await supabaseAdmin
+    .from("submissions")
+    .select("id, task_id, submitted_at, status")
+    .eq("id", data.submissionId)
+    .eq("user_id", userId)
+    .single();
+  if (error) throw new Error("Claim not found");
+  if (sub.submitted_at || sub.status !== "pending")
+    throw new Error("This task can no longer be cancelled");
+
+  await supabaseAdmin.from("submissions").delete().eq("id", sub.id).eq("user_id", userId);
+  await recountTask(sub.task_id);
+  return { ok: true };
+}
+
 
 
 
@@ -558,9 +537,37 @@ export async function adminSetTaskActiveImpl(
   data: { taskId: string; active: boolean },
 ) {
   await requireAdmin(userId);
-  await supabaseAdmin.from("tasks").update({ active: data.active }).eq("id", data.taskId);
+  await supabaseAdmin
+    .from("tasks")
+    .update({ disabled: !data.active, active: data.active })
+    .eq("id", data.taskId);
+  await recountTask(data.taskId);
   return { ok: true };
 }
+
+/** Admin cancels any task and refunds the creator for the slots nobody used. */
+export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: string }) {
+  await requireAdmin(userId);
+  await expireStaleClaims();
+  const { data: task, error } = await supabaseAdmin
+    .from("tasks")
+    .select("*")
+    .eq("id", data.taskId)
+    .single();
+  if (error) throw new Error("Task not found");
+
+  const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
+  const refund = task.is_admin_task || !task.created_by ? 0 : unusedSlots * task.reward_coins;
+
+  await supabaseAdmin
+    .from("tasks")
+    .update({ disabled: true, active: false, total_slots: task.claimed_count })
+    .eq("id", task.id);
+
+  if (refund > 0 && task.created_by) await addCoins(task.created_by, refund);
+  return { refund, unusedSlots };
+}
+
 
 /** Pay 10% lifetime commission to the referrer of `earnerId`. */
 async function payReferralCommission(earnerId: string, earnedCoins: number) {
@@ -583,20 +590,11 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
   });
 }
 
-/** Give the reserved slot back to the pool. */
+/** Give the reserved slot back to the pool (recalculated from real submissions). */
 async function releaseTaskSlot(taskId: string) {
-  const { data: task } = await supabaseAdmin
-    .from("tasks")
-    .select("claimed_count, total_slots")
-    .eq("id", taskId)
-    .maybeSingle();
-  if (!task) return;
-  const next = Math.max(0, task.claimed_count - 1);
-  await supabaseAdmin
-    .from("tasks")
-    .update({ claimed_count: next, active: next < task.total_slots })
-    .eq("id", taskId);
+  await recountTask(taskId);
 }
+
 
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
@@ -800,8 +798,9 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
 
   await supabaseAdmin
     .from("tasks")
-    .update({ active: false, total_slots: task.claimed_count })
+    .update({ disabled: true, active: false, total_slots: task.claimed_count })
     .eq("id", task.id);
+
 
   if (refund > 0) await addCoins(userId, refund);
   return { refund, unusedSlots };
@@ -843,4 +842,89 @@ export async function adminUserHistoryImpl(
 ) {
   await requireAdmin(userId);
   return earningHistoryImpl({ userId: data.targetUserId });
+}
+
+/* ---------------- device / multi-account guard ---------------- */
+
+/** Public check used before sign-up: has any account already been created on this device? */
+export async function checkDeviceImpl(data: { deviceId: string }) {
+  const id = (data.deviceId ?? "").trim();
+  if (!id) return { blocked: false };
+  const { count } = await supabaseAdmin
+    .from("device_accounts")
+    .select("id", { count: "exact", head: true })
+    .eq("device_id", id);
+  return { blocked: (count ?? 0) > 0 };
+}
+
+/**
+ * Called right after sign-up. If the device already belongs to another account the
+ * freshly created account is removed again and the caller gets the warning.
+ */
+export async function registerDeviceImpl(
+  { userId }: Ctx,
+  data: { deviceId: string; userAgent?: string },
+) {
+  const id = (data.deviceId ?? "").trim();
+  if (!id) return { ok: true };
+
+  const { data: existing } = await supabaseAdmin
+    .from("device_accounts")
+    .select("user_id")
+    .eq("device_id", id);
+
+  const other = (existing ?? []).filter((r) => r.user_id !== userId);
+  if (other.length) {
+    if (!(await isAdmin(userId))) {
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(
+        "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
+      );
+    }
+    return { ok: true };
+  }
+
+  await supabaseAdmin
+    .from("device_accounts")
+    .upsert(
+      { device_id: id, user_id: userId, user_agent: (data.userAgent ?? "").slice(0, 300) },
+      { onConflict: "device_id,user_id" },
+    );
+  return { ok: true };
+}
+
+/** Admin: devices that carry more than one account. */
+export async function adminDeviceReportImpl({ userId }: Ctx) {
+  await requireAdmin(userId);
+  const { data: rows } = await supabaseAdmin
+    .from("device_accounts")
+    .select("device_id, user_id, user_agent, created_at")
+    .order("created_at", { ascending: false });
+
+  const byDevice = new Map<string, typeof rows extends null ? never : NonNullable<typeof rows>>();
+  (rows ?? []).forEach((r) => {
+    const list = byDevice.get(r.device_id) ?? [];
+    list.push(r);
+    byDevice.set(r.device_id, list as never);
+  });
+
+  const flagged = [...byDevice.entries()].filter(([, list]) => list.length > 1);
+  const ids = [...new Set(flagged.flatMap(([, list]) => list.map((r) => r.user_id)))];
+  const { data: profiles } = ids.length
+    ? await supabaseAdmin.from("profiles").select("id,name,email,mobile,coins").in("id", ids)
+    : { data: [] };
+  const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return {
+    totalDevices: byDevice.size,
+    groups: flagged.map(([deviceId, list]) => ({
+      deviceId,
+      userAgent: list[0]?.user_agent ?? "",
+      accounts: list.map((r) => ({
+        userId: r.user_id,
+        createdAt: r.created_at,
+        profile: map.get(r.user_id) ?? null,
+      })),
+    })),
+  };
 }

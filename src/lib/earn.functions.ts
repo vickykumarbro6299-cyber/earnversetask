@@ -243,3 +243,41 @@ export const adminUserHistory = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminUserHistoryImpl({ userId: context.userId }, data);
   });
+
+export const cancelMyClaim = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { submissionId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.cancelMyClaimImpl({ userId: context.userId }, data);
+  });
+
+export const adminCancelTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { taskId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminCancelTaskImpl({ userId: context.userId }, data);
+  });
+
+export const checkDevice = createServerFn({ method: "POST" })
+  .inputValidator((d: { deviceId: string }) => d)
+  .handler(async ({ data }) => {
+    const m = await import("./earn.server");
+    return m.checkDeviceImpl(data);
+  });
+
+export const registerDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { deviceId: string; userAgent?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.registerDeviceImpl({ userId: context.userId }, data);
+  });
+
+export const adminDeviceReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.adminDeviceReportImpl({ userId: context.userId });
+  });

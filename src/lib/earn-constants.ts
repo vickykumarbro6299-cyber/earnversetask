@@ -6,7 +6,7 @@ export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
 export const ADMIN_EMAIL = "trustmeiamjonathan12@gmail.com";
 export const APP_VERSION = "1.0.0";
-export const CLAIM_MINUTES = 10;
+export const CLAIM_MINUTES = 12;
 export const TELEGRAM_CHANNEL = "https://t.me/EarnVerseTask";
 
 export const toRupees = (coins: number) => (coins / COINS_PER_RUPEE).toFixed(2);

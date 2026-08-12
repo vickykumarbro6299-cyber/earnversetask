@@ -61,6 +61,14 @@ function AuthPage() {
           throw new Error("Enter a valid mobile number");
         if (form.password.length < 6)
           throw new Error("Password must be at least 6 characters");
+
+        const deviceId = getDeviceId();
+        const check = await checkDevice({ data: { deviceId } });
+        if (check.blocked)
+          throw new Error(
+            "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
+          );
+
         const { error } = await supabase.auth.signUp({
           email: form.email.trim(),
           password: form.password,
@@ -79,10 +87,19 @@ function AuthPage() {
           password: form.password,
         });
         if (signInError) throw signInError;
+
+        try {
+          await registerDevice({ data: { deviceId, userAgent: navigator.userAgent } });
+        } catch (devErr) {
+          await supabase.auth.signOut();
+          throw devErr;
+        }
+
         toast.success("Welcome to EarnVerse! 50 coins added as joining reward 🎉");
         navigate({ to: "/tasks", replace: true });
         return;
       }
+
 
       const { error } = await supabase.auth.signInWithPassword({
         email: form.email.trim(),
