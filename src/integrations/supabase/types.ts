@@ -65,6 +65,30 @@ export type Database = {
         }
         Relationships: []
       }
+      device_accounts: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          user_agent?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           coins: number
@@ -252,6 +276,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          disabled: boolean
           id: string
           is_admin_task: boolean
           link: string | null
@@ -268,6 +293,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          disabled?: boolean
           id?: string
           is_admin_task?: boolean
           link?: string | null
@@ -284,6 +310,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          disabled?: boolean
           id?: string
           is_admin_task?: boolean
           link?: string | null
@@ -356,6 +383,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_task_slot: {
+        Args: { p_minutes: number; p_task_id: string; p_user_id: string }
+        Returns: string
+      }
       gen_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -364,6 +395,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      recount_task_slots: { Args: { p_task_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
