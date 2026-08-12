@@ -798,8 +798,9 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
 
   await supabaseAdmin
     .from("tasks")
-    .update({ active: false, total_slots: task.claimed_count })
+    .update({ disabled: true, active: false, total_slots: task.claimed_count })
     .eq("id", task.id);
+
 
   if (refund > 0) await addCoins(userId, refund);
   return { refund, unusedSlots };
