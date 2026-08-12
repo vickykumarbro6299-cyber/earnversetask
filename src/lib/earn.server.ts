@@ -562,20 +562,11 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
   });
 }
 
-/** Give the reserved slot back to the pool. */
+/** Give the reserved slot back to the pool (recalculated from real submissions). */
 async function releaseTaskSlot(taskId: string) {
-  const { data: task } = await supabaseAdmin
-    .from("tasks")
-    .select("claimed_count, total_slots")
-    .eq("id", taskId)
-    .maybeSingle();
-  if (!task) return;
-  const next = Math.max(0, task.claimed_count - 1);
-  await supabaseAdmin
-    .from("tasks")
-    .update({ claimed_count: next, active: next < task.total_slots })
-    .eq("id", taskId);
+  await recountTask(taskId);
 }
+
 
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
