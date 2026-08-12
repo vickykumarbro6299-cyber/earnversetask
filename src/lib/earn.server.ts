@@ -73,6 +73,11 @@ export async function meImpl({ userId }: Ctx) {
   return { profile, isAdmin: await isAdmin(userId), settings: map };
 }
 
+/** Recalculate a task's claimed slots from real submissions (never releases finished work). */
+async function recountTask(taskId: string) {
+  await supabaseAdmin.rpc("recount_task_slots", { p_task_id: taskId });
+}
+
 /** Release reservations that were not submitted within CLAIM_MINUTES. */
 export async function expireStaleClaims() {
   const { data: stale } = await supabaseAdmin
@@ -94,18 +99,7 @@ export async function expireStaleClaims() {
     );
 
   for (const taskId of [...new Set(stale.map((s) => s.task_id))]) {
-    const freed = stale.filter((s) => s.task_id === taskId).length;
-    const { data: task } = await supabaseAdmin
-      .from("tasks")
-      .select("claimed_count, total_slots")
-      .eq("id", taskId)
-      .maybeSingle();
-    if (!task) continue;
-    const next = Math.max(0, task.claimed_count - freed);
-    await supabaseAdmin
-      .from("tasks")
-      .update({ claimed_count: next, active: next < task.total_slots })
-      .eq("id", taskId);
+    await recountTask(taskId);
   }
 }
 
@@ -135,48 +129,33 @@ export async function myTasksImpl({ userId }: Ctx) {
 
 export async function claimTaskImpl({ userId }: Ctx, data: { taskId: string }) {
   await expireStaleClaims();
-  const { data: task, error } = await supabaseAdmin
-    .from("tasks")
-    .select("*")
-    .eq("id", data.taskId)
-    .single();
-  if (error) throw error;
-  if (!task.active) throw new Error("Task closed");
-  if (task.claimed_count >= task.total_slots) throw new Error("No slots left");
-  if (task.created_by === userId) throw new Error("You cannot claim your own task");
-
-  const { data: existing } = await supabaseAdmin
-    .from("submissions")
-    .select("id, submitted_at, status")
-    .eq("task_id", task.id)
-    .eq("user_id", userId);
-
-  if (existing?.length) {
-    const open = existing.some((s) => !s.submitted_at || s.status === "pending");
-    if (open) throw new Error("You already have this task in progress");
-    // Rejected attempts are released — user can claim again.
-    if (!task.allow_multiple && existing.some((s) => s.status === "approved"))
-      throw new Error("Already claimed");
-  }
-
-
-  const { error: insErr } = await supabaseAdmin.from("submissions").insert({
-    task_id: task.id,
-    user_id: userId,
-    reward_coins: task.reward_coins,
-    expires_at: new Date(Date.now() + CLAIM_MINUTES * 60_000).toISOString(),
+  // Atomic: the database locks the task row so two users can never take the same slot.
+  const { error } = await supabaseAdmin.rpc("claim_task_slot", {
+    p_task_id: data.taskId,
+    p_user_id: userId,
+    p_minutes: CLAIM_MINUTES,
   });
-  if (insErr) throw new Error("Could not claim task");
-
-  await supabaseAdmin
-    .from("tasks")
-    .update({
-      claimed_count: task.claimed_count + 1,
-      active: task.claimed_count + 1 < task.total_slots,
-    })
-    .eq("id", task.id);
+  if (error) throw new Error(error.message.replace(/^.*?:\s*/, "") || "Could not claim task");
   return { ok: true };
 }
+
+/** User cancels a claimed (not yet submitted) task — the slot goes back to the pool. */
+export async function cancelMyClaimImpl({ userId }: Ctx, data: { submissionId: string }) {
+  const { data: sub, error } = await supabaseAdmin
+    .from("submissions")
+    .select("id, task_id, submitted_at, status")
+    .eq("id", data.submissionId)
+    .eq("user_id", userId)
+    .single();
+  if (error) throw new Error("Claim not found");
+  if (sub.submitted_at || sub.status !== "pending")
+    throw new Error("This task can no longer be cancelled");
+
+  await supabaseAdmin.from("submissions").delete().eq("id", sub.id).eq("user_id", userId);
+  await recountTask(sub.task_id);
+  return { ok: true };
+}
+
 
 
 
