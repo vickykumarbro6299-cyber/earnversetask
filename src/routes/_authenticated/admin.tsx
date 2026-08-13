@@ -34,6 +34,8 @@ import {
   adminSetPromoActive,
   adminUserHistory,
   getProofUrl,
+  adminCancelTask,
+  adminDeviceReport,
 } from "@/lib/earn.functions";
 
 import {
@@ -68,6 +70,7 @@ const TABS = [
   "Withdrawals",
   "Tasks",
   "Users",
+  "Devices",
   "Promo",
   "Settings",
 ] as const;

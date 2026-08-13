@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Mail, Lock, User, Phone, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand";
+import { getDeviceId } from "@/lib/device-id";
+import { checkDevice, registerDevice } from "@/lib/earn.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
