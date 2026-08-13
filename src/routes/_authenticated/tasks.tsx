@@ -31,6 +31,8 @@ import {
   CLAIM_MINUTES,
   NO_LINK_CATEGORIES,
   VIDEO_TASK_DESCRIPTION,
+  SHORTS_TASK_DESCRIPTION,
+  autoDescription,
   PROMOTE_TAGLINE,
   greeting,
 } from "@/lib/earn-constants";
@@ -279,11 +281,10 @@ function AddTaskSheet({
       rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
       link: NO_LINK_CATEGORIES.includes(key) ? "" : f.link,
       description:
-        key === "video"
-          ? VIDEO_TASK_DESCRIPTION
-          : f.description === VIDEO_TASK_DESCRIPTION
-            ? ""
-            : f.description,
+        autoDescription(key) ??
+        (f.description === VIDEO_TASK_DESCRIPTION || f.description === SHORTS_TASK_DESCRIPTION
+          ? ""
+          : f.description),
     }));
   }
 
@@ -348,10 +349,11 @@ function AddTaskSheet({
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
-          {form.category === "video" && (
+          {(form.category === "video" || form.category === "shorts") && (
             <p className="rounded-lg bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground">
-              Video task rules are pre-filled. Users submitting before 2 minutes get a failed
-              submission.
+              {form.category === "video"
+                ? "Long video rules are pre-filled. Submitting before 2 minutes = failed submission."
+                : "Shorts rules are pre-filled. Submitting before 10 seconds = failed submission."}
             </p>
           )}
           <textarea
