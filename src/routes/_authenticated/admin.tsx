@@ -433,6 +433,7 @@ const newDraft = (): TaskDraft => ({
 function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
   const createFn = useServerFn(adminCreateTask);
   const toggleFn = useServerFn(adminSetTaskActive);
+  const cancelFn = useServerFn(adminCancelTask);
   const [drafts, setDrafts] = useState<TaskDraft[]>([newDraft()]);
   const [busy, setBusy] = useState(false);
 
