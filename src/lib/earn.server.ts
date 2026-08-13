@@ -6,7 +6,7 @@ import {
   payableAmount,
   TASK_CATEGORIES,
   CATEGORY_MIN_REWARD,
-  VIDEO_MIN_WATCH_SECONDS,
+  CATEGORY_MIN_WATCH_SECONDS,
 } from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
@@ -174,7 +174,8 @@ export async function submitProofImpl(
 
   const category = (sub.tasks as { category: string } | null)?.category;
   const heldSeconds = (Date.now() - new Date(sub.claimed_at).getTime()) / 1000;
-  if (category === "video" && heldSeconds < VIDEO_MIN_WATCH_SECONDS) {
+  const minWatch = category ? (CATEGORY_MIN_WATCH_SECONDS[category] ?? 0) : 0;
+  if (minWatch && heldSeconds < minWatch) {
     await supabaseAdmin
       .from("submissions")
       .update({
@@ -187,7 +188,9 @@ export async function submitProofImpl(
       .eq("id", data.submissionId);
     await releaseTaskSlot(sub.task_id);
     throw new Error(
-      "Failed submission — you must watch the video for at least 2 minutes before submitting proof",
+      `Failed submission — you must watch the video for at least ${
+        minWatch >= 60 ? `${minWatch / 60} minutes` : `${minWatch} seconds`
+      } before submitting proof`,
     );
   }
 
@@ -530,6 +533,22 @@ export async function adminCreateTaskImpl(
   if (error) throw error;
   return { ok: true };
 
+}
+
+/** Admin: update the reward coins of any task. */
+export async function adminUpdateTaskRewardImpl(
+  { userId }: Ctx,
+  data: { taskId: string; rewardCoins: number },
+) {
+  await requireAdmin(userId);
+  const coins = Math.floor(data.rewardCoins);
+  if (!Number.isFinite(coins) || coins < 1) throw new Error("Enter a valid coin amount");
+  const { error } = await supabaseAdmin
+    .from("tasks")
+    .update({ reward_coins: coins })
+    .eq("id", data.taskId);
+  if (error) throw error;
+  return { ok: true };
 }
 
 export async function adminSetTaskActiveImpl(

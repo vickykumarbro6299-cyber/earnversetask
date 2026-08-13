@@ -35,6 +35,7 @@ import {
   adminUserHistory,
   getProofUrl,
   adminCancelTask,
+  adminUpdateTaskReward,
   adminDeviceReport,
 } from "@/lib/earn.functions";
 
@@ -44,6 +45,8 @@ import {
   CATEGORY_MIN_REWARD,
   NO_LINK_CATEGORIES,
   VIDEO_TASK_DESCRIPTION,
+  SHORTS_TASK_DESCRIPTION,
+  autoDescription,
 } from "@/lib/earn-constants";
 
 
@@ -434,6 +437,7 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
   const createFn = useServerFn(adminCreateTask);
   const toggleFn = useServerFn(adminSetTaskActive);
   const cancelFn = useServerFn(adminCancelTask);
+  const rewardFn = useServerFn(adminUpdateTaskReward);
   const [drafts, setDrafts] = useState<TaskDraft[]>([newDraft()]);
   const [busy, setBusy] = useState(false);
 
@@ -522,11 +526,11 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
                           : form.rewardCoins,
                       link: NO_LINK_CATEGORIES.includes(c.key) ? "" : form.link,
                       description:
-                        c.key === "video"
-                          ? VIDEO_TASK_DESCRIPTION
-                          : form.description === VIDEO_TASK_DESCRIPTION
-                            ? ""
-                            : form.description,
+                        autoDescription(c.key) ??
+                        (form.description === VIDEO_TASK_DESCRIPTION ||
+                        form.description === SHORTS_TASK_DESCRIPTION
+                          ? ""
+                          : form.description),
                     })
                   }
                   className={`rounded-xl px-2 py-2 text-xs font-bold ${
@@ -640,6 +644,22 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
             }`}
           >
             {t.active ? "Disable" : "Enable"}
+          </button>
+          <button
+            onClick={async () => {
+              const input = prompt("New reward coins for this task:", String(t.reward_coins));
+              if (input === null) return;
+              try {
+                await rewardFn({ data: { taskId: t.id, rewardCoins: Number(input) } });
+                toast.success("Reward coins updated");
+                onDone();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed");
+              }
+            }}
+            className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-bold text-primary"
+          >
+            Edit coins
           </button>
           <button
             onClick={async () => {
