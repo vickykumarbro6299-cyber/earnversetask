@@ -157,6 +157,14 @@ export const adminSetTaskActive = createServerFn({ method: "POST" })
     return m.adminSetTaskActiveImpl({ userId: context.userId }, data);
   });
 
+export const adminUpdateTaskReward = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { taskId: string; rewardCoins: number }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminUpdateTaskRewardImpl({ userId: context.userId }, data);
+  });
+
 export const adminReviewSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; approve: boolean }) => d)

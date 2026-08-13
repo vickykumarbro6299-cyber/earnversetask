@@ -49,7 +49,8 @@ export const payableAmount = (rupees: number) =>
   Number((rupees * (1 + DEPOSIT_TAX)).toFixed(2));
 
 export const TASK_CATEGORIES = [
-  { key: "video", label: "Video Task" },
+  { key: "video", label: "Long Video" },
+  { key: "shorts", label: "Shorts Video" },
   { key: "gmail", label: "Gmail Task" },
   { key: "app", label: "App Task" },
   { key: "telegram", label: "Telegram Task" },
@@ -59,9 +60,10 @@ export const TASK_CATEGORIES = [
 /** Minimum reward coins a user must offer per task category. */
 export const CATEGORY_MIN_REWARD: Record<string, number> = {
   video: 20,
+  shorts: 20,
   gmail: 2000,
   app: 300,
-  telegram: 10,
+  telegram: 20,
   other: 50,
 };
 
@@ -76,8 +78,32 @@ export const VIDEO_TASK_DESCRIPTION = `1. Click on Start Task
 
 Note: Submitting before 2 minutes will be marked as a failed submission.`;
 
-/** Video tasks must be watched for at least this long before proof is accepted. */
+/** Long video tasks must be watched for at least this long before proof is accepted. */
 export const VIDEO_MIN_WATCH_SECONDS = 120;
+
+/** Shorts video tasks must be watched for at least this long before proof is accepted. */
+export const SHORTS_MIN_WATCH_SECONDS = 10;
+
+/** Minimum watch time (seconds) enforced per task category. */
+export const CATEGORY_MIN_WATCH_SECONDS: Record<string, number> = {
+  video: VIDEO_MIN_WATCH_SECONDS,
+  shorts: SHORTS_MIN_WATCH_SECONDS,
+};
+
+/** Fixed instructions auto-filled for Shorts video tasks. */
+export const SHORTS_TASK_DESCRIPTION = `1. Click on Start Task
+2. Watch The Shorts Video Atleast 10 Seconds
+3. Like Comment Subscribe The Channel
+4. Task Screenshot And Submit
+
+Note: Submitting before 10 seconds will be marked as a failed submission.`;
+
+/** Auto-filled description for a category, if any. */
+export function autoDescription(category: string): string | null {
+  if (category === "video") return VIDEO_TASK_DESCRIPTION;
+  if (category === "shorts") return SHORTS_TASK_DESCRIPTION;
+  return null;
+}
 
 export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
 
