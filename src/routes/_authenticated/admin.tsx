@@ -189,6 +189,8 @@ function AdminPage() {
 
         {d && tab === "Users" && <UsersTab users={d.users} onDone={refresh} />}
 
+        {tab === "Devices" && <DevicesTab />}
+
 
 
         {d && tab === "Overview" && <OverviewTab o={d.overview} />}
@@ -619,7 +621,7 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
       </form>
 
       {tasks.map((t) => (
-        <div key={t.id} className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-card">
+        <div key={t.id} className="flex items-center gap-2 rounded-xl bg-card p-3 shadow-card">
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
             <p className="text-xs text-muted-foreground">
@@ -638,6 +640,67 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
           >
             {t.active ? "Disable" : "Enable"}
           </button>
+          <button
+            onClick={async () => {
+              if (!confirm("Cancel this task and refund unused coins to the creator?")) return;
+              try {
+                await cancelFn({ data: { taskId: t.id } });
+                toast.success("Task cancelled & unused coins refunded");
+                onDone();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed");
+              }
+            }}
+            className="rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+          >
+            Cancel & Refund
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DevicesTab() {
+  const fn = useServerFn(adminDeviceReport);
+  const q = useQuery({ queryKey: ["admin-devices"], queryFn: () => fn() });
+  const groups = q.data?.groups ?? [];
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="rounded-2xl bg-card p-4 shadow-card">
+        <h3 className="font-extrabold">Multiple accounts in same device</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {q.isLoading
+            ? "Loading…"
+            : `${groups.length} flagged device(s) out of ${q.data?.totalDevices ?? 0} tracked.`}
+        </p>
+      </div>
+
+      {!q.isLoading && groups.length === 0 && (
+        <p className="mt-6 text-center text-muted-foreground">No multi-account devices found.</p>
+      )}
+
+      {groups.map((g: any) => (
+        <div key={g.deviceId} className="rounded-2xl bg-card p-4 shadow-card">
+          <p className="text-sm font-extrabold text-destructive">
+            ⚠️ {g.accounts.length} accounts on one device
+          </p>
+          <p className="mt-1 break-all text-[11px] text-muted-foreground">{g.deviceId}</p>
+          <div className="mt-3 space-y-2">
+            {g.accounts.map((a: any) => (
+              <div key={a.userId} className="rounded-xl bg-muted p-2.5">
+                <p className="text-sm font-bold">{a.profile?.name ?? "Unknown user"}</p>
+                <p className="break-all text-xs text-muted-foreground">
+                  {a.profile?.email ?? a.userId} • {a.profile?.mobile ?? "—"} •{" "}
+                  {a.profile?.coins ?? 0} coins
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Joined {new Date(a.createdAt).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
     </div>
