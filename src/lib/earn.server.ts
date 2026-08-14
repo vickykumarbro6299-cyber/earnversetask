@@ -1,3 +1,4 @@
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   DEPOSIT_PACKS,
