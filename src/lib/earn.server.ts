@@ -988,15 +988,17 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
   await requireAdmin(userId);
   const { data: rows } = await supabaseAdmin
     .from("device_accounts")
-    .select("device_id, user_id, user_agent, created_at")
+    .select("device_id, fingerprint, user_id, user_agent, created_at")
     .order("created_at", { ascending: false });
 
   const byDevice = new Map<string, typeof rows extends null ? never : NonNullable<typeof rows>>();
   (rows ?? []).forEach((r) => {
-    const list = byDevice.get(r.device_id) ?? [];
+    const key = (r.fingerprint || r.device_id) as string;
+    const list = byDevice.get(key) ?? [];
     list.push(r);
-    byDevice.set(r.device_id, list as never);
+    byDevice.set(key, list as never);
   });
+
 
   const flagged = [...byDevice.entries()].filter(([, list]) => list.length > 1);
   const ids = [...new Set(flagged.flatMap(([, list]) => list.map((r) => r.user_id)))];
