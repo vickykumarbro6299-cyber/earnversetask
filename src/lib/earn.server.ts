@@ -1,3 +1,4 @@
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   DEPOSIT_PACKS,
@@ -863,17 +864,89 @@ export async function adminUserHistoryImpl(
   return earningHistoryImpl({ userId: data.targetUserId });
 }
 
+/* ---------------- admin task detail ---------------- */
+
+export async function adminTaskDetailImpl({ userId }: Ctx, data: { taskId: string }) {
+  await requireAdmin(userId);
+  const { data: task } = await supabaseAdmin
+    .from("tasks")
+    .select("*")
+    .eq("id", data.taskId)
+    .maybeSingle();
+  if (!task) throw new Error("Task not found");
+
+  const { data: creator } = task.created_by
+    ? await supabaseAdmin
+        .from("profiles")
+        .select("id,name,email,mobile,coins")
+        .eq("id", task.created_by)
+        .maybeSingle()
+    : { data: null };
+
+  const { data: subs } = await supabaseAdmin
+    .from("submissions")
+    .select("id,status,user_id,claimed_at,submitted_at")
+    .eq("task_id", data.taskId);
+
+  const rows = subs ?? [];
+  return {
+    task,
+    creator: creator ?? null,
+    stats: {
+      total: rows.length,
+      pending: rows.filter((s) => s.status === "pending").length,
+      approved: rows.filter((s) => s.status === "approved").length,
+      rejected: rows.filter((s) => s.status === "rejected").length,
+    },
+  };
+}
+
 /* ---------------- device / multi-account guard ---------------- */
 
+/** Hash of browser + network signals — survives localStorage/app-data clears. */
+export function serverFingerprint(userAgent: string, ip: string) {
+  const raw = `${(userAgent ?? "").trim()}|${(ip ?? "").trim()}`;
+  if (!raw.replace("|", "").trim()) return "";
+  let h = 0x811c9dc5;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `fp_${h.toString(16)}_${raw.length}`;
+}
+
+/** Reads the incoming request headers and builds the server-side device signature. */
+export function requestFingerprint() {
+  const ua = getRequestHeader("user-agent") ?? "";
+  const ip =
+    getRequestHeader("cf-connecting-ip") ??
+    (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() ??
+    getRequestHeader("x-real-ip") ??
+    "";
+  return serverFingerprint(ua, ip);
+}
+
+
 /** Public check used before sign-up: has any account already been created on this device? */
-export async function checkDeviceImpl(data: { deviceId: string }) {
+export async function checkDeviceImpl(data: { deviceId: string; fingerprint?: string }) {
   const id = (data.deviceId ?? "").trim();
-  if (!id) return { blocked: false };
-  const { count } = await supabaseAdmin
-    .from("device_accounts")
-    .select("id", { count: "exact", head: true })
-    .eq("device_id", id);
-  return { blocked: (count ?? 0) > 0 };
+  const fp = (data.fingerprint ?? "").trim();
+
+  if (id) {
+    const { count } = await supabaseAdmin
+      .from("device_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("device_id", id);
+    if ((count ?? 0) > 0) return { blocked: true };
+  }
+  if (fp) {
+    const { count } = await supabaseAdmin
+      .from("device_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("fingerprint", fp);
+    if ((count ?? 0) > 0) return { blocked: true };
+  }
+  return { blocked: false };
 }
 
 /**
@@ -882,15 +955,20 @@ export async function checkDeviceImpl(data: { deviceId: string }) {
  */
 export async function registerDeviceImpl(
   { userId }: Ctx,
-  data: { deviceId: string; userAgent?: string },
+  data: { deviceId: string; userAgent?: string; fingerprint?: string },
 ) {
   const id = (data.deviceId ?? "").trim();
-  if (!id) return { ok: true };
+  const fp = (data.fingerprint ?? "").trim();
+  if (!id && !fp) return { ok: true };
+
+  const filters: string[] = [];
+  if (id) filters.push(`device_id.eq.${id}`);
+  if (fp) filters.push(`fingerprint.eq.${fp}`);
 
   const { data: existing } = await supabaseAdmin
     .from("device_accounts")
     .select("user_id")
-    .eq("device_id", id);
+    .or(filters.join(","));
 
   const other = (existing ?? []).filter((r) => r.user_id !== userId);
   if (other.length) {
@@ -906,26 +984,34 @@ export async function registerDeviceImpl(
   await supabaseAdmin
     .from("device_accounts")
     .upsert(
-      { device_id: id, user_id: userId, user_agent: (data.userAgent ?? "").slice(0, 300) },
+      {
+        device_id: id || fp,
+        user_id: userId,
+        user_agent: (data.userAgent ?? "").slice(0, 300),
+        fingerprint: fp,
+      },
       { onConflict: "device_id,user_id" },
     );
   return { ok: true };
 }
+
 
 /** Admin: devices that carry more than one account. */
 export async function adminDeviceReportImpl({ userId }: Ctx) {
   await requireAdmin(userId);
   const { data: rows } = await supabaseAdmin
     .from("device_accounts")
-    .select("device_id, user_id, user_agent, created_at")
+    .select("device_id, fingerprint, user_id, user_agent, created_at")
     .order("created_at", { ascending: false });
 
   const byDevice = new Map<string, typeof rows extends null ? never : NonNullable<typeof rows>>();
   (rows ?? []).forEach((r) => {
-    const list = byDevice.get(r.device_id) ?? [];
+    const key = (r.fingerprint || r.device_id) as string;
+    const list = byDevice.get(key) ?? [];
     list.push(r);
-    byDevice.set(r.device_id, list as never);
+    byDevice.set(key, list as never);
   });
+
 
   const flagged = [...byDevice.entries()].filter(([, list]) => list.length > 1);
   const ids = [...new Set(flagged.flatMap(([, list]) => list.map((r) => r.user_id)))];

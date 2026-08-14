@@ -272,7 +272,10 @@ export const checkDevice = createServerFn({ method: "POST" })
   .inputValidator((d: { deviceId: string }) => d)
   .handler(async ({ data }) => {
     const m = await import("./earn.server");
-    return m.checkDeviceImpl(data);
+    return m.checkDeviceImpl({
+      deviceId: data.deviceId,
+      fingerprint: m.requestFingerprint(),
+    });
   });
 
 export const registerDevice = createServerFn({ method: "POST" })
@@ -280,8 +283,12 @@ export const registerDevice = createServerFn({ method: "POST" })
   .inputValidator((d: { deviceId: string; userAgent?: string }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
-    return m.registerDeviceImpl({ userId: context.userId }, data);
+    return m.registerDeviceImpl(
+      { userId: context.userId },
+      { ...data, fingerprint: m.requestFingerprint() },
+    );
   });
+
 
 export const adminDeviceReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -289,3 +296,12 @@ export const adminDeviceReport = createServerFn({ method: "GET" })
     const m = await import("./earn.server");
     return m.adminDeviceReportImpl({ userId: context.userId });
   });
+
+export const adminTaskDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { taskId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminTaskDetailImpl({ userId: context.userId }, data);
+  });
+
