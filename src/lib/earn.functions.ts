@@ -268,24 +268,13 @@ export const adminCancelTask = createServerFn({ method: "POST" })
     return m.adminCancelTaskImpl({ userId: context.userId }, data);
   });
 
-function requestFingerprintHeaders() {
-  const ua = getRequestHeader("user-agent") ?? "";
-  const ip =
-    getRequestHeader("cf-connecting-ip") ??
-    (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() ??
-    getRequestHeader("x-real-ip") ??
-    "";
-  return { ua, ip };
-}
-
 export const checkDevice = createServerFn({ method: "POST" })
   .inputValidator((d: { deviceId: string }) => d)
   .handler(async ({ data }) => {
     const m = await import("./earn.server");
-    const { ua, ip } = requestFingerprintHeaders();
     return m.checkDeviceImpl({
       deviceId: data.deviceId,
-      fingerprint: m.serverFingerprint(ua, ip),
+      fingerprint: m.requestFingerprint(),
     });
   });
 
@@ -294,12 +283,12 @@ export const registerDevice = createServerFn({ method: "POST" })
   .inputValidator((d: { deviceId: string; userAgent?: string }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
-    const { ua, ip } = requestFingerprintHeaders();
     return m.registerDeviceImpl(
       { userId: context.userId },
-      { ...data, fingerprint: m.serverFingerprint(ua, ip) },
+      { ...data, fingerprint: m.requestFingerprint() },
     );
   });
+
 
 export const adminDeviceReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
