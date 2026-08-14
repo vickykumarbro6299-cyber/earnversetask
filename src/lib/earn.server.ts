@@ -914,6 +914,18 @@ export function serverFingerprint(userAgent: string, ip: string) {
   return `fp_${h.toString(16)}_${raw.length}`;
 }
 
+/** Reads the incoming request headers and builds the server-side device signature. */
+export function requestFingerprint() {
+  const ua = getRequestHeader("user-agent") ?? "";
+  const ip =
+    getRequestHeader("cf-connecting-ip") ??
+    (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() ??
+    getRequestHeader("x-real-ip") ??
+    "";
+  return serverFingerprint(ua, ip);
+}
+
+
 /** Public check used before sign-up: has any account already been created on this device? */
 export async function checkDeviceImpl(data: { deviceId: string; fingerprint?: string }) {
   const id = (data.deviceId ?? "").trim();
