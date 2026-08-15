@@ -206,6 +206,87 @@ function TaskDetailPage() {
               </section>
             )}
 
+            {edit && (
+              <form onSubmit={save} className="space-y-3 rounded-2xl bg-card p-4 shadow-card">
+                <h3 className="font-extrabold">Edit Task</h3>
+
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Title
+                  <input
+                    value={edit.title}
+                    onChange={(e) => setEdit({ ...edit, title: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-semibold text-foreground"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Description
+                  <textarea
+                    rows={4}
+                    value={edit.description}
+                    onChange={(e) => setEdit({ ...edit, description: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Task link
+                  <input
+                    value={edit.link}
+                    onChange={(e) => setEdit({ ...edit, link: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-semibold text-muted-foreground">
+                    Reward coins
+                    <input
+                      type="number"
+                      value={edit.rewardCoins}
+                      onChange={(e) => setEdit({ ...edit, rewardCoins: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold text-foreground"
+                    />
+                  </label>
+                  <label className="block text-xs font-semibold text-muted-foreground">
+                    Total slots
+                    <input
+                      type="number"
+                      value={edit.totalSlots}
+                      onChange={(e) => setEdit({ ...edit, totalSlots: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold text-foreground"
+                    />
+                  </label>
+                </div>
+
+                <SamplePhotoInput
+                  value={edit.sampleImageUrl}
+                  onChange={(paths) => setEdit({ ...edit, sampleImageUrl: paths })}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setEdit({ ...edit, allowMultiple: !edit.allowMultiple })}
+                  className={`w-full rounded-xl px-3 py-2.5 text-sm font-bold ${
+                    edit.allowMultiple
+                      ? "bg-success/15 text-success"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  Allow Multiple Times: {edit.allowMultiple ? "ON" : "OFF"}
+                </button>
+
+                <button
+                  disabled={saving}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-60"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </form>
+            )}
+
+
             <button
               onClick={cancel}
               disabled={busy}
