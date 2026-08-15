@@ -101,6 +101,22 @@ function TaskDetailPage() {
     }
   }
 
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!edit) return;
+    setSaving(true);
+    try {
+      await updateFn({ data: { taskId, ...edit } });
+      toast.success("Task updated");
+      refresh();
+      q.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background pb-16">
       <header className="bg-gradient-brand px-4 py-4">
