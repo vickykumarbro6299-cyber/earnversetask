@@ -19,6 +19,8 @@ import {
 import { useNotificationPermission } from "@/lib/use-task-notifications";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
+import { TelegramNotice } from "@/components/telegram-notice";
+
 import { CoinIcon } from "@/components/brand";
 import { SamplePhotoInput } from "@/components/sample-photo";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
