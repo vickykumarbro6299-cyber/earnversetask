@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Ban } from "lucide-react";
+import { ArrowLeft, Ban, Save } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { SamplePhoto } from "@/components/sample-photo";
-import { adminTaskDetail, adminCancelTask } from "@/lib/earn.functions";
+import { SamplePhoto, SamplePhotoInput } from "@/components/sample-photo";
+import { adminTaskDetail, adminCancelTask, adminUpdateTask } from "@/lib/earn.functions";
 import { TASK_CATEGORIES } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/admin_/task/$taskId")({
@@ -35,7 +35,18 @@ function TaskDetailPage() {
   const refresh = useRefreshAll();
   const detailFn = useServerFn(adminTaskDetail);
   const cancelFn = useServerFn(adminCancelTask);
+  const updateFn = useServerFn(adminUpdateTask);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [edit, setEdit] = useState<{
+    title: string;
+    description: string;
+    link: string;
+    rewardCoins: number;
+    totalSlots: number;
+    sampleImageUrl: string;
+    allowMultiple: boolean;
+  } | null>(null);
 
   const isAdmin = me.data?.isAdmin ?? false;
   const q = useQuery({
@@ -43,6 +54,20 @@ function TaskDetailPage() {
     queryFn: () => detailFn({ data: { taskId } }),
     enabled: isAdmin,
   });
+
+  const loaded = q.data?.task as any;
+  useEffect(() => {
+    if (!loaded) return;
+    setEdit({
+      title: loaded.title ?? "",
+      description: loaded.description ?? "",
+      link: loaded.link ?? "",
+      rewardCoins: loaded.reward_coins ?? 0,
+      totalSlots: loaded.total_slots ?? 1,
+      sampleImageUrl: loaded.sample_image_url ?? "",
+      allowMultiple: !!loaded.allow_multiple,
+    });
+  }, [loaded]);
 
   if (me.isLoading) return <Center>Loading…</Center>;
   if (!isAdmin)
@@ -73,6 +98,22 @@ function TaskDetailPage() {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!edit) return;
+    setSaving(true);
+    try {
+      await updateFn({ data: { taskId, ...edit } });
+      toast.success("Task updated");
+      refresh();
+      q.refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -164,6 +205,87 @@ function TaskDetailPage() {
                 </div>
               </section>
             )}
+
+            {edit && (
+              <form onSubmit={save} className="space-y-3 rounded-2xl bg-card p-4 shadow-card">
+                <h3 className="font-extrabold">Edit Task</h3>
+
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Title
+                  <input
+                    value={edit.title}
+                    onChange={(e) => setEdit({ ...edit, title: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-semibold text-foreground"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Description
+                  <textarea
+                    rows={4}
+                    value={edit.description}
+                    onChange={(e) => setEdit({ ...edit, description: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Task link
+                  <input
+                    value={edit.link}
+                    onChange={(e) => setEdit({ ...edit, link: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-semibold text-muted-foreground">
+                    Reward coins
+                    <input
+                      type="number"
+                      value={edit.rewardCoins}
+                      onChange={(e) => setEdit({ ...edit, rewardCoins: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold text-foreground"
+                    />
+                  </label>
+                  <label className="block text-xs font-semibold text-muted-foreground">
+                    Total slots
+                    <input
+                      type="number"
+                      value={edit.totalSlots}
+                      onChange={(e) => setEdit({ ...edit, totalSlots: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold text-foreground"
+                    />
+                  </label>
+                </div>
+
+                <SamplePhotoInput
+                  value={edit.sampleImageUrl}
+                  onChange={(paths) => setEdit({ ...edit, sampleImageUrl: paths })}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setEdit({ ...edit, allowMultiple: !edit.allowMultiple })}
+                  className={`w-full rounded-xl px-3 py-2.5 text-sm font-bold ${
+                    edit.allowMultiple
+                      ? "bg-success/15 text-success"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  Allow Multiple Times: {edit.allowMultiple ? "ON" : "OFF"}
+                </button>
+
+                <button
+                  disabled={saving}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-bold text-primary-foreground disabled:opacity-60"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </form>
+            )}
+
 
             <button
               onClick={cancel}

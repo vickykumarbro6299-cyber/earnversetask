@@ -625,8 +625,9 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
         </button>
       </form>
 
+      <h3 className="font-extrabold">Task List</h3>
       {tasks.map((t) => (
-        <div key={t.id} className="flex items-center gap-2 rounded-xl bg-card p-3 shadow-card">
+        <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card">
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
             <p className="text-xs text-muted-foreground">
@@ -634,6 +635,13 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
               {t.is_admin_task ? "Official" : "User task"}
             </p>
           </div>
+          <Link
+            to="/admin/task/$taskId"
+            params={{ taskId: t.id }}
+            className="rounded-lg bg-gradient-brand px-3 py-2 text-xs font-bold text-primary-foreground"
+          >
+            View Details
+          </Link>
           <button
             onClick={async () => {
               await toggleFn({ data: { taskId: t.id, active: !t.active } });

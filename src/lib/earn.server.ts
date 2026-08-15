@@ -552,6 +552,55 @@ export async function adminUpdateTaskRewardImpl(
   return { ok: true };
 }
 
+/** Admin edits an existing task (details + sample screenshots). */
+export async function adminUpdateTaskImpl(
+  { userId }: Ctx,
+  data: {
+    taskId: string;
+    title: string;
+    description: string;
+    link: string;
+    rewardCoins: number;
+    totalSlots: number;
+    sampleImageUrl: string;
+    allowMultiple: boolean;
+  },
+) {
+  await requireAdmin(userId);
+  const { data: task } = await supabaseAdmin
+    .from("tasks")
+    .select("claimed_count")
+    .eq("id", data.taskId)
+    .maybeSingle();
+  if (!task) throw new Error("Task not found");
+
+  const title = data.title.trim();
+  if (!title) throw new Error("Title is required");
+  const coins = Math.floor(data.rewardCoins);
+  if (!Number.isFinite(coins) || coins < 1) throw new Error("Enter a valid coin amount");
+  const slots = Math.floor(data.totalSlots);
+  if (!Number.isFinite(slots) || slots < 1) throw new Error("Enter valid slots");
+  if (slots < task.claimed_count)
+    throw new Error(`Slots cannot be less than already claimed (${task.claimed_count})`);
+  if (!data.sampleImageUrl.trim()) throw new Error("At least one sample photo is required");
+
+  const { error } = await supabaseAdmin
+    .from("tasks")
+    .update({
+      title,
+      description: data.description,
+      link: data.link || null,
+      reward_coins: coins,
+      total_slots: slots,
+      sample_image_url: data.sampleImageUrl,
+      allow_multiple: data.allowMultiple,
+    })
+    .eq("id", data.taskId);
+  if (error) throw error;
+  await recountTask(data.taskId);
+  return { ok: true };
+}
+
 export async function adminSetTaskActiveImpl(
   { userId }: Ctx,
   data: { taskId: string; active: boolean },
