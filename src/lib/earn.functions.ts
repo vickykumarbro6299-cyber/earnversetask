@@ -165,6 +165,25 @@ export const adminUpdateTaskReward = createServerFn({ method: "POST" })
     return m.adminUpdateTaskRewardImpl({ userId: context.userId }, data);
   });
 
+export const adminUpdateTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      taskId: string;
+      title: string;
+      description: string;
+      link: string;
+      rewardCoins: number;
+      totalSlots: number;
+      sampleImageUrl: string;
+      allowMultiple: boolean;
+    }) => d,
+  )
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminUpdateTaskImpl({ userId: context.userId }, data);
+  });
+
 export const adminReviewSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; approve: boolean }) => d)
