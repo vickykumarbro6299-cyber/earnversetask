@@ -242,7 +242,9 @@ function TasksPage() {
       </main>
 
       {showAdd && <AddTaskSheet coins={coins} onClose={() => setShowAdd(false)} onDone={refresh} />}
+      <TelegramNotice />
       <BottomNav />
+
     </div>
   );
 }
