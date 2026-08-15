@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Ban } from "lucide-react";
+import { ArrowLeft, Ban, Save } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { SamplePhoto } from "@/components/sample-photo";
-import { adminTaskDetail, adminCancelTask } from "@/lib/earn.functions";
+import { SamplePhoto, SamplePhotoInput } from "@/components/sample-photo";
+import { adminTaskDetail, adminCancelTask, adminUpdateTask } from "@/lib/earn.functions";
 import { TASK_CATEGORIES } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/admin_/task/$taskId")({
