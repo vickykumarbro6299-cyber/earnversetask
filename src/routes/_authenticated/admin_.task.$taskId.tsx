@@ -35,7 +35,18 @@ function TaskDetailPage() {
   const refresh = useRefreshAll();
   const detailFn = useServerFn(adminTaskDetail);
   const cancelFn = useServerFn(adminCancelTask);
+  const updateFn = useServerFn(adminUpdateTask);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [edit, setEdit] = useState<{
+    title: string;
+    description: string;
+    link: string;
+    rewardCoins: number;
+    totalSlots: number;
+    sampleImageUrl: string;
+    allowMultiple: boolean;
+  } | null>(null);
 
   const isAdmin = me.data?.isAdmin ?? false;
   const q = useQuery({
@@ -43,6 +54,20 @@ function TaskDetailPage() {
     queryFn: () => detailFn({ data: { taskId } }),
     enabled: isAdmin,
   });
+
+  const loaded = q.data?.task as any;
+  useEffect(() => {
+    if (!loaded) return;
+    setEdit({
+      title: loaded.title ?? "",
+      description: loaded.description ?? "",
+      link: loaded.link ?? "",
+      rewardCoins: loaded.reward_coins ?? 0,
+      totalSlots: loaded.total_slots ?? 1,
+      sampleImageUrl: loaded.sample_image_url ?? "",
+      allowMultiple: !!loaded.allow_multiple,
+    });
+  }, [loaded]);
 
   if (me.isLoading) return <Center>Loading…</Center>;
   if (!isAdmin)
