@@ -1032,6 +1032,28 @@ export async function registerDeviceImpl(
   return { ok: true };
 }
 
+/** Records devices for accounts created before device blocking was introduced. */
+export async function trackDeviceImpl(
+  { userId }: Ctx,
+  data: { deviceId: string; userAgent?: string; fingerprint?: string },
+) {
+  const id = (data.deviceId ?? "").trim();
+  const fp = (data.fingerprint ?? "").trim();
+  if (!id && !fp) return { ok: true };
+
+  const { error } = await supabaseAdmin.from("device_accounts").upsert(
+    {
+      device_id: id || fp,
+      user_id: userId,
+      user_agent: (data.userAgent ?? "").slice(0, 300),
+      fingerprint: fp,
+    },
+    { onConflict: "device_id,user_id" },
+  );
+  if (error) throw error;
+  return { ok: true };
+}
+
 
 /** Admin: devices that carry more than one account. */
 export async function adminDeviceReportImpl({ userId }: Ctx) {
