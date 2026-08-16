@@ -1045,11 +1045,14 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
   const allRows = rows ?? [];
   const parent = allRows.map((_, index) => index);
   const root = (index: number): number => {
-    while (parent[index] !== index) {
-      parent[index] = parent[parent[index]];
-      index = parent[index];
+    let current = index;
+    while ((parent[current] ?? current) !== current) {
+      const next = parent[current] ?? current;
+      const grandparent = parent[next] ?? next;
+      parent[current] = grandparent;
+      current = grandparent;
     }
-    return index;
+    return current;
   };
   const seen = new Map<string, number>();
   allRows.forEach((row, index) => {
