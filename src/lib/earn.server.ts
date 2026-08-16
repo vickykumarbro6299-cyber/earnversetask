@@ -982,17 +982,19 @@ export async function checkDeviceImpl(data: { deviceId: string; fingerprint?: st
   const fp = (data.fingerprint ?? "").trim();
 
   if (id) {
-    const { count } = await supabaseAdmin
+    const { count, error } = await supabaseAdmin
       .from("device_accounts")
       .select("id", { count: "exact", head: true })
       .eq("device_id", id);
+    if (error) throw error;
     if ((count ?? 0) > 0) return { blocked: true };
   }
   if (fp) {
-    const { count } = await supabaseAdmin
+    const { count, error } = await supabaseAdmin
       .from("device_accounts")
       .select("id", { count: "exact", head: true })
       .eq("fingerprint", fp);
+    if (error) throw error;
     if ((count ?? 0) > 0) return { blocked: true };
   }
   return { blocked: false };
@@ -1010,17 +1012,15 @@ export async function registerDeviceImpl(
   const fp = (data.fingerprint ?? "").trim();
   if (!id && !fp) return { ok: true };
 
-  const filters: string[] = [];
-  if (id) filters.push(`device_id.eq.${id}`);
-  if (fp) filters.push(`fingerprint.eq.${fp}`);
+  const { data: registeredUser, error } = await supabaseAdmin.rpc("register_device_account", {
+    p_device_id: id,
+    p_user_id: userId,
+    p_user_agent: (data.userAgent ?? "").slice(0, 300),
+    p_fingerprint: fp,
+  });
+  if (error) throw error;
 
-  const { data: existing } = await supabaseAdmin
-    .from("device_accounts")
-    .select("user_id")
-    .or(filters.join(","));
-
-  const other = (existing ?? []).filter((r) => r.user_id !== userId);
-  if (other.length) {
+  if (registeredUser && registeredUser !== userId) {
     if (!(await isAdmin(userId))) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
       throw new Error(
@@ -1029,18 +1029,6 @@ export async function registerDeviceImpl(
     }
     return { ok: true };
   }
-
-  await supabaseAdmin
-    .from("device_accounts")
-    .upsert(
-      {
-        device_id: id || fp,
-        user_id: userId,
-        user_agent: (data.userAgent ?? "").slice(0, 300),
-        fingerprint: fp,
-      },
-      { onConflict: "device_id,user_id" },
-    );
   return { ok: true };
 }
 
@@ -1048,22 +1036,40 @@ export async function registerDeviceImpl(
 /** Admin: devices that carry more than one account. */
 export async function adminDeviceReportImpl({ userId }: Ctx) {
   await requireAdmin(userId);
-  const { data: rows } = await supabaseAdmin
+  const { data: rows, error } = await supabaseAdmin
     .from("device_accounts")
     .select("device_id, fingerprint, user_id, user_agent, created_at")
     .order("created_at", { ascending: false });
+  if (error) throw error;
 
-  const byDevice = new Map<string, typeof rows extends null ? never : NonNullable<typeof rows>>();
-  (rows ?? []).forEach((r) => {
-    const key = (r.fingerprint || r.device_id) as string;
-    const list = byDevice.get(key) ?? [];
-    list.push(r);
-    byDevice.set(key, list as never);
+  const allRows = rows ?? [];
+  const parent = allRows.map((_, index) => index);
+  const root = (index: number): number => {
+    while (parent[index] !== index) {
+      parent[index] = parent[parent[index]];
+      index = parent[index];
+    }
+    return index;
+  };
+  const seen = new Map<string, number>();
+  allRows.forEach((row, index) => {
+    [row.device_id && `device:${row.device_id}`, row.fingerprint && `fingerprint:${row.fingerprint}`]
+      .filter((key): key is string => Boolean(key))
+      .forEach((key) => {
+        const previous = seen.get(key);
+        if (previous === undefined) seen.set(key, index);
+        else parent[root(index)] = root(previous);
+      });
   });
-
-
-  const flagged = [...byDevice.entries()].filter(([, list]) => list.length > 1);
-  const ids = [...new Set(flagged.flatMap(([, list]) => list.map((r) => r.user_id)))];
+  const byDevice = new Map<number, typeof allRows>();
+  allRows.forEach((row, index) => {
+    const key = root(index);
+    byDevice.set(key, [...(byDevice.get(key) ?? []), row]);
+  });
+  const flagged = [...byDevice.values()].filter(
+    (list) => new Set(list.map((row) => row.user_id)).size > 1,
+  );
+  const ids = [...new Set(flagged.flatMap((list) => list.map((r) => r.user_id)))];
   const { data: profiles } = ids.length
     ? await supabaseAdmin.from("profiles").select("id,name,email,mobile,coins").in("id", ids)
     : { data: [] };
@@ -1071,8 +1077,8 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
 
   return {
     totalDevices: byDevice.size,
-    groups: flagged.map(([deviceId, list]) => ({
-      deviceId,
+    groups: flagged.map((list) => ({
+      deviceId: list[0]?.device_id || list[0]?.fingerprint || "Unknown device",
       userAgent: list[0]?.user_agent ?? "",
       accounts: list.map((r) => ({
         userId: r.user_id,
