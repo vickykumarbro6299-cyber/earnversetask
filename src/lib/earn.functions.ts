@@ -308,6 +308,17 @@ export const registerDevice = createServerFn({ method: "POST" })
     );
   });
 
+export const trackDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { deviceId: string; userAgent?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.trackDeviceImpl(
+      { userId: context.userId },
+      { ...data, fingerprint: m.requestFingerprint() },
+    );
+  });
+
 
 export const adminDeviceReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -399,6 +399,15 @@ export type Database = {
         Returns: boolean
       }
       recount_task_slots: { Args: { p_task_id: string }; Returns: undefined }
+      register_device_account: {
+        Args: {
+          p_device_id: string
+          p_fingerprint: string
+          p_user_agent: string
+          p_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
