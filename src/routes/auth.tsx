@@ -316,16 +316,18 @@ function AuthPage() {
 
 function Field({
   icon,
+  optional,
   ...props
-}: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { icon: React.ReactNode; optional?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring/40">
       <span className="text-muted-foreground">{icon}</span>
       <input
         {...props}
-        required
+        required={!optional}
         className="w-full bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
       />
     </div>
   );
+
 }
