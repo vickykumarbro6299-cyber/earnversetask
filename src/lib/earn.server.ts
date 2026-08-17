@@ -700,14 +700,24 @@ export async function referralImpl({ userId }: Ctx) {
     .eq("id", userId)
     .maybeSingle();
 
-  const [{ data: invited }, { data: earnings }] = await Promise.all([
+  const [{ data: invited }, { data: earnings }, { data: settings }] = await Promise.all([
     supabaseAdmin
       .from("profiles")
       .select("id, name, created_at")
       .eq("referred_by", userId)
       .order("created_at", { ascending: false }),
     supabaseAdmin.from("referral_earnings").select("referred_id, coins").eq("referrer_id", userId),
+    supabaseAdmin
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["referral_signup_bonus_coins", "referral_signup_bonus_until"]),
   ]);
+
+  const setting = (k: string) => (settings ?? []).find((s) => s.key === k)?.value ?? "";
+  const bonusCoins = Number(setting("referral_signup_bonus_coins") || 0);
+  const bonusUntil = setting("referral_signup_bonus_until") || null;
+  const bonusActive =
+    bonusCoins > 0 && !!bonusUntil && new Date(bonusUntil).getTime() > Date.now();
 
   const perUser: Record<string, number> = {};
   (earnings ?? []).forEach((e) => {
@@ -717,6 +727,9 @@ export async function referralImpl({ userId }: Ctx) {
   return {
     code: me?.referral_code ?? "",
     rate: REFERRAL_RATE,
+    bonusCoins,
+    bonusUntil,
+    bonusActive,
     totalCoins: (earnings ?? []).reduce((n, e) => n + e.coins, 0),
     invites: (invited ?? []).map((u) => ({
       id: u.id,
@@ -726,6 +739,7 @@ export async function referralImpl({ userId }: Ctx) {
     })),
   };
 }
+
 
 
 export async function adminReviewDepositImpl(
