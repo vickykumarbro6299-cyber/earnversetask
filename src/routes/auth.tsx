@@ -33,6 +33,10 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
   const [loading, setLoading] = useState(false);
+  const [sentTo, setSentTo] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
   const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "", referral: "" });
 
   useEffect(() => {
@@ -51,6 +55,27 @@ function AuthPage() {
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function sendReset() {
+    const email = forgotEmail.trim();
+    if (!email) {
+      toast.error("Enter your email address");
+      return;
+    }
+    setForgotBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent — check your email");
+      setForgotOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send reset email");
+    } finally {
+      setForgotBusy(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,11 +96,11 @@ function AuthPage() {
             "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
           );
 
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email: form.email.trim(),
           password: form.password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth`,
             data: {
               name: form.name.trim(),
               mobile: form.mobile.trim(),
@@ -84,11 +109,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: form.email.trim(),
-          password: form.password,
-        });
-        if (signInError) throw signInError;
+
+        if (!signUpData.session) {
+          setSentTo(form.email.trim());
+          toast.success("Verification email sent — verify your Gmail to activate your account");
+          return;
+        }
 
         try {
           await registerDevice({ data: { deviceId, userAgent: navigator.userAgent } });
@@ -119,6 +145,7 @@ function AuthPage() {
       setLoading(false);
     }
   }
+
 
   const heading = mode === "signup" ? "Welcome to EarnVerse" : "Good to see you again";
   const subheading =
