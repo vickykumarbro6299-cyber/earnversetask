@@ -32,6 +32,20 @@ export function ReferEarn() {
         commission</span> on every task your friends complete — coins add automatically.
       </p>
 
+      {data?.bonusActive && (
+        <div className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5">
+          <p className="flex items-center gap-1 text-sm font-extrabold text-foreground">
+            <CoinIcon className="h-4 w-4" />
+            {data.bonusCoins} coins per referral — limited time!
+          </p>
+          <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+            Offer ends {new Date(data.bonusUntil!).toLocaleString()} · 3% lifetime commission
+            continues after that.
+          </p>
+        </div>
+      )}
+
+
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-primary/50 bg-primary/5 px-3 py-2.5">
         <span className="flex-1 text-lg font-extrabold tracking-widest text-foreground">
           {code || "…"}
