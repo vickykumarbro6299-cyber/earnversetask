@@ -183,7 +183,25 @@ function AuthPage() {
             ))}
           </div>
 
-
+          {sentTo ? (
+            <div className="space-y-3 py-2 text-center">
+              <p className="text-sm font-bold text-foreground">Verify your email</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                We sent a verification link to <span className="font-bold">{sentTo}</span>. Open the
+                link to activate your account, then sign in to get your 50 coins.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSentTo("");
+                  setMode("signin");
+                }}
+                className="w-full rounded-2xl bg-gradient-purple py-3 text-sm font-extrabold text-primary-foreground shadow-pop"
+              >
+                Go to Sign In
+              </button>
+            </div>
+          ) : (
           <form onSubmit={onSubmit} className="space-y-3">
             {mode === "signup" && (
               <>
@@ -227,15 +245,45 @@ function AuthPage() {
                 value={form.referral}
                 onChange={set("referral")}
                 maxLength={12}
+                optional
               />
             )}
 
 
             {mode === "signin" && (
-              <p className="text-xs font-medium text-muted-foreground">
-                Forgot your password? Contact us on Telegram @EarnVerseTask and the admin will reset
-                it for you.
-              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(form.email);
+                    setForgotOpen((v) => !v);
+                  }}
+                  className="text-xs font-bold text-primary"
+                >
+                  Forgot password?
+                </button>
+                {forgotOpen && (
+                  <div className="mt-2 space-y-2 rounded-2xl bg-muted/50 p-3">
+                    <Field
+                      icon={<Mail className="h-4 w-4" />}
+                      type="email"
+                      placeholder="Your registered email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      maxLength={255}
+                      optional
+                    />
+                    <button
+                      type="button"
+                      disabled={forgotBusy}
+                      onClick={sendReset}
+                      className="w-full rounded-xl bg-gradient-brand py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-60"
+                    >
+                      {forgotBusy ? "Sending…" : "Send reset link"}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
 
@@ -248,12 +296,14 @@ function AuthPage() {
 
             </button>
           </form>
+          )}
 
-          {mode === "signup" && (
+          {mode === "signup" && !sentTo && (
             <p className="mt-4 rounded-2xl bg-secondary px-3 py-2.5 text-center text-sm font-semibold text-secondary-foreground">
               🎁 Get 50 coins instantly on registration
             </p>
           )}
+
         </div>
 
         <p className="mt-5 text-center text-xs font-medium text-muted-foreground">
