@@ -85,6 +85,8 @@ export function useNotificationPermission() {
 export function useTaskNotifications() {
   const qc = useQueryClient();
   const seen = useRef<string | null>(null);
+  const announced = useRef<Set<string>>(new Set());
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
