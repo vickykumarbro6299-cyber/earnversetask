@@ -99,12 +99,20 @@ function CreatorStudioPage() {
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${
-                      t.active
+                      !t.approved && !t.disabled
+                        ? "bg-gold/25 text-gold-foreground"
+                        : t.active
                         ? "bg-success/15 text-success"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {t.active ? "Live" : done ? "Completed" : "Cancelled"}
+                    {!t.approved && !t.disabled
+                      ? "Under review"
+                      : t.active
+                        ? "Live"
+                        : done
+                          ? "Completed"
+                          : "Cancelled"}
                   </span>
                 </div>
 
@@ -124,7 +132,7 @@ function CreatorStudioPage() {
                   </span>
                 </div>
 
-                {t.active && (
+                {(t.active || (!t.approved && !t.disabled)) && (
                   <button
                     disabled={busy === t.id}
                     onClick={() => onCancel(t.id, t.refundable)}
