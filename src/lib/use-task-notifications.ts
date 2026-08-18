@@ -123,13 +123,23 @@ export function useTaskNotifications() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "tasks" },
         (payload) => {
-          const t = payload.new as { id?: string; title?: string; active?: boolean; approved?: boolean };
-          const old = payload.old as { approved?: boolean } | null;
-          // Only announce the moment a reviewed task goes live.
-          if (!t.active || !t.approved || old?.approved !== false) return;
-          announce(new Date().toISOString(), t.title ?? "", t.id ?? "x");
+          const t = payload.new as {
+            id?: string;
+            title?: string;
+            active?: boolean;
+            approved?: boolean;
+            claimed_count?: number;
+          };
+          // A reviewed task going live: still untouched by any user.
+          if (!t.active || !t.approved || (t.claimed_count ?? 0) > 0) return;
+          const id = t.id ?? "";
+          if (!id || announced.current.has(id)) return;
+          announced.current.add(id);
+          qc.invalidateQueries({ queryKey: ["tasks"] });
+          void fireTaskNotification(t.title ?? "");
         },
       )
+
       .subscribe();
 
     // Fallback for devices/networks where the websocket does not connect.
