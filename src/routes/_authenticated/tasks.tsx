@@ -301,7 +301,7 @@ function AddTaskSheet({
       if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
-      toast.success(`Task published • ${total} coins deducted`);
+      toast.success(`Task sent for review • ${total} coins deducted. It goes live after admin approval.`);
       onDone();
       onClose();
     } catch (err) {
@@ -325,7 +325,7 @@ function AddTaskSheet({
         <p className="mt-1 text-sm text-muted-foreground">
           Minimum reward: Video {CATEGORY_MIN_REWARD["video"]} • Gmail {CATEGORY_MIN_REWARD["gmail"]}{" "}
           • App {CATEGORY_MIN_REWARD["app"]} • Telegram {CATEGORY_MIN_REWARD["telegram"]} coins.{" "}
-          {feePct}% platform fee applies.
+          {feePct}% platform fee applies. Your task goes live only after admin approval.
         </p>
 
         <form onSubmit={submit} className="mt-4 space-y-3">
@@ -429,7 +429,7 @@ function AddTaskSheet({
             disabled={busy}
             className="w-full rounded-xl bg-gradient-purple py-3 font-bold text-primary-foreground disabled:opacity-60"
           >
-            {busy ? "Publishing…" : "Publish Task"}
+            {busy ? "Submitting…" : "Submit Task for Review"}
           </button>
         </form>
       </div>
