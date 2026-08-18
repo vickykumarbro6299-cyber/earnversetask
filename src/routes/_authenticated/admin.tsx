@@ -23,6 +23,7 @@ import {
   getAdminData,
   adminCreateTask,
   adminSetTaskActive,
+  adminReviewTask,
   adminReviewSubmission,
   adminReviewDeposit,
   adminReviewWithdrawal,
@@ -72,6 +73,7 @@ const TABS = [
   "Deposits",
   "Withdrawals",
   "Tasks",
+  "Reviews",
   "Users",
   "Devices",
   "Promo",
@@ -189,6 +191,8 @@ function AdminPage() {
         )}
 
         {d && tab === "Tasks" && <TasksTab tasks={d.tasks} onDone={refresh} />}
+
+        {d && tab === "Reviews" && <ReviewsTab tasks={d.tasks} onDone={refresh} />}
 
         {d && tab === "Users" && <UsersTab users={d.users} onDone={refresh} />}
 
@@ -633,6 +637,7 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
             <p className="text-xs text-muted-foreground">
               {t.reward_coins} coins • {t.claimed_count}/{t.total_slots} claimed •{" "}
               {t.is_admin_task ? "Official" : "User task"}
+              {!t.approved && !t.disabled ? " • Under review" : ""}
             </p>
           </div>
           <Link
@@ -684,6 +689,78 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
           >
             Cancel & Refund
           </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewsTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
+  const reviewFn = useServerFn(adminReviewTask);
+  const [busy, setBusy] = useState<string | null>(null);
+  const pending = tasks.filter((t) => !t.approved && !t.disabled);
+
+  async function act(taskId: string, approve: boolean) {
+    if (!approve && !confirm("Reject this task and refund all coins to the creator?")) return;
+    setBusy(taskId);
+    try {
+      const r = await reviewFn({ data: { taskId, approve } });
+      toast.success(approve ? "Task approved & live" : `Task rejected • ${r.refund} coins refunded`);
+      onDone();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      {!pending.length && (
+        <p className="mt-8 text-center text-muted-foreground">No tasks waiting for review.</p>
+      )}
+      {pending.map((t) => (
+        <div key={t.id} className="rounded-2xl bg-card p-4 shadow-card">
+          <p className="font-extrabold">{t.title}</p>
+          <p className="text-xs capitalize text-muted-foreground">
+            {t.category} • {t.reward_coins} coins × {t.total_slots} slots
+          </p>
+          {t.description && (
+            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{t.description}</p>
+          )}
+          {t.link && (
+            <a
+              href={t.link}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block break-all text-xs font-semibold text-primary underline"
+            >
+              {t.link}
+            </a>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              to="/admin/task/$taskId"
+              params={{ taskId: t.id }}
+              className="rounded-lg bg-muted px-3 py-2 text-xs font-bold text-foreground"
+            >
+              View Details
+            </Link>
+            <button
+              disabled={busy === t.id}
+              onClick={() => act(t.id, true)}
+              className="rounded-lg bg-success/15 px-3 py-2 text-xs font-bold text-success disabled:opacity-60"
+            >
+              Approve & Publish
+            </button>
+            <button
+              disabled={busy === t.id}
+              onClick={() => act(t.id, false)}
+              className="rounded-lg bg-destructive/15 px-3 py-2 text-xs font-bold text-destructive disabled:opacity-60"
+            >
+              Reject & Refund
+            </button>
+          </div>
         </div>
       ))}
     </div>

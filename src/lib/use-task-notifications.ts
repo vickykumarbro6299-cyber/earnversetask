@@ -85,6 +85,8 @@ export function useNotificationPermission() {
 export function useTaskNotifications() {
   const qc = useQueryClient();
   const seen = useRef<string | null>(null);
+  const announced = useRef<Set<string>>(new Set());
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -112,12 +114,34 @@ export function useTaskNotifications() {
             id?: string;
             title?: string;
             active?: boolean;
+            approved?: boolean;
             created_at?: string;
           };
-          if (t.active === false) return;
+          if (t.active === false || t.approved === false) return;
           announce(t.created_at ?? new Date().toISOString(), t.title ?? "", t.id ?? "x");
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tasks" },
+        (payload) => {
+          const t = payload.new as {
+            id?: string;
+            title?: string;
+            active?: boolean;
+            approved?: boolean;
+            claimed_count?: number;
+          };
+          // A reviewed task going live: still untouched by any user.
+          if (!t.active || !t.approved || (t.claimed_count ?? 0) > 0) return;
+          const id = t.id ?? "";
+          if (!id || announced.current.has(id)) return;
+          announced.current.add(id);
+          qc.invalidateQueries({ queryKey: ["tasks"] });
+          void fireTaskNotification(t.title ?? "");
+        },
+      )
+
       .subscribe();
 
     // Fallback for devices/networks where the websocket does not connect.
@@ -126,6 +150,7 @@ export function useTaskNotifications() {
         .from("tasks")
         .select("id, title, created_at")
         .eq("active", true)
+        .eq("approved", true)
         .order("created_at", { ascending: false })
         .limit(1);
       const t = data?.[0];
