@@ -274,6 +274,7 @@ export type Database = {
         Row: {
           active: boolean
           allow_multiple: boolean
+          approved: boolean
           category: string
           claimed_count: number
           created_at: string
@@ -291,6 +292,7 @@ export type Database = {
         Insert: {
           active?: boolean
           allow_multiple?: boolean
+          approved?: boolean
           category?: string
           claimed_count?: number
           created_at?: string
@@ -308,6 +310,7 @@ export type Database = {
         Update: {
           active?: boolean
           allow_multiple?: boolean
+          approved?: boolean
           category?: string
           claimed_count?: number
           created_at?: string
