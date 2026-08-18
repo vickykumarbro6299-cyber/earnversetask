@@ -112,10 +112,22 @@ export function useTaskNotifications() {
             id?: string;
             title?: string;
             active?: boolean;
+            approved?: boolean;
             created_at?: string;
           };
-          if (t.active === false) return;
+          if (t.active === false || t.approved === false) return;
           announce(t.created_at ?? new Date().toISOString(), t.title ?? "", t.id ?? "x");
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tasks" },
+        (payload) => {
+          const t = payload.new as { id?: string; title?: string; active?: boolean; approved?: boolean };
+          const old = payload.old as { approved?: boolean } | null;
+          // Only announce the moment a reviewed task goes live.
+          if (!t.active || !t.approved || old?.approved !== false) return;
+          announce(new Date().toISOString(), t.title ?? "", t.id ?? "x");
         },
       )
       .subscribe();
@@ -126,6 +138,7 @@ export function useTaskNotifications() {
         .from("tasks")
         .select("id, title, created_at")
         .eq("active", true)
+        .eq("approved", true)
         .order("created_at", { ascending: false })
         .limit(1);
       const t = data?.[0];
