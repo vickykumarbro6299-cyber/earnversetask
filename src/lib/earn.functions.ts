@@ -335,3 +335,11 @@ export const adminTaskDetail = createServerFn({ method: "POST" })
     return m.adminTaskDetailImpl({ userId: context.userId }, data);
   });
 
+
+export const adminReviewTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { taskId: string; approve: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminReviewTaskImpl({ userId: context.userId }, data);
+  });

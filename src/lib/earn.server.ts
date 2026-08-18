@@ -110,6 +110,7 @@ export async function listTasksImpl({ userId }: Ctx) {
     .from("tasks")
     .select("*")
     .eq("active", true)
+    .eq("approved", true)
     .order("created_at", { ascending: false });
   const { data: mine } = await supabaseAdmin
     .from("submissions")
@@ -309,6 +310,8 @@ export async function createUserTaskImpl(
     total_slots: data.totalSlots,
     created_by: userId,
     is_admin_task: false,
+    approved: false,
+    active: false,
     category,
     sample_image_url: data.sampleImageUrl,
     allow_multiple: !!data.allowMultiple,
@@ -318,6 +321,39 @@ export async function createUserTaskImpl(
     throw error;
   }
   return { charged: total };
+}
+
+/** Admin approves or rejects a user-submitted task waiting for review. */
+export async function adminReviewTaskImpl(
+  { userId }: Ctx,
+  data: { taskId: string; approve: boolean },
+) {
+  await requireAdmin(userId);
+  const { data: task, error } = await supabaseAdmin
+    .from("tasks")
+    .select("*")
+    .eq("id", data.taskId)
+    .single();
+  if (error) throw new Error("Task not found");
+  if (task.approved) throw new Error("This task is already approved");
+
+  if (data.approve) {
+    await supabaseAdmin
+      .from("tasks")
+      .update({ approved: true, active: true, disabled: false })
+      .eq("id", task.id);
+    await recountTask(task.id);
+    return { approved: true, refund: 0 };
+  }
+
+  // Rejected — full slot value goes back to the creator (platform fee is kept).
+  const refund = task.is_admin_task || !task.created_by ? 0 : task.total_slots * task.reward_coins;
+  await supabaseAdmin
+    .from("tasks")
+    .update({ approved: false, active: false, disabled: true })
+    .eq("id", task.id);
+  if (refund > 0 && task.created_by) await addCoins(task.created_by, refund);
+  return { approved: false, refund };
 }
 
 
