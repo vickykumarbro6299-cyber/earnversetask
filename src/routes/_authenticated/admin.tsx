@@ -145,10 +145,12 @@ function AdminPage() {
                 title={s.tasks?.title ?? "Task"}
                 sub={`${s.user?.name ?? "User"} • ${s.user?.email ?? ""} • ${s.reward_coins} coins`}
                 note={s.note}
+                adminNote={s.admin_note}
                 status={s.status}
+                rejectNote
                 extra={<ProofButton path={s.proof_url} />}
                 onApprove={() => review("submission", s.id, true)}
-                onReject={() => review("submission", s.id, false)}
+                onReject={(n: string) => review("submission", s.id, false, n)}
               />
             )}
           />
