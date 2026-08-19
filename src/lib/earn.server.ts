@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   DEPOSIT_PACKS,
   WITHDRAW_PACKS,
+  MAX_WITHDRAWALS_PER_DAY,
   CLAIM_MINUTES,
   payableAmount,
   TASK_CATEGORIES,
