@@ -87,6 +87,7 @@ type Sub = {
   submitted_at: string | null;
   expires_at: string | null;
   note: string | null;
+  admin_note?: string | null;
   tasks: {
     title: string;
     description: string;
@@ -171,9 +172,16 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
             <CheckCircle2 className="h-4 w-4" /> Approved • coins credited
           </span>
         ) : sub.status === "rejected" ? (
-          <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-3 py-1.5 text-sm font-bold text-destructive">
-            <XCircle className="h-4 w-4" /> Rejected
-          </span>
+          <div>
+            <span className="flex w-fit items-center gap-1 rounded-full bg-destructive/15 px-3 py-1.5 text-sm font-bold text-destructive">
+              <XCircle className="h-4 w-4" /> Rejected
+            </span>
+            {sub.admin_note && (
+              <p className="mt-2 rounded-xl bg-muted p-2 text-sm font-semibold text-foreground">
+                Admin note: {sub.admin_note}
+              </p>
+            )}
+          </div>
         ) : sub.submitted_at ? (
           <span className="flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-sm font-bold text-accent-foreground">
             <Clock className="h-4 w-4" /> In verification

@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   DEPOSIT_PACKS,
   WITHDRAW_PACKS,
+  MAX_WITHDRAWALS_PER_DAY,
   CLAIM_MINUTES,
   payableAmount,
   TASK_CATEGORIES,
@@ -383,6 +384,20 @@ export async function createWithdrawalImpl(
   if (!pack) throw new Error("Please choose a valid withdrawal amount");
   if (pack.coins < MIN_WITHDRAW_COINS)
     throw new Error(`You can withdraw after reaching ${MIN_WITHDRAW_COINS} coins`);
+
+  // Daily limit: only MAX_WITHDRAWALS_PER_DAY requests in the last 24 hours.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabaseAdmin
+    .from("withdrawals")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .neq("status", "rejected")
+    .gte("created_at", since);
+  if ((count ?? 0) >= MAX_WITHDRAWALS_PER_DAY)
+    throw new Error(
+      `Daily limit reached — you can request only ${MAX_WITHDRAWALS_PER_DAY} withdrawals in 24 hours`,
+    );
+
   const amount = Number(pack.rupees.toFixed(2));
   await addCoins(userId, -pack.coins);
   const { error } = await supabaseAdmin.from("withdrawals").insert({
@@ -703,7 +718,7 @@ async function releaseTaskSlot(taskId: string) {
 
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
-  data: { id: string; approve: boolean },
+  data: { id: string; approve: boolean; note?: string },
 ) {
   await requireAdmin(userId);
   const { data: sub, error } = await supabaseAdmin
@@ -713,19 +728,26 @@ export async function adminReviewSubmissionImpl(
     .single();
   if (error) throw error;
   if (sub.status !== "pending") throw new Error("Already reviewed");
-  if (data.approve) {
-    await addCoins(sub.user_id, sub.reward_coins);
-    await payReferralCommission(sub.user_id, sub.reward_coins);
-  } else {
-    await releaseTaskSlot(sub.task_id);
-  }
-  await supabaseAdmin
+
+  // Write the final status FIRST, then recount — otherwise the recount still
+  // sees this row as pending and the rejected slot never returns to the pool.
+  const { error: upErr } = await supabaseAdmin
     .from("submissions")
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
+      admin_note: data.note?.trim() ? data.note.trim() : null,
     })
-    .eq("id", data.id);
+    .eq("id", data.id)
+    .eq("status", "pending");
+  if (upErr) throw upErr;
+
+  if (data.approve) {
+    await addCoins(sub.user_id, sub.reward_coins);
+    await payReferralCommission(sub.user_id, sub.reward_coins);
+  }
+  // Always recount so approved/rejected slot maths stay correct.
+  await releaseTaskSlot(sub.task_id);
   return { ok: true };
 }
 

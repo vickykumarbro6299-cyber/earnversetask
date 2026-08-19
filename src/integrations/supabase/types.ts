@@ -222,6 +222,7 @@ export type Database = {
       }
       submissions: {
         Row: {
+          admin_note: string | null
           claimed_at: string
           expires_at: string | null
           id: string
@@ -235,6 +236,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_note?: string | null
           claimed_at?: string
           expires_at?: string | null
           id?: string
@@ -248,6 +250,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_note?: string | null
           claimed_at?: string
           expires_at?: string | null
           id?: string

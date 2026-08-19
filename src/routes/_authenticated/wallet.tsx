@@ -15,6 +15,7 @@ import { getWallet, createDeposit, createWithdrawal } from "@/lib/earn.functions
 import {
   COINS_PER_RUPEE,
   MIN_WITHDRAW_COINS,
+  MAX_WITHDRAWALS_PER_DAY,
   DEPOSIT_PACKS,
   WITHDRAW_PACKS,
   payableAmount,
@@ -140,6 +141,9 @@ function WalletPage() {
             Withdraw
           </button>
         </div>
+        <p className="mt-3 text-center text-xs font-semibold text-muted-foreground">
+          You can request only {MAX_WITHDRAWALS_PER_DAY} withdrawals in 24 hours.
+        </p>
       </main>
 
       {sheet === "deposit" && (
@@ -467,7 +471,8 @@ function WithdrawSheet({
     <Sheet onClose={onClose}>
       <h3 className="text-lg font-extrabold">Withdraw</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Choose a fixed amount • minimum {MIN_WITHDRAW_COINS} coins • manual payout
+        Choose a fixed amount • minimum {MIN_WITHDRAW_COINS} coins • manual payout • max{" "}
+        {MAX_WITHDRAWALS_PER_DAY} requests per day
       </p>
       <form onSubmit={submit} className="mt-4 space-y-3">
         <PackGrid
