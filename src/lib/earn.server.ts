@@ -383,6 +383,20 @@ export async function createWithdrawalImpl(
   if (!pack) throw new Error("Please choose a valid withdrawal amount");
   if (pack.coins < MIN_WITHDRAW_COINS)
     throw new Error(`You can withdraw after reaching ${MIN_WITHDRAW_COINS} coins`);
+
+  // Daily limit: only MAX_WITHDRAWALS_PER_DAY requests in the last 24 hours.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabaseAdmin
+    .from("withdrawals")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .neq("status", "rejected")
+    .gte("created_at", since);
+  if ((count ?? 0) >= MAX_WITHDRAWALS_PER_DAY)
+    throw new Error(
+      `Daily limit reached — you can request only ${MAX_WITHDRAWALS_PER_DAY} withdrawals in 24 hours`,
+    );
+
   const amount = Number(pack.rupees.toFixed(2));
   await addCoins(userId, -pack.coins);
   const { error } = await supabaseAdmin.from("withdrawals").insert({
