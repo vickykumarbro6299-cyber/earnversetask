@@ -186,7 +186,7 @@ export const adminUpdateTask = createServerFn({ method: "POST" })
 
 export const adminReviewSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; approve: boolean }) => d)
+  .inputValidator((d: { id: string; approve: boolean; note?: string }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.adminReviewSubmissionImpl({ userId: context.userId }, data);
