@@ -87,6 +87,7 @@ type Sub = {
   submitted_at: string | null;
   expires_at: string | null;
   note: string | null;
+  admin_note?: string | null;
   tasks: {
     title: string;
     description: string;
