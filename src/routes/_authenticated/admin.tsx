@@ -327,20 +327,25 @@ function Card({
   title,
   sub,
   note,
+  adminNote,
   status,
   extra,
+  rejectNote,
   onApprove,
   onReject,
 }: {
   title: string;
   sub: string;
   note?: string | null;
+  adminNote?: string | null;
   status: string;
   extra?: React.ReactNode;
+  rejectNote?: boolean;
   onApprove: () => void;
-  onReject: () => void;
+  onReject: (note: string) => void;
 }) {
   const pending = status === "pending";
+  const [noteText, setNoteText] = useState("");
   return (
     <div className="rounded-2xl bg-card p-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
@@ -348,6 +353,9 @@ function Card({
           <p className="truncate font-bold">{title}</p>
           <p className="truncate text-sm text-muted-foreground">{sub}</p>
           {note && <p className="mt-1 text-sm text-muted-foreground">{note}</p>}
+          {adminNote && (
+            <p className="mt-1 text-sm font-semibold text-foreground">Note: {adminNote}</p>
+          )}
         </div>
         <span
           className={`rounded-full px-2 py-1 text-xs font-bold capitalize ${
@@ -361,6 +369,16 @@ function Card({
           {status}
         </span>
       </div>
+      {pending && rejectNote && (
+        <textarea
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          rows={2}
+          maxLength={200}
+          placeholder="Reason for rejection (shown to the user)"
+          className="mt-3 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 ring-ring/40"
+        />
+      )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {extra}
         {pending && (
@@ -372,7 +390,7 @@ function Card({
               <Check className="h-4 w-4" /> Approve
             </button>
             <button
-              onClick={onReject}
+              onClick={() => onReject(noteText)}
               className="flex items-center gap-1 rounded-lg bg-destructive px-3 py-2 text-sm font-bold text-destructive-foreground"
             >
               <X className="h-4 w-4" /> Reject
