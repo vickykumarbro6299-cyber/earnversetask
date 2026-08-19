@@ -140,6 +140,9 @@ function WalletPage() {
             Withdraw
           </button>
         </div>
+        <p className="mt-3 text-center text-xs font-semibold text-muted-foreground">
+          You can request only {MAX_WITHDRAWALS_PER_DAY} withdrawals in 24 hours.
+        </p>
       </main>
 
       {sheet === "deposit" && (
