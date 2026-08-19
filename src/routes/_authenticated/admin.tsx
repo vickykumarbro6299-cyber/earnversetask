@@ -224,11 +224,11 @@ function AdminPage() {
         refresh();
         return;
       }
-      const map = {
-        submission: adminReviewSubmission,
-        deposit: adminReviewDeposit,
-      } as const;
-      await map[kind]({ data: { id, approve } });
+      if (kind === "submission") {
+        await adminReviewSubmission({ data: { id, approve, note: adminNote ?? "" } });
+      } else {
+        await adminReviewDeposit({ data: { id, approve } });
+      }
       toast.success(approve ? "Approved" : "Rejected");
       refresh();
     } catch (e) {
