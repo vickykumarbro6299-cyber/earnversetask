@@ -1,6 +1,8 @@
 export const COINS_PER_RUPEE = 100;
 export const MIN_DEPOSIT_COINS = 1000;
 export const MIN_WITHDRAW_COINS = 1500;
+/** Users can request at most this many withdrawals per 24 hours. */
+export const MAX_WITHDRAWALS_PER_DAY = 2;
 export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
