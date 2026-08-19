@@ -718,7 +718,7 @@ async function releaseTaskSlot(taskId: string) {
 
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
-  data: { id: string; approve: boolean },
+  data: { id: string; approve: boolean; note?: string },
 ) {
   await requireAdmin(userId);
   const { data: sub, error } = await supabaseAdmin
@@ -728,19 +728,26 @@ export async function adminReviewSubmissionImpl(
     .single();
   if (error) throw error;
   if (sub.status !== "pending") throw new Error("Already reviewed");
-  if (data.approve) {
-    await addCoins(sub.user_id, sub.reward_coins);
-    await payReferralCommission(sub.user_id, sub.reward_coins);
-  } else {
-    await releaseTaskSlot(sub.task_id);
-  }
-  await supabaseAdmin
+
+  // Write the final status FIRST, then recount — otherwise the recount still
+  // sees this row as pending and the rejected slot never returns to the pool.
+  const { error: upErr } = await supabaseAdmin
     .from("submissions")
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
+      admin_note: data.note?.trim() ? data.note.trim() : null,
     })
-    .eq("id", data.id);
+    .eq("id", data.id)
+    .eq("status", "pending");
+  if (upErr) throw upErr;
+
+  if (data.approve) {
+    await addCoins(sub.user_id, sub.reward_coins);
+    await payReferralCommission(sub.user_id, sub.reward_coins);
+  }
+  // Always recount so approved/rejected slot maths stay correct.
+  await releaseTaskSlot(sub.task_id);
   return { ok: true };
 }
 
