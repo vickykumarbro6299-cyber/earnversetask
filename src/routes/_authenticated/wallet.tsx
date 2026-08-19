@@ -471,7 +471,8 @@ function WithdrawSheet({
     <Sheet onClose={onClose}>
       <h3 className="text-lg font-extrabold">Withdraw</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Choose a fixed amount • minimum {MIN_WITHDRAW_COINS} coins • manual payout
+        Choose a fixed amount • minimum {MIN_WITHDRAW_COINS} coins • manual payout • max{" "}
+        {MAX_WITHDRAWALS_PER_DAY} requests per day
       </p>
       <form onSubmit={submit} className="mt-4 space-y-3">
         <PackGrid
