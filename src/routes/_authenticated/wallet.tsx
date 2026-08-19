@@ -15,6 +15,7 @@ import { getWallet, createDeposit, createWithdrawal } from "@/lib/earn.functions
 import {
   COINS_PER_RUPEE,
   MIN_WITHDRAW_COINS,
+  MAX_WITHDRAWALS_PER_DAY,
   DEPOSIT_PACKS,
   WITHDRAW_PACKS,
   payableAmount,
