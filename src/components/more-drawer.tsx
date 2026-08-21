@@ -5,6 +5,7 @@ import {
   ListChecks,
   Wallet,
   History,
+  Gift,
   UserCircle,
   ShieldCheck,
   Rocket,
