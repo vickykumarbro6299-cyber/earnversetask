@@ -96,6 +96,7 @@ export type Database = {
         Row: {
           coins: number
           created_at: string
+          dob: string | null
           email: string
           id: string
           mobile: string
@@ -106,6 +107,7 @@ export type Database = {
         Insert: {
           coins?: number
           created_at?: string
+          dob?: string | null
           email?: string
           id: string
           mobile?: string
@@ -116,6 +118,7 @@ export type Database = {
         Update: {
           coins?: number
           created_at?: string
+          dob?: string | null
           email?: string
           id?: string
           mobile?: string
