@@ -72,7 +72,30 @@ export async function meImpl({ userId }: Ctx) {
   const { data: settings } = await supabaseAdmin.from("app_settings").select("*");
   const map: Record<string, string> = {};
   (settings ?? []).forEach((s) => (map[s.key] = s.value));
-  return { profile, isAdmin: await isAdmin(userId), settings: map };
+  let emailVerified = false;
+  try {
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+    emailVerified = !!u.user?.email_confirmed_at;
+  } catch {
+    emailVerified = false;
+  }
+  return { profile, isAdmin: await isAdmin(userId), settings: map, emailVerified };
+}
+
+export async function updateMyProfileImpl(
+  { userId }: Ctx,
+  data: { name: string; mobile: string; dob: string | null },
+) {
+  const name = data.name.trim().slice(0, 60);
+  const mobile = data.mobile.trim().slice(0, 20);
+  if (name.length < 2) throw new Error("Name is too short");
+  if (mobile && !/^[0-9+\-\s]{6,20}$/.test(mobile)) throw new Error("Enter a valid mobile number");
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ name, mobile, dob: data.dob || null })
+    .eq("id", userId);
+  if (error) throw error;
+  return { ok: true };
 }
 
 /** Recalculate a task's claimed slots from real submissions (never releases finished work). */
