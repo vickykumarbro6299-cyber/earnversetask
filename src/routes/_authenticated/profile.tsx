@@ -13,13 +13,16 @@ import {
   ChevronRight,
   Phone,
   Ticket,
+  BadgeCheck,
+  AlertCircle,
+  Pencil,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
 import { ReferEarn } from "@/components/refer-earn";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { redeemPromo } from "@/lib/earn.functions";
+import { redeemPromo, updateMyProfile } from "@/lib/earn.functions";
 import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
 
 
@@ -77,9 +80,11 @@ function ProfilePage() {
             </span>
           </div>
           <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
-            <Phone className="h-4 w-4" /> {p?.mobile ?? "—"}
+            <Phone className="h-4 w-4" /> {p?.mobile || "—"}
           </div>
         </section>
+
+        <ProfileDetails />
 
         <ReferEarn />
 
@@ -120,6 +125,145 @@ function ProfilePage() {
         </p>
       </main>
       <BottomNav />
+    </div>
+  );
+}
+
+function ProfileDetails() {
+  const me = useMe();
+  const refresh = useRefreshAll();
+  const fn = useServerFn(updateMyProfile);
+  const p = me.data?.profile;
+  const verified = me.data?.emailVerified ?? false;
+  const [edit, setEdit] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [dob, setDob] = useState("");
+
+  function startEdit() {
+    setName(p?.name ?? "");
+    setMobile(p?.mobile ?? "");
+    setDob(p?.dob ?? "");
+    setEdit(true);
+  }
+
+  return (
+    <section className="mt-4 rounded-2xl bg-card p-4 shadow-card">
+      <div className="flex items-center justify-between">
+        <h2 className="font-extrabold text-foreground">My Details</h2>
+        {!edit && (
+          <button
+            onClick={startEdit}
+            className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+        )}
+      </div>
+
+      {edit ? (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            try {
+              await fn({ data: { name, mobile, dob: dob || null } });
+              toast.success("Profile updated");
+              setEdit(false);
+              refresh();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Could not update profile");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="mt-3 space-y-3"
+        >
+          <Field label="Full name">
+            <input
+              required
+              maxLength={60}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 ring-ring/40"
+            />
+          </Field>
+          <Field label="Mobile number">
+            <input
+              inputMode="tel"
+              maxLength={20}
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 ring-ring/40"
+            />
+          </Field>
+          <Field label="Date of birth">
+            <input
+              type="date"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 ring-ring/40"
+            />
+          </Field>
+          <div className="flex gap-2">
+            <button
+              disabled={busy}
+              className="flex-1 rounded-xl bg-gradient-brand py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
+            >
+              {busy ? "Saving…" : "Save changes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEdit(false)}
+              className="rounded-xl bg-muted px-4 text-sm font-bold text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <dl className="mt-3 space-y-2 text-sm">
+          <Row label="Full name" value={p?.name || "—"} />
+          <Row label="Mobile number" value={p?.mobile || "—"} />
+          <Row label="Date of birth" value={p?.dob || "—"} />
+          <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
+            <dt className="text-muted-foreground">Email</dt>
+            <dd className="flex min-w-0 items-center gap-2">
+              <span className="truncate font-semibold text-foreground">{p?.email || "—"}</span>
+              {verified ? (
+                <span className="flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
+                  <BadgeCheck className="h-3.5 w-3.5" /> Verified
+                </span>
+              ) : (
+                <span className="flex shrink-0 items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-bold text-destructive">
+                  <AlertCircle className="h-3.5 w-3.5" /> Unverified
+                </span>
+              )}
+            </dd>
+          </div>
+        </dl>
+      )}
+    </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border pt-2 first:border-0 first:pt-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="truncate font-semibold text-foreground">{value}</dd>
     </div>
   );
 }
