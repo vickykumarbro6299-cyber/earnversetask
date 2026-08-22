@@ -29,6 +29,36 @@ export type Database = {
         }
         Relationships: []
       }
+      coin_ledger: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_bonus_claims: {
         Row: {
           bonus_date: string
