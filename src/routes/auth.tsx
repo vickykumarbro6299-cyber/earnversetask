@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Gift } from "lucide-react";
+import { Mail, Lock, User, Phone, Gift, CircleAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand";
 import { getDeviceId } from "@/lib/device-id";
@@ -37,6 +37,8 @@ function AuthPage() {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotBusy, setForgotBusy] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [resendBusy, setResendBusy] = useState(false);
   const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "", referral: "" });
 
   useEffect(() => {
@@ -77,11 +79,33 @@ function AuthPage() {
     }
   }
 
+  async function resendVerification() {
+    const email = verificationEmail.trim();
+    if (!email) return;
+    setResendBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/auth` },
+      });
+      if (error) throw error;
+      toast.success("New verification email sent — also check Spam or Promotions");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not resend verification email";
+      toast.error(/rate limit/i.test(message) ? "Please wait a minute before trying again" : message);
+    } finally {
+      setResendBusy(false);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       if (mode === "signup") {
+
+        setVerificationEmail("");
 
         if (form.name.trim().length < 2) throw new Error("Please enter your name");
         if (!/^\d{10,15}$/.test(form.mobile.trim()))
@@ -133,7 +157,7 @@ function AuthPage() {
         return;
       }
 
-
+      setVerificationEmail("");
       const { error } = await supabase.auth.signInWithPassword({
         email: form.email.trim(),
         password: form.password,
@@ -150,6 +174,10 @@ function AuthPage() {
       navigate({ to: "/tasks", replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
+      if (/email not confirmed/i.test(msg)) {
+        setVerificationEmail(form.email.trim());
+        return;
+      }
       toast.error(
         /failed to fetch|network|load failed/i.test(msg)
           ? "Network issue — please check your internet and try again."
@@ -218,6 +246,27 @@ function AuthPage() {
             </div>
           ) : (
           <form onSubmit={onSubmit} className="space-y-3">
+            {mode === "signin" && verificationEmail && (
+              <div className="rounded-2xl border border-destructive/25 bg-destructive/10 p-3" role="alert">
+                <div className="flex gap-2">
+                  <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-destructive">Email verification required</p>
+                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                      Verify the link sent to {verificationEmail}. Check Spam or Promotions too.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={resendBusy}
+                      onClick={resendVerification}
+                      className="mt-2 text-xs font-extrabold text-primary disabled:opacity-60"
+                    >
+                      {resendBusy ? "Sending…" : "Resend verification email"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             {mode === "signup" && (
               <>
                 <Field
