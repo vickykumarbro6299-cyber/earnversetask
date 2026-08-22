@@ -32,7 +32,7 @@ import {
   getProfileStats,
   getProofUrl,
 } from "@/lib/earn.functions";
-import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
+import { APP_VERSION, toRupees, TELEGRAM_CHANNEL, SITE_URL } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -124,7 +124,7 @@ function ProfilePage() {
 
   async function shareProfile() {
     const text = `${p?.name ?? "I"} is earning on EarnVerse — join me!`;
-    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const url = SITE_URL;
     if (navigator.share) {
       try {
         await navigator.share({ title: "EarnVerse", text, url });

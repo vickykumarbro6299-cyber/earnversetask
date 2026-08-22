@@ -5,6 +5,7 @@ import { ChevronDown, Copy, Gift, Link2, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { getReferral } from "@/lib/earn.functions";
 import { CoinIcon } from "@/components/brand";
+import { SITE_URL } from "@/lib/earn-constants";
 
 export function ReferEarn() {
   const fn = useServerFn(getReferral);
@@ -14,8 +15,7 @@ export function ReferEarn() {
   const code = data?.code ?? "";
   const goal = data?.taskGoal ?? 10;
   const bonus = data?.bonusCoins ?? 200;
-  const link =
-    code && typeof window !== "undefined" ? `${window.location.origin}/auth?ref=${code}` : "";
+  const link = code ? `${SITE_URL}/auth?ref=${code}` : "";
 
   const copy = async (text: string, label: string) => {
     try {
