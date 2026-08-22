@@ -165,6 +165,9 @@ function LeaderboardPage() {
                   {top3[0].name}
                 </p>
                 <p className="text-sm font-extrabold text-gold">{formatCoins(top3[0].coins)}</p>
+                <span className="mt-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-extrabold text-gold">
+                  +{formatCoins(top3[0].reward)} coins
+                </span>
                 <div className="mt-2 flex h-32 w-24 flex-col items-center justify-end rounded-t-2xl bg-gradient-to-b from-gold to-amber-600 pb-4 shadow-lg">
                   <span className="text-3xl font-extrabold text-primary-foreground">1</span>
                 </div>
