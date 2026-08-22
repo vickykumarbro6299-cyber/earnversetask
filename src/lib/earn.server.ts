@@ -471,9 +471,10 @@ export async function adminDataImpl({ userId }: Ctx) {
     supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
     supabaseAdmin
       .from("submissions")
-      .select("*, tasks(title, reward_coins)")
+      .select("*, tasks(title, reward_coins, category, is_admin_task)")
       .not("submitted_at", "is", null)
-      .order("submitted_at", { ascending: false }),
+      .order("submitted_at", { ascending: false })
+      .limit(5000),
     supabaseAdmin.from("deposits").select("*").order("created_at", { ascending: false }),
     supabaseAdmin.from("withdrawals").select("*").order("created_at", { ascending: false }),
     supabaseAdmin.from("tasks").select("*").order("created_at", { ascending: false }),
