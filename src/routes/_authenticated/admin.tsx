@@ -73,6 +73,7 @@ const TABS = [
   "Deposits",
   "Withdrawals",
   "Tasks",
+  "Task History",
   "Reviews",
   "Users",
   "Devices",
@@ -136,23 +137,11 @@ function AdminPage() {
         {q.isLoading && <p className="mt-8 text-center text-muted-foreground">Loading data…</p>}
 
         {d && tab === "Proofs" && (
-          <List
-            empty="No proof submissions yet."
+          <ProofsTab
             items={d.submissions}
-            render={(s: any) => (
-              <Card
-                key={s.id}
-                title={s.tasks?.title ?? "Task"}
-                sub={`${s.user?.name ?? "User"} • ${s.user?.email ?? ""} • ${s.reward_coins} coins`}
-                note={s.note}
-                adminNote={s.admin_note}
-                status={s.status}
-                rejectNote
-                extra={<ProofButton path={s.proof_url} />}
-                onApprove={() => review("submission", s.id, true)}
-                onReject={(n: string) => review("submission", s.id, false, n)}
-              />
-            )}
+            onReview={(id: string, approve: boolean, note?: string) =>
+              review("submission", id, approve, note)
+            }
           />
         )}
 
@@ -193,6 +182,8 @@ function AdminPage() {
         )}
 
         {d && tab === "Tasks" && <TasksTab tasks={d.tasks} onDone={refresh} />}
+
+        {d && tab === "Task History" && <TaskHistoryTab tasks={d.tasks} />}
 
         {d && tab === "Reviews" && <ReviewsTab tasks={d.tasks} onDone={refresh} />}
 
@@ -1223,3 +1214,170 @@ function PromoTab({ promos, onDone }: { promos: any[]; onDone: () => void }) {
   );
 }
 
+
+/* ---------------- Task History ---------------- */
+
+function TaskHistoryTab({ tasks }: { tasks: any[] }) {
+  const [mode, setMode] = useState<"Users Task" | "Admin Task">("Users Task");
+  const [q, setQ] = useState("");
+  const list = tasks
+    .filter((t) => (mode === "Admin Task" ? t.is_admin_task : !t.is_admin_task))
+    .filter((t) =>
+      q.trim() ? `${t.title} ${t.category}`.toLowerCase().includes(q.trim().toLowerCase()) : true,
+    );
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        {(["Users Task", "Admin Task"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`rounded-xl py-2.5 text-sm font-bold ${
+              mode === m ? "bg-gradient-brand text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-card">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search task title or category"
+          className="w-full bg-transparent text-sm outline-none"
+        />
+      </div>
+
+      <p className="text-xs font-semibold text-muted-foreground">{list.length} task(s)</p>
+
+      {!list.length && <p className="mt-8 text-center text-muted-foreground">No tasks found.</p>}
+
+      {list.map((t) => (
+        <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-bold">{t.title}</p>
+            <p className="text-xs capitalize text-muted-foreground">
+              {t.category} • {t.reward_coins} coins • {t.claimed_count}/{t.total_slots} claimed
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(t.created_at).toLocaleString()} •{" "}
+              {t.disabled ? "Cancelled" : !t.approved ? "Under review" : t.active ? "Live" : "Closed"}
+            </p>
+          </div>
+          <Link
+            to="/admin/task/$taskId"
+            params={{ taskId: t.id }}
+            className="rounded-lg bg-gradient-brand px-3 py-2 text-xs font-bold text-primary-foreground"
+          >
+            View Details
+          </Link>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- Proofs ---------------- */
+
+function ProofsTab({
+  items,
+  onReview,
+}: {
+  items: any[];
+  onReview: (id: string, approve: boolean, note?: string) => void;
+}) {
+  const [mode, setMode] = useState<"Gmail Task Proof" | "Other Task Proof">("Other Task Proof");
+  const [q, setQ] = useState("");
+  const [date, setDate] = useState("");
+
+  const list = items
+    .filter((s) =>
+      mode === "Gmail Task Proof"
+        ? s.tasks?.category === "gmail"
+        : s.tasks?.category !== "gmail",
+    )
+    .filter((s) => {
+      if (mode !== "Gmail Task Proof" || !date) return true;
+      const d = s.submitted_at ?? s.claimed_at;
+      return d ? new Date(d).toLocaleDateString("en-CA") === date : false;
+    })
+    .filter((s) => {
+      const t = q.trim().toLowerCase();
+      if (!t) return true;
+      return `${s.tasks?.title ?? ""} ${s.user?.name ?? ""} ${s.user?.email ?? ""} ${s.note ?? ""}`
+        .toLowerCase()
+        .includes(t);
+    });
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        {(["Gmail Task Proof", "Other Task Proof"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`rounded-xl py-2.5 text-sm font-bold ${
+              mode === m ? "bg-gradient-brand text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-card">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search by user, email or task"
+          className="w-full bg-transparent text-sm outline-none"
+        />
+      </div>
+
+      {mode === "Gmail Task Proof" && (
+        <div className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-card">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full bg-transparent text-sm outline-none"
+          />
+          {date && (
+            <button
+              onClick={() => setDate("")}
+              className="rounded-lg bg-muted px-2 py-1 text-xs font-bold text-foreground"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      <p className="text-xs font-semibold text-muted-foreground">{list.length} proof(s)</p>
+
+      {!list.length && <p className="mt-8 text-center text-muted-foreground">No proofs found.</p>}
+
+      {list.map((s: any) => (
+        <Card
+          key={s.id}
+          title={s.tasks?.title ?? "Task"}
+          sub={`${s.user?.name ?? "User"} • ${s.user?.email ?? ""} • ${s.reward_coins} coins • ${
+            s.submitted_at ? new Date(s.submitted_at).toLocaleString() : "—"
+          }`}
+          note={s.note}
+          adminNote={s.admin_note}
+          status={s.status}
+          rejectNote
+          extra={<ProofButton path={s.proof_url} />}
+          onApprove={() => onReview(s.id, true)}
+          onReject={(n: string) => onReview(s.id, false, n)}
+        />
+      ))}
+    </div>
+  );
+}
