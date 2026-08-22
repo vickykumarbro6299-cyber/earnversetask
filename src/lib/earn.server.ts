@@ -88,18 +88,40 @@ export async function meImpl({ userId }: Ctx) {
 
 export async function updateMyProfileImpl(
   { userId }: Ctx,
-  data: { name: string; mobile: string; dob: string | null },
+  data: { name: string; mobile: string; dob: string | null; avatarUrl?: string | null },
 ) {
   const name = data.name.trim().slice(0, 60);
   const mobile = data.mobile.trim().slice(0, 20);
   if (name.length < 2) throw new Error("Name is too short");
   if (mobile && !/^[0-9+\-\s]{6,20}$/.test(mobile)) throw new Error("Enter a valid mobile number");
-  const { error } = await supabaseAdmin
-    .from("profiles")
-    .update({ name, mobile, dob: data.dob || null })
-    .eq("id", userId);
+  const patch: Record<string, unknown> = { name, mobile, dob: data.dob || null };
+  if (data.avatarUrl !== undefined) patch['avatar_url'] = data.avatarUrl;
+  const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId);
   if (error) throw error;
   return { ok: true };
+}
+
+/** Profile page stats: lifetime task coins, approved tasks, referrals. */
+export async function profileStatsImpl({ userId }: Ctx) {
+  const [{ data: subs }, { count: referrals }, { data: refEarn }] = await Promise.all([
+    supabaseAdmin
+      .from("submissions")
+      .select("reward_coins")
+      .eq("user_id", userId)
+      .eq("status", "approved"),
+    supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("referred_by", userId),
+    supabaseAdmin.from("referral_earnings").select("coins").eq("referrer_id", userId),
+  ]);
+  const taskCoins = (subs ?? []).reduce((n, s) => n + s.reward_coins, 0);
+  const referralCoins = (refEarn ?? []).reduce((n, r) => n + r.coins, 0);
+  return {
+    totalEarned: taskCoins + referralCoins,
+    tasksDone: (subs ?? []).length,
+    referrals: referrals ?? 0,
+  };
 }
 
 /** Recalculate a task's claimed slots from real submissions (never releases finished work). */
