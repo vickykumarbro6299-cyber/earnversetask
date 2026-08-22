@@ -864,28 +864,41 @@ export async function referralImpl({ userId }: Ctx) {
   ]);
 
   const setting = (k: string) => (settings ?? []).find((s) => s.key === k)?.value ?? "";
-  const bonusCoins = Number(setting("referral_signup_bonus_coins") || 0);
   const bonusUntil = setting("referral_signup_bonus_until") || null;
-  const bonusActive =
-    bonusCoins > 0 && !!bonusUntil && new Date(bonusUntil).getTime() > Date.now();
 
   const perUser: Record<string, number> = {};
   (earnings ?? []).forEach((e) => {
     perUser[e.referred_id] = (perUser[e.referred_id] ?? 0) + e.coins;
   });
 
+  const ids = (invited ?? []).map((u) => u.id);
+  const doneByUser: Record<string, number> = {};
+  if (ids.length) {
+    const { data: subs } = await supabaseAdmin
+      .from("submissions")
+      .select("user_id")
+      .in("user_id", ids)
+      .eq("status", "approved");
+    (subs ?? []).forEach((s) => {
+      doneByUser[s.user_id] = (doneByUser[s.user_id] ?? 0) + 1;
+    });
+  }
+
   return {
     code: me?.referral_code ?? "",
     rate: REFERRAL_RATE,
-    bonusCoins,
+    bonusCoins: REFERRAL_BONUS_COINS,
+    taskGoal: REFERRAL_TASK_GOAL,
     bonusUntil,
-    bonusActive,
+    bonusActive: true,
     totalCoins: (earnings ?? []).reduce((n, e) => n + e.coins, 0),
     invites: (invited ?? []).map((u) => ({
       id: u.id,
       name: u.name || "EarnVerse User",
       joinedAt: u.created_at,
       coins: perUser[u.id] ?? 0,
+      tasksDone: doneByUser[u.id] ?? 0,
+      qualified: (doneByUser[u.id] ?? 0) >= REFERRAL_TASK_GOAL,
     })),
   };
 }
