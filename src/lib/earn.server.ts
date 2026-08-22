@@ -1212,7 +1212,6 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
 
 /* ---------------- weekly leaderboard ---------------- */
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 export const LEADERBOARD_SIZE = 50;
 export const LEADERBOARD_PRIZES = [1500, 1000, 500] as const;
 export const LEADERBOARD_CONSOLATION = 50;
@@ -1223,6 +1222,7 @@ function prizeForRank(rank: number) {
 
 /** Monday 00:00 IST week window that contains `now`. */
 function weekWindow(now = new Date()) {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
   const ist = new Date(now.getTime() + IST_OFFSET_MS);
   const dow = (ist.getUTCDay() + 6) % 7; // 0 = Monday
   const midnightIst = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
@@ -1259,7 +1259,7 @@ async function weeklyTaskEarnings(start: Date, end: Date) {
 async function settlePreviousWeek() {
   const nowWindow = weekWindow();
   const prevStart = new Date(nowWindow.start.getTime() - 7 * 86400000);
-  const prevKey = new Date(prevStart.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+  const prevKey = new Date(prevStart.getTime() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const { data: existing } = await supabaseAdmin
     .from("leaderboard_payouts")
