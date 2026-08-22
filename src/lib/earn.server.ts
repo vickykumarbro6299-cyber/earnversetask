@@ -836,6 +836,7 @@ export async function adminReviewSubmissionImpl(
   if (data.approve) {
     await addCoins(sub.user_id, sub.reward_coins);
     await payReferralCommission(sub.user_id, sub.reward_coins);
+    await maybePayReferralMilestone(sub.user_id);
   }
   // Always recount so approved/rejected slot maths stay correct.
   await releaseTaskSlot(sub.task_id);
