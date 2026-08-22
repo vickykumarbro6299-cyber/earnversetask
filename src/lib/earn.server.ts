@@ -967,7 +967,7 @@ export async function adminUpdateSettingsImpl(
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
-  const isSample = data.path.includes("/samples/");
+  const isSample = data.path.includes("/samples/") || data.path.includes("/avatars/");
   const admin = isSample ? false : await isAdmin(userId);
   if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
     throw new Error("Forbidden");

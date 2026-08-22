@@ -10,10 +10,19 @@ export const getMe = createServerFn({ method: "GET" })
 
 export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { name: string; mobile: string; dob: string | null }) => d)
+  .inputValidator(
+    (d: { name: string; mobile: string; dob: string | null; avatarUrl?: string | null }) => d,
+  )
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.updateMyProfileImpl({ userId: context.userId }, data);
+  });
+
+export const getProfileStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.profileStatsImpl({ userId: context.userId });
   });
 
 export const listTasks = createServerFn({ method: "GET" })
