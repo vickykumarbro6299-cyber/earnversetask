@@ -110,3 +110,5 @@ export function autoDescription(category: string): string | null {
 export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
 
 
+/** Public site URL used for shareable links (referral, profile). */
+export const SITE_URL = "https://earnverse.life";
