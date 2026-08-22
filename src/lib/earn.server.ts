@@ -282,7 +282,7 @@ export async function submitProofImpl(
 
 /** Approved task earnings + deposits/withdrawals as one chronological ledger. */
 export async function earningHistoryImpl({ userId }: Ctx) {
-  const [subs, deps, wds] = await Promise.all([
+  const [subs, deps, wds, ledger, payouts] = await Promise.all([
     supabaseAdmin
       .from("submissions")
       .select("id, reward_coins, status, reviewed_at, submitted_at, tasks(title, category)")
@@ -297,11 +297,22 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       .from("withdrawals")
       .select("id, coins, amount_inr, method, status, created_at, admin_note")
       .eq("user_id", userId),
+    supabaseAdmin
+      .from("coin_ledger")
+      .select("id, kind, title, coins, note, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabaseAdmin
+      .from("leaderboard_payouts")
+      .select("id, week_start, rank, coins, earned_coins, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
   ]);
 
   type Entry = {
     id: string;
-    kind: "task" | "deposit" | "withdrawal";
+    kind: "task" | "deposit" | "withdrawal" | "refund" | "adjustment" | "leaderboard";
     title: string;
     coins: number;
     status: string;
@@ -336,6 +347,24 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       status: w.status,
       date: w.created_at,
       note: w.admin_note ?? null,
+    })),
+    ...(ledger.data ?? []).map((l) => ({
+      id: l.id,
+      kind: (l.kind === "adjustment" ? "adjustment" : "refund") as "adjustment" | "refund",
+      title: l.title,
+      coins: l.coins,
+      status: "approved",
+      date: l.created_at,
+      note: l.note ?? null,
+    })),
+    ...(payouts.data ?? []).map((p) => ({
+      id: p.id,
+      kind: "leaderboard" as const,
+      title: `Leaderboard reward • Rank #${p.rank} • Week of ${p.week_start}`,
+      coins: p.coins,
+      status: "approved",
+      date: p.created_at,
+      note: `Weekly task earnings: ${p.earned_coins} coins`,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
