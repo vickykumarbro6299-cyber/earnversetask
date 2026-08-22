@@ -351,3 +351,10 @@ export const adminReviewTask = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminReviewTaskImpl({ userId: context.userId }, data);
   });
+
+export const getLeaderboard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.leaderboardImpl({ userId: context.userId });
+  });

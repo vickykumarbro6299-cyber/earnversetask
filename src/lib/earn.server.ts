@@ -1208,3 +1208,137 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
     })),
   };
 }
+
+/* ---------------- weekly leaderboard ---------------- */
+
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+export const LEADERBOARD_SIZE = 50;
+export const LEADERBOARD_PRIZES = [1500, 1000, 500] as const;
+export const LEADERBOARD_CONSOLATION = 50;
+
+function prizeForRank(rank: number) {
+  return LEADERBOARD_PRIZES[rank - 1] ?? LEADERBOARD_CONSOLATION;
+}
+
+/** Monday 00:00 IST week window that contains `now`. */
+function weekWindow(now = new Date()) {
+  const ist = new Date(now.getTime() + IST_OFFSET_MS);
+  const dow = (ist.getUTCDay() + 6) % 7; // 0 = Monday
+  const midnightIst = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
+  const startIst = midnightIst - dow * 86400000;
+  const start = new Date(startIst - IST_OFFSET_MS);
+  const end = new Date(start.getTime() + 7 * 86400000);
+  const weekStartKey = new Date(startIst).toISOString().slice(0, 10);
+  return { start, end, weekStartKey };
+}
+
+/** Task-only earnings (approved submissions) per user inside a window. */
+async function weeklyTaskEarnings(start: Date, end: Date) {
+  const { data } = await supabaseAdmin
+    .from("submissions")
+    .select("user_id, reward_coins, reviewed_at, status")
+    .eq("status", "approved")
+    .gte("reviewed_at", start.toISOString())
+    .lt("reviewed_at", end.toISOString());
+
+  const totals = new Map<string, { coins: number; tasks: number }>();
+  for (const row of data ?? []) {
+    const cur = totals.get(row.user_id) ?? { coins: 0, tasks: 0 };
+    cur.coins += row.reward_coins;
+    cur.tasks += 1;
+    totals.set(row.user_id, cur);
+  }
+  return [...totals.entries()]
+    .map(([userId, v]) => ({ userId, coins: v.coins, tasks: v.tasks }))
+    .filter((r) => r.coins > 0)
+    .sort((a, b) => b.coins - a.coins);
+}
+
+/** Pays last week's prizes exactly once (idempotent via unique week_start+user_id). */
+async function settlePreviousWeek() {
+  const nowWindow = weekWindow();
+  const prevStart = new Date(nowWindow.start.getTime() - 7 * 86400000);
+  const prevKey = new Date(prevStart.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+
+  const { data: existing } = await supabaseAdmin
+    .from("leaderboard_payouts")
+    .select("id")
+    .eq("week_start", prevKey)
+    .limit(1);
+  if (existing && existing.length) return;
+
+  const ranked = (await weeklyTaskEarnings(prevStart, nowWindow.start)).slice(0, LEADERBOARD_SIZE);
+  if (!ranked.length) return;
+
+  for (let i = 0; i < ranked.length; i++) {
+    const row = ranked[i]!;
+    const coins = prizeForRank(i + 1);
+    const { error } = await supabaseAdmin.from("leaderboard_payouts").insert({
+      week_start: prevKey,
+      user_id: row.userId,
+      rank: i + 1,
+      coins,
+      earned_coins: row.coins,
+    });
+    if (error) continue; // already paid
+    try {
+      await addCoins(row.userId, coins);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export async function leaderboardImpl({ userId }: Ctx) {
+  await settlePreviousWeek();
+
+  const { start, end } = weekWindow();
+  const ranked = await weeklyTaskEarnings(start, end);
+  const top = ranked.slice(0, LEADERBOARD_SIZE);
+
+  const ids = top.map((r) => r.userId);
+  const { data: profiles } = ids.length
+    ? await supabaseAdmin.from("profiles").select("id,name,email").in("id", ids)
+    : { data: [] };
+  const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  const entries = top.map((r, i) => {
+    const p = map.get(r.userId);
+    return {
+      userId: r.userId,
+      rank: i + 1,
+      name: p?.name?.trim() || (p?.email ? p.email.split("@")[0]! : "EarnVerse User"),
+      coins: r.coins,
+      tasks: r.tasks,
+      reward: prizeForRank(i + 1),
+      isMe: r.userId === userId,
+    };
+  });
+
+  const myIndex = ranked.findIndex((r) => r.userId === userId);
+  const me =
+    myIndex >= 0
+      ? {
+          rank: myIndex + 1,
+          coins: ranked[myIndex]!.coins,
+          tasks: ranked[myIndex]!.tasks,
+          reward: myIndex < LEADERBOARD_SIZE ? prizeForRank(myIndex + 1) : 0,
+        }
+      : { rank: 0, coins: 0, tasks: 0, reward: 0 };
+
+  const { data: myPayouts } = await supabaseAdmin
+    .from("leaderboard_payouts")
+    .select("week_start, rank, coins, earned_coins")
+    .eq("user_id", userId)
+    .order("week_start", { ascending: false })
+    .limit(5);
+
+  return {
+    weekStart: start.toISOString(),
+    weekEnd: end.toISOString(),
+    entries,
+    me,
+    myPayouts: myPayouts ?? [],
+    prizes: { first: 1500, second: 1000, third: 500, others: LEADERBOARD_CONSOLATION },
+  };
+}

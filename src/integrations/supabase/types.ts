@@ -92,6 +92,36 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboard_payouts: {
+        Row: {
+          coins: number
+          created_at: string
+          earned_coins: number
+          id: string
+          rank: number
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          earned_coins?: number
+          id?: string
+          rank: number
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          earned_coins?: number
+          id?: string
+          rank?: number
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           coins: number
