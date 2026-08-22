@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.weekly_task_earnings(timestamptz, timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.weekly_task_earnings(timestamptz, timestamptz) TO service_role;
