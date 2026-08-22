@@ -73,6 +73,7 @@ const TABS = [
   "Deposits",
   "Withdrawals",
   "Tasks",
+  "Task History",
   "Reviews",
   "Users",
   "Devices",
