@@ -65,6 +65,22 @@ async function addCoins(userId: string, delta: number) {
   return next;
 }
 
+async function logLedger(
+  userId: string,
+  kind: string,
+  title: string,
+  coins: number,
+  note?: string | null,
+) {
+  try {
+    await supabaseAdmin
+      .from("coin_ledger")
+      .insert({ user_id: userId, kind, title, coins, note: note ?? null });
+  } catch {
+    /* ledger is best-effort */
+  }
+}
+
 /* ---------------- user side ---------------- */
 
 export async function meImpl({ userId }: Ctx) {
@@ -406,7 +422,10 @@ export async function adminReviewTaskImpl(
     .from("tasks")
     .update({ approved: false, active: false, disabled: true })
     .eq("id", task.id);
-  if (refund > 0 && task.created_by) await addCoins(task.created_by, refund);
+  if (refund > 0 && task.created_by) {
+    await addCoins(task.created_by, refund);
+    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, "Task rejected by admin");
+  }
   return { approved: false, refund };
 }
 
@@ -738,7 +757,10 @@ export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: strin
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
     .eq("id", task.id);
 
-  if (refund > 0 && task.created_by) await addCoins(task.created_by, refund);
+  if (refund > 0 && task.created_by) {
+    await addCoins(task.created_by, refund);
+    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by admin)`);
+  }
   return { refund, unusedSlots };
 }
 
@@ -1048,7 +1070,10 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
     .eq("id", task.id);
 
 
-  if (refund > 0) await addCoins(userId, refund);
+  if (refund > 0) {
+    await addCoins(userId, refund);
+    await logLedger(userId, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by you)`);
+  }
   return { refund, unusedSlots };
 }
 
@@ -1061,11 +1086,21 @@ export async function adminSetUserCoinsImpl(
   await requireAdmin(userId);
   const coins = Math.floor(data.coins);
   if (!Number.isFinite(coins) || coins < 0) throw new Error("Enter a valid coin balance");
+  const before = await getCoins(data.targetUserId);
   const { error } = await supabaseAdmin
     .from("profiles")
     .update({ coins })
     .eq("id", data.targetUserId);
   if (error) throw error;
+  const delta = coins - before;
+  if (delta !== 0)
+    await logLedger(
+      data.targetUserId,
+      "adjustment",
+      "Admin balance adjustment",
+      delta,
+      `Balance set to ${coins} coins by admin`,
+    );
   return { coins };
 }
 
