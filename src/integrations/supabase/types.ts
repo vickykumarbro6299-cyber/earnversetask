@@ -447,6 +447,14 @@ export type Database = {
         }
         Returns: string
       }
+      weekly_task_earnings: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          coins: number
+          tasks: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"

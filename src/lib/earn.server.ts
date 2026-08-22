@@ -1234,25 +1234,25 @@ function weekWindow(now = new Date()) {
 
 /** Task-only earnings (approved submissions) per user inside a window. */
 async function weeklyTaskEarnings(start: Date, end: Date) {
-  const { data } = await supabaseAdmin
-    .from("submissions")
-    .select("user_id, reward_coins, reviewed_at, status")
-    .eq("status", "approved")
-    .gte("reviewed_at", start.toISOString())
-    .lt("reviewed_at", end.toISOString());
-
-  const totals = new Map<string, { coins: number; tasks: number }>();
-  for (const row of data ?? []) {
-    const cur = totals.get(row.user_id) ?? { coins: 0, tasks: 0 };
-    cur.coins += row.reward_coins;
-    cur.tasks += 1;
-    totals.set(row.user_id, cur);
-  }
-  return [...totals.entries()]
-    .map(([userId, v]) => ({ userId, coins: v.coins, tasks: v.tasks }))
+  const { data, error } = await (
+    supabaseAdmin.rpc as unknown as (
+      fn: string,
+      args: Record<string, string>,
+    ) => Promise<{
+      data: { user_id: string; coins: number; tasks: number }[] | null;
+      error: unknown;
+    }>
+  )("weekly_task_earnings", {
+    p_start: start.toISOString(),
+    p_end: end.toISOString(),
+  });
+  if (error || !data) return [];
+  return data
+    .map((r) => ({ userId: r.user_id, coins: Number(r.coins), tasks: Number(r.tasks) }))
     .filter((r) => r.coins > 0)
     .sort((a, b) => b.coins - a.coins);
 }
+
 
 /** Pays last week's prizes exactly once (idempotent via unique week_start+user_id). */
 async function settlePreviousWeek() {
