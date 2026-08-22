@@ -18,6 +18,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedCreatorStudioRouteImport } from './routes/_authenticated/creator-studio'
+import { Route as AuthenticatedDailyBonusRouteImport } from './routes/_authenticated/daily-bonus'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
 import { Route as AuthenticatedMyTasksRouteImport } from './routes/_authenticated/my-tasks'
@@ -72,6 +73,11 @@ const AuthenticatedCreatorStudioRoute =
     path: '/creator-studio',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDailyBonusRoute = AuthenticatedDailyBonusRouteImport.update({
+  id: '/daily-bonus',
+  path: '/daily-bonus',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
+  '/daily-bonus': typeof AuthenticatedDailyBonusRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/my-tasks': typeof AuthenticatedMyTasksRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
+  '/daily-bonus': typeof AuthenticatedDailyBonusRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/my-tasks': typeof AuthenticatedMyTasksRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/creator-studio': typeof AuthenticatedCreatorStudioRoute
+  '/_authenticated/daily-bonus': typeof AuthenticatedDailyBonusRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/_authenticated/my-tasks': typeof AuthenticatedMyTasksRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/creator-studio'
+    | '/daily-bonus'
     | '/history'
     | '/leaderboard'
     | '/my-tasks'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/creator-studio'
+    | '/daily-bonus'
     | '/history'
     | '/leaderboard'
     | '/my-tasks'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/creator-studio'
+    | '/_authenticated/daily-bonus'
     | '/_authenticated/history'
     | '/_authenticated/leaderboard'
     | '/_authenticated/my-tasks'
@@ -304,6 +316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreatorStudioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/daily-bonus': {
+      id: '/_authenticated/daily-bonus'
+      path: '/daily-bonus'
+      fullPath: '/daily-bonus'
+      preLoaderRoute: typeof AuthenticatedDailyBonusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/history': {
       id: '/_authenticated/history'
       path: '/history'
@@ -366,6 +385,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCreatorStudioRoute: typeof AuthenticatedCreatorStudioRoute
+  AuthenticatedDailyBonusRoute: typeof AuthenticatedDailyBonusRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
   AuthenticatedMyTasksRoute: typeof AuthenticatedMyTasksRoute
@@ -379,6 +399,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCreatorStudioRoute: AuthenticatedCreatorStudioRoute,
+  AuthenticatedDailyBonusRoute: AuthenticatedDailyBonusRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
   AuthenticatedMyTasksRoute: AuthenticatedMyTasksRoute,

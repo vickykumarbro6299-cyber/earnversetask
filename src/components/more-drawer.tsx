@@ -7,6 +7,7 @@ import {
   History,
   Gift,
   Trophy,
+  CalendarCheck,
 
   UserCircle,
   ShieldCheck,
@@ -40,6 +41,7 @@ const groups: { title: string; items: Item[] }[] = [
       { to: "/wallet", label: "Wallet", Icon: Wallet },
       { to: "/history", label: "Earning History", Icon: History },
       { to: "/leaderboard", label: "Leaderboard", Icon: Trophy },
+      { to: "/daily-bonus", label: "Daily Bonus", Icon: CalendarCheck },
       { to: "/refer-earn", label: "Refer & Earn", Icon: Gift },
     ],
   },

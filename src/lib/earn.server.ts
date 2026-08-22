@@ -1343,3 +1343,77 @@ export async function leaderboardImpl({ userId }: Ctx) {
     prizes: { first: 1500, second: 1000, third: 500, others: LEADERBOARD_CONSOLATION },
   };
 }
+
+/** Daily bonus: 50 coins per IST day after finishing 5 approved tasks that day. */
+export const DAILY_BONUS_COINS = 50;
+export const DAILY_BONUS_TASKS_REQUIRED = 5;
+
+function istDayWindow(now = new Date()) {
+  const off = 5.5 * 60 * 60 * 1000;
+  const ist = new Date(now.getTime() + off);
+  const midnightIst = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
+  return {
+    dateKey: new Date(midnightIst).toISOString().slice(0, 10),
+    start: new Date(midnightIst - off),
+    end: new Date(midnightIst - off + 86400000),
+  };
+}
+
+async function dailyBonusState(userId: string) {
+  const { dateKey, start, end } = istDayWindow();
+
+  const { count } = await supabaseAdmin
+    .from("submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", "approved")
+    .gte("reviewed_at", start.toISOString())
+    .lt("reviewed_at", end.toISOString());
+
+  const { data: claim } = await supabaseAdmin
+    .from("daily_bonus_claims")
+    .select("id, coins, created_at")
+    .eq("user_id", userId)
+    .eq("bonus_date", dateKey)
+    .maybeSingle();
+
+  const { data: history } = await supabaseAdmin
+    .from("daily_bonus_claims")
+    .select("bonus_date, coins")
+    .eq("user_id", userId)
+    .order("bonus_date", { ascending: false })
+    .limit(7);
+
+  const completed = count ?? 0;
+  return {
+    dateKey,
+    completed,
+    required: DAILY_BONUS_TASKS_REQUIRED,
+    coins: DAILY_BONUS_COINS,
+    claimed: !!claim,
+    canClaim: !claim && completed >= DAILY_BONUS_TASKS_REQUIRED,
+    resetAt: end.toISOString(),
+    history: history ?? [],
+  };
+}
+
+export async function dailyBonusImpl({ userId }: Ctx) {
+  return dailyBonusState(userId);
+}
+
+export async function claimDailyBonusImpl({ userId }: Ctx) {
+  const state = await dailyBonusState(userId);
+  if (state.claimed) throw new Error("Daily bonus already claimed today");
+  if (!state.canClaim)
+    throw new Error(
+      `Complete at least ${DAILY_BONUS_TASKS_REQUIRED} tasks today to claim (${state.completed}/${DAILY_BONUS_TASKS_REQUIRED})`,
+    );
+
+  const { error } = await supabaseAdmin
+    .from("daily_bonus_claims")
+    .insert({ user_id: userId, bonus_date: state.dateKey, coins: DAILY_BONUS_COINS });
+  if (error) throw new Error("Daily bonus already claimed today");
+
+  await addCoins(userId, DAILY_BONUS_COINS);
+  return { ok: true, coins: DAILY_BONUS_COINS };
+}
