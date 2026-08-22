@@ -19,6 +19,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedCreatorStudioRouteImport } from './routes/_authenticated/creator-studio'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
 import { Route as AuthenticatedMyTasksRouteImport } from './routes/_authenticated/my-tasks'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedReferEarnRouteImport } from './routes/_authenticated/refer-earn'
@@ -76,6 +77,12 @@ const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLeaderboardRoute =
+  AuthenticatedLeaderboardRouteImport.update({
+    id: '/leaderboard',
+    path: '/leaderboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMyTasksRoute = AuthenticatedMyTasksRouteImport.update({
   id: '/my-tasks',
   path: '/my-tasks',
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/my-tasks': typeof AuthenticatedMyTasksRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refer-earn': typeof AuthenticatedReferEarnRoute
@@ -135,6 +143,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/my-tasks': typeof AuthenticatedMyTasksRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refer-earn': typeof AuthenticatedReferEarnRoute
@@ -154,6 +163,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/_authenticated/my-tasks': typeof AuthenticatedMyTasksRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/refer-earn': typeof AuthenticatedReferEarnRoute
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/creator-studio'
     | '/history'
+    | '/leaderboard'
     | '/my-tasks'
     | '/profile'
     | '/refer-earn'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/creator-studio'
     | '/history'
+    | '/leaderboard'
     | '/my-tasks'
     | '/profile'
     | '/refer-earn'
@@ -208,6 +220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/creator-studio'
     | '/_authenticated/history'
+    | '/_authenticated/leaderboard'
     | '/_authenticated/my-tasks'
     | '/_authenticated/profile'
     | '/_authenticated/refer-earn'
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/leaderboard': {
+      id: '/_authenticated/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof AuthenticatedLeaderboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/my-tasks': {
       id: '/_authenticated/my-tasks'
       path: '/my-tasks'
@@ -347,6 +367,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCreatorStudioRoute: typeof AuthenticatedCreatorStudioRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
   AuthenticatedMyTasksRoute: typeof AuthenticatedMyTasksRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReferEarnRoute: typeof AuthenticatedReferEarnRoute
@@ -359,6 +380,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCreatorStudioRoute: AuthenticatedCreatorStudioRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
   AuthenticatedMyTasksRoute: AuthenticatedMyTasksRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReferEarnRoute: AuthenticatedReferEarnRoute,
