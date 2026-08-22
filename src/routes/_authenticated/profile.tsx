@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck,
@@ -11,20 +11,28 @@ import {
   Trash2,
   LogOut,
   ChevronRight,
-  Phone,
   Ticket,
   BadgeCheck,
   AlertCircle,
   Pencil,
+  Camera,
+  Share2,
+  Wallet,
+  ListChecks,
+  Users,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
-import { ReferEarn } from "@/components/refer-earn";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
-import { redeemPromo, updateMyProfile } from "@/lib/earn.functions";
+import {
+  redeemPromo,
+  updateMyProfile,
+  getProfileStats,
+  getProofUrl,
+} from "@/lib/earn.functions";
 import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
-
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -32,21 +40,52 @@ export const Route = createFileRoute("/_authenticated/profile")({
       { title: "My Profile — EarnVerse Account" },
       {
         name: "description",
-        content: "View your EarnVerse account details, coin balance and account settings.",
+        content: "View your EarnVerse profile, photo, coin balance and account stats.",
       },
       { property: "og:title", content: "My Profile — EarnVerse" },
-      { property: "og:description", content: "Your EarnVerse account and coin balance." },
+      { property: "og:description", content: "Your EarnVerse profile and stats." },
     ],
   }),
   component: ProfilePage,
 });
 
+const maskMobile = (m: string) =>
+  m && m.length >= 6 ? `${m.slice(0, 2)}****${m.slice(-4)}` : m || "—";
+
+function useAvatarUrl(path: string | null | undefined) {
+  const fn = useServerFn(getProofUrl);
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!path) {
+      setUrl(null);
+      return;
+    }
+    fn({ data: { path } })
+      .then((r) => alive && setUrl(r?.url ?? null))
+      .catch(() => alive && setUrl(null));
+    return () => {
+      alive = false;
+    };
+  }, [path, fn]);
+  return url;
+}
+
 function ProfilePage() {
   const me = useMe();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const refresh = useRefreshAll();
+  const statsFn = useServerFn(getProfileStats);
+  const saveFn = useServerFn(updateMyProfile);
+  const { data: stats } = useQuery({ queryKey: ["profile-stats"], queryFn: () => statsFn() });
+
   const p = me.data?.profile;
   const isAdmin = me.data?.isAdmin ?? false;
+  const verified = me.data?.emailVerified ?? false;
+  const avatar = useAvatarUrl(p?.avatar_url ?? null);
+  const [edit, setEdit] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   async function signOut() {
     await qc.cancelQueries();
@@ -55,43 +94,167 @@ function ProfilePage() {
     navigate({ to: "/auth", replace: true });
   }
 
+  async function uploadAvatar(file: File | null | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) throw new Error("Not signed in");
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${uid}/avatars/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("proofs").upload(path, file);
+      if (error) throw error;
+      await saveFn({
+        data: {
+          name: p?.name ?? "",
+          mobile: p?.mobile ?? "",
+          dob: p?.dob ?? null,
+          avatarUrl: path,
+        },
+      });
+      toast.success("Profile photo updated");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function shareProfile() {
+    const text = `${p?.name ?? "I"} is earning on EarnVerse — join me!`;
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "EarnVerse", text, url });
+        return;
+      } catch {
+        /* cancelled */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not share");
+    }
+  }
+
+  const joined = p?.created_at
+    ? new Date(p.created_at).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="bg-gradient-purple px-4 pb-16 pt-8 text-center">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-primary-foreground/60 bg-brand-deep text-3xl font-extrabold text-primary-foreground">
-          {(p?.name ?? "U").charAt(0).toUpperCase()}
-        </div>
-        <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground">
-          {p?.name ?? "EarnVerse User"}
-        </h1>
-        <p className="text-sm text-primary-foreground/80">{p?.email}</p>
-      </div>
-
-      <main className="mx-auto -mt-10 max-w-md px-4">
-        <section className="rounded-2xl border-2 border-primary bg-card p-4 shadow-pop">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Coin balance
-          </p>
-          <div className="mt-1 flex items-center gap-2">
-            <CoinIcon className="h-9 w-9" />
-            <span className="text-4xl font-extrabold text-primary">{p?.coins ?? 0}</span>
-            <span className="ml-auto rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">
-              ₹{toRupees(p?.coins ?? 0)}
-            </span>
+      <main className="mx-auto max-w-md px-4 pt-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-extrabold text-foreground">Profile</h1>
+            <p className="text-sm font-medium text-muted-foreground">
+              Your profile and stats.
+            </p>
           </div>
-          <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
-            <Phone className="h-4 w-4" /> {p?.mobile || "—"}
+          <button
+            onClick={() => setEdit((v) => !v)}
+            className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-bold text-foreground"
+          >
+            <Pencil className="h-4 w-4" /> Edit Profile
+          </button>
+        </div>
+
+        <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card">
+          <div className="flex items-center gap-4">
+            <label className="relative h-20 w-20 shrink-0 cursor-pointer">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={`${p?.name ?? "User"} profile photo`}
+                  className="h-20 w-20 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-2xl font-extrabold text-primary-foreground">
+                  {(p?.name ?? "U").charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
+                {uploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => uploadAvatar(e.target.files?.[0])}
+              />
+            </label>
+
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-xl font-extrabold text-foreground">
+                {p?.name || "EarnVerse User"}
+              </h2>
+              <p className="text-sm font-semibold text-muted-foreground">
+                {maskMobile(p?.mobile ?? "")}
+              </p>
+              <p className="text-sm text-muted-foreground">Member since {joined}</p>
+            </div>
+
+            <button
+              onClick={shareProfile}
+              className="flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-border px-3 py-2 text-xs font-bold text-foreground"
+            >
+              <Share2 className="h-4 w-4" /> Share
+            </button>
           </div>
         </section>
 
-        <ProfileDetails />
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <StatCard
+            icon={<Wallet className="h-5 w-5 text-success" />}
+            value={(stats?.totalEarned ?? 0).toLocaleString()}
+            label="Total Earned"
+          />
+          <StatCard
+            icon={<ListChecks className="h-5 w-5 text-primary" />}
+            value={String(stats?.tasksDone ?? 0)}
+            label="Tasks Done"
+          />
+          <StatCard
+            icon={<Users className="h-5 w-5 text-primary" />}
+            value={String(stats?.referrals ?? 0)}
+            label="Referrals"
+          />
+          <StatCard
+            icon={<CoinIcon className="h-5 w-5" />}
+            value={`${p?.coins ?? 0}`}
+            label={`Balance • ₹${toRupees(p?.coins ?? 0)}`}
+          />
+        </div>
 
-        <ReferEarn />
+        <ProfileDetails
+          edit={edit}
+          setEdit={setEdit}
+          verified={verified}
+          profile={{
+            name: p?.name ?? "",
+            mobile: p?.mobile ?? "",
+            dob: p?.dob ?? "",
+            email: p?.email ?? "",
+            avatarUrl: p?.avatar_url ?? null,
+          }}
+        />
 
         <PromoRedeem />
 
         <div className="mt-4 overflow-hidden rounded-2xl bg-card shadow-card">
-
           {isAdmin && (
             <Link
               to="/admin"
@@ -120,47 +283,66 @@ function ProfilePage() {
           </button>
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          EarnVerse v{APP_VERSION}
-        </p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">EarnVerse v{APP_VERSION}</p>
       </main>
       <BottomNav />
     </div>
   );
 }
 
-function ProfileDetails() {
-  const me = useMe();
+function StatCard({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">{icon}</span>
+      <p className="mt-3 text-2xl font-extrabold text-foreground">{value}</p>
+      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function ProfileDetails({
+  edit,
+  setEdit,
+  verified,
+  profile,
+}: {
+  edit: boolean;
+  setEdit: (v: boolean) => void;
+  verified: boolean;
+  profile: {
+    name: string;
+    mobile: string;
+    dob: string;
+    email: string;
+    avatarUrl: string | null;
+  };
+}) {
   const refresh = useRefreshAll();
   const fn = useServerFn(updateMyProfile);
-  const p = me.data?.profile;
-  const verified = me.data?.emailVerified ?? false;
-  const [edit, setEdit] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [dob, setDob] = useState("");
+  const [name, setName] = useState(profile.name);
+  const [mobile, setMobile] = useState(profile.mobile);
+  const [dob, setDob] = useState(profile.dob);
 
-  function startEdit() {
-    setName(p?.name ?? "");
-    setMobile(p?.mobile ?? "");
-    setDob(p?.dob ?? "");
-    setEdit(true);
-  }
+  useEffect(() => {
+    if (edit) {
+      setName(profile.name);
+      setMobile(profile.mobile);
+      setDob(profile.dob);
+    }
+  }, [edit, profile.name, profile.mobile, profile.dob]);
 
   return (
     <section className="mt-4 rounded-2xl bg-card p-4 shadow-card">
-      <div className="flex items-center justify-between">
-        <h2 className="font-extrabold text-foreground">My Details</h2>
-        {!edit && (
-          <button
-            onClick={startEdit}
-            className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground"
-          >
-            <Pencil className="h-3.5 w-3.5" /> Edit
-          </button>
-        )}
-      </div>
+      <h2 className="font-extrabold text-foreground">My Details</h2>
 
       {edit ? (
         <form
@@ -224,13 +406,13 @@ function ProfileDetails() {
         </form>
       ) : (
         <dl className="mt-3 space-y-2 text-sm">
-          <Row label="Full name" value={p?.name || "—"} />
-          <Row label="Mobile number" value={p?.mobile || "—"} />
-          <Row label="Date of birth" value={p?.dob || "—"} />
+          <Row label="Full name" value={profile.name || "—"} />
+          <Row label="Mobile number" value={profile.mobile || "—"} />
+          <Row label="Date of birth" value={profile.dob || "—"} />
           <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
             <dt className="text-muted-foreground">Email</dt>
             <dd className="flex min-w-0 items-center gap-2">
-              <span className="truncate font-semibold text-foreground">{p?.email || "—"}</span>
+              <span className="truncate font-semibold text-foreground">{profile.email || "—"}</span>
               {verified ? (
                 <span className="flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
                   <BadgeCheck className="h-3.5 w-3.5" /> Verified
@@ -314,6 +496,7 @@ function PromoRedeem() {
     </form>
   );
 }
+
 function LinkItem({
   to,
   icon,
@@ -367,8 +550,6 @@ function Item({
         </a>{" "}
         from your registered email.
       </p>
-
-
     </details>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronDown, Copy, Gift, Users } from "lucide-react";
+import { ChevronDown, Copy, Gift, Link2, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { getReferral } from "@/lib/earn.functions";
 import { CoinIcon } from "@/components/brand";
@@ -12,6 +12,10 @@ export function ReferEarn() {
   const [showList, setShowList] = useState(false);
 
   const code = data?.code ?? "";
+  const goal = data?.taskGoal ?? 10;
+  const bonus = data?.bonusCoins ?? 200;
+  const link =
+    code && typeof window !== "undefined" ? `${window.location.origin}/auth?ref=${code}` : "";
 
   const copy = async (text: string, label: string) => {
     try {
@@ -22,29 +26,39 @@ export function ReferEarn() {
     }
   };
 
+  const share = async () => {
+    const text = `Join EarnVerse and start earning! Use my referral code ${code}\n${link}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "EarnVerse", text, url: link });
+        return;
+      } catch {
+        /* user cancelled */
+      }
+    }
+    copy(text, "Invite link");
+  };
+
   return (
     <section className="mt-4 rounded-2xl bg-card p-4 shadow-card">
       <h2 className="flex items-center gap-2 font-extrabold text-foreground">
         <Gift className="h-5 w-5 text-primary" /> Refer &amp; Earn
       </h2>
       <p className="mt-1 text-xs font-medium text-muted-foreground">
-        Share your referral code and get <span className="font-bold text-foreground">3% lifetime
-        commission</span> on every task your friends complete — coins add automatically.
+        Share your link and get <span className="font-bold text-foreground">{bonus} coins</span> per
+        referral, plus <span className="font-bold text-foreground">3% lifetime commission</span> on
+        every task your friends complete.
       </p>
 
-      {data?.bonusActive && (
-        <div className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5">
-          <p className="flex items-center gap-1 text-sm font-extrabold text-foreground">
-            <CoinIcon className="h-4 w-4" />
-            {data.bonusCoins} coins per referral — limited time!
-          </p>
-          <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
-            Offer ends {new Date(data.bonusUntil!).toLocaleString()} · 3% lifetime commission
-            continues after that.
-          </p>
-        </div>
-      )}
-
+      <div className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5">
+        <p className="flex items-center gap-1 text-sm font-extrabold text-foreground">
+          <CoinIcon className="h-4 w-4" />
+          {bonus} coins per referral
+        </p>
+        <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+          Condition: your referral must complete {goal} tasks before the reward is credited.
+        </p>
+      </div>
 
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-primary/50 bg-primary/5 px-3 py-2.5">
         <span className="flex-1 text-lg font-extrabold tracking-widest text-foreground">
@@ -60,9 +74,32 @@ export function ReferEarn() {
         </button>
       </div>
 
+      <div className="mt-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+        <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <Link2 className="h-3.5 w-3.5" /> Referral link
+        </p>
+        <p className="mt-1 truncate text-xs font-semibold text-foreground">{link || "…"}</p>
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => copy(link, "Referral link")}
+            className="flex-1 rounded-lg bg-secondary py-2 text-xs font-bold text-secondary-foreground"
+          >
+            <Copy className="mr-1 inline h-3.5 w-3.5" /> Copy link
+          </button>
+          <button
+            type="button"
+            onClick={share}
+            className="flex-1 rounded-lg bg-gradient-brand py-2 text-xs font-bold text-primary-foreground"
+          >
+            <Share2 className="mr-1 inline h-3.5 w-3.5" /> Share
+          </button>
+        </div>
+      </div>
+
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat label="Total Referrals" value={String(data?.invites.length ?? 0)} />
-        <Stat label="Commission Earned" value={`${data?.totalCoins ?? 0}`} coin />
+        <Stat label="Referral Earnings" value={`${data?.totalCoins ?? 0}`} coin />
       </div>
 
       <button
@@ -83,7 +120,7 @@ export function ReferEarn() {
       {showList &&
         (data && data.invites.length === 0 ? (
           <p className="mt-2 text-xs font-medium text-muted-foreground">
-            No referrals yet. Share your code to start earning.
+            No referrals yet. Share your link to start earning.
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-border">
@@ -92,8 +129,19 @@ export function ReferEarn() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-brand text-sm font-bold text-primary-foreground">
                   {u.name.charAt(0).toUpperCase()}
                 </span>
-                <span className="flex-1 truncate text-sm font-semibold text-foreground">
-                  {u.name}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">
+                    {u.name}
+                  </span>
+                  <span
+                    className={`text-[11px] font-bold ${
+                      u.qualified ? "text-success" : "text-muted-foreground"
+                    }`}
+                  >
+                    {u.qualified
+                      ? `Reward credited • ${u.tasksDone} tasks`
+                      : `${u.tasksDone}/${goal} tasks completed`}
+                  </span>
                 </span>
                 <span className="flex items-center gap-1 text-sm font-bold text-foreground">
                   <CoinIcon className="h-4 w-4" />

@@ -15,6 +15,7 @@ export function useRefreshAll() {
     qc.invalidateQueries({ queryKey: ["wallet"] });
     qc.invalidateQueries({ queryKey: ["admin"] });
     qc.invalidateQueries({ queryKey: ["referral"] });
+    qc.invalidateQueries({ queryKey: ["profile-stats"] });
     qc.invalidateQueries({ queryKey: ["creator-tasks"] });
 
   };

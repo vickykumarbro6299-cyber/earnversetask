@@ -18,6 +18,10 @@ export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
 export const REFERRAL_RATE = 0.03;
+/** One-time coins paid to the referrer once their invite completes the task goal. */
+export const REFERRAL_BONUS_COINS = 200;
+/** Approved tasks a referred user must complete before the referrer gets the bonus. */
+export const REFERRAL_TASK_GOAL = 10;
 
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
@@ -84,18 +88,44 @@ export async function meImpl({ userId }: Ctx) {
 
 export async function updateMyProfileImpl(
   { userId }: Ctx,
-  data: { name: string; mobile: string; dob: string | null },
+  data: { name: string; mobile: string; dob: string | null; avatarUrl?: string | null },
 ) {
   const name = data.name.trim().slice(0, 60);
   const mobile = data.mobile.trim().slice(0, 20);
   if (name.length < 2) throw new Error("Name is too short");
   if (mobile && !/^[0-9+\-\s]{6,20}$/.test(mobile)) throw new Error("Enter a valid mobile number");
-  const { error } = await supabaseAdmin
-    .from("profiles")
-    .update({ name, mobile, dob: data.dob || null })
-    .eq("id", userId);
+  const patch = {
+    name,
+    mobile,
+    dob: data.dob || null,
+    ...(data.avatarUrl !== undefined ? { avatar_url: data.avatarUrl } : {}),
+  };
+  const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId);
   if (error) throw error;
   return { ok: true };
+}
+
+/** Profile page stats: lifetime task coins, approved tasks, referrals. */
+export async function profileStatsImpl({ userId }: Ctx) {
+  const [{ data: subs }, { count: referrals }, { data: refEarn }] = await Promise.all([
+    supabaseAdmin
+      .from("submissions")
+      .select("reward_coins")
+      .eq("user_id", userId)
+      .eq("status", "approved"),
+    supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("referred_by", userId),
+    supabaseAdmin.from("referral_earnings").select("coins").eq("referrer_id", userId),
+  ]);
+  const taskCoins = (subs ?? []).reduce((n, s) => n + s.reward_coins, 0);
+  const referralCoins = (refEarn ?? []).reduce((n, r) => n + r.coins, 0);
+  return {
+    totalEarned: taskCoins + referralCoins,
+    tasksDone: (subs ?? []).length,
+    referrals: referrals ?? 0,
+  };
 }
 
 /** Recalculate a task's claimed slots from real submissions (never releases finished work). */
@@ -734,6 +764,43 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
   });
 }
 
+/**
+ * One-time REFERRAL_BONUS_COINS to the referrer once this user has completed
+ * REFERRAL_TASK_GOAL approved tasks. Safe to call after every approval.
+ */
+async function maybePayReferralMilestone(earnerId: string) {
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("referred_by")
+    .eq("id", earnerId)
+    .maybeSingle();
+  const referrer = prof?.referred_by;
+  if (!referrer) return;
+
+  const { count: paid } = await supabaseAdmin
+    .from("referral_earnings")
+    .select("id", { count: "exact", head: true })
+    .eq("referrer_id", referrer)
+    .eq("referred_id", earnerId)
+    .eq("source", "milestone");
+  if ((paid ?? 0) > 0) return;
+
+  const { count: done } = await supabaseAdmin
+    .from("submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", earnerId)
+    .eq("status", "approved");
+  if ((done ?? 0) < REFERRAL_TASK_GOAL) return;
+
+  await addCoins(referrer, REFERRAL_BONUS_COINS);
+  await supabaseAdmin.from("referral_earnings").insert({
+    referrer_id: referrer,
+    referred_id: earnerId,
+    coins: REFERRAL_BONUS_COINS,
+    source: "milestone",
+  });
+}
+
 /** Give the reserved slot back to the pool (recalculated from real submissions). */
 async function releaseTaskSlot(taskId: string) {
   await recountTask(taskId);
@@ -769,6 +836,7 @@ export async function adminReviewSubmissionImpl(
   if (data.approve) {
     await addCoins(sub.user_id, sub.reward_coins);
     await payReferralCommission(sub.user_id, sub.reward_coins);
+    await maybePayReferralMilestone(sub.user_id);
   }
   // Always recount so approved/rejected slot maths stay correct.
   await releaseTaskSlot(sub.task_id);
@@ -796,28 +864,41 @@ export async function referralImpl({ userId }: Ctx) {
   ]);
 
   const setting = (k: string) => (settings ?? []).find((s) => s.key === k)?.value ?? "";
-  const bonusCoins = Number(setting("referral_signup_bonus_coins") || 0);
   const bonusUntil = setting("referral_signup_bonus_until") || null;
-  const bonusActive =
-    bonusCoins > 0 && !!bonusUntil && new Date(bonusUntil).getTime() > Date.now();
 
   const perUser: Record<string, number> = {};
   (earnings ?? []).forEach((e) => {
     perUser[e.referred_id] = (perUser[e.referred_id] ?? 0) + e.coins;
   });
 
+  const ids = (invited ?? []).map((u) => u.id);
+  const doneByUser: Record<string, number> = {};
+  if (ids.length) {
+    const { data: subs } = await supabaseAdmin
+      .from("submissions")
+      .select("user_id")
+      .in("user_id", ids)
+      .eq("status", "approved");
+    (subs ?? []).forEach((s) => {
+      doneByUser[s.user_id] = (doneByUser[s.user_id] ?? 0) + 1;
+    });
+  }
+
   return {
     code: me?.referral_code ?? "",
     rate: REFERRAL_RATE,
-    bonusCoins,
+    bonusCoins: REFERRAL_BONUS_COINS,
+    taskGoal: REFERRAL_TASK_GOAL,
     bonusUntil,
-    bonusActive,
+    bonusActive: true,
     totalCoins: (earnings ?? []).reduce((n, e) => n + e.coins, 0),
     invites: (invited ?? []).map((u) => ({
       id: u.id,
       name: u.name || "EarnVerse User",
       joinedAt: u.created_at,
       coins: perUser[u.id] ?? 0,
+      tasksDone: doneByUser[u.id] ?? 0,
+      qualified: (doneByUser[u.id] ?? 0) >= REFERRAL_TASK_GOAL,
     })),
   };
 }
@@ -886,7 +967,7 @@ export async function adminUpdateSettingsImpl(
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
-  const isSample = data.path.includes("/samples/");
+  const isSample = data.path.includes("/samples/") || data.path.includes("/avatars/");
   const admin = isSample ? false : await isAdmin(userId);
   if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
     throw new Error("Forbidden");

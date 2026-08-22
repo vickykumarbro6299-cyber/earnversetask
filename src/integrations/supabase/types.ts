@@ -148,6 +148,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           coins: number
           created_at: string
           dob: string | null
@@ -159,6 +160,7 @@ export type Database = {
           referred_by: string | null
         }
         Insert: {
+          avatar_url?: string | null
           coins?: number
           created_at?: string
           dob?: string | null
@@ -170,6 +172,7 @@ export type Database = {
           referred_by?: string | null
         }
         Update: {
+          avatar_url?: string | null
           coins?: number
           created_at?: string
           dob?: string | null
