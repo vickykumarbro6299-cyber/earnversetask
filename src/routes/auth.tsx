@@ -90,11 +90,17 @@ function AuthPage() {
           throw new Error("Password must be at least 6 characters");
 
         const deviceId = getDeviceId();
-        const check = await checkDevice({ data: { deviceId } });
-        if (check.blocked)
-          throw new Error(
-            "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
-          );
+        // Device check is a safety net — a network hiccup must never block signup.
+        try {
+          const check = await checkDevice({ data: { deviceId } });
+          if (check.blocked)
+            throw new Error(
+              "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
+            );
+        } catch (devErr) {
+          if (devErr instanceof Error && devErr.message.startsWith("Multiple Accounts")) throw devErr;
+          console.warn("device check skipped", devErr);
+        }
 
         const { data: signUpData, error } = await supabase.auth.signUp({
           email: form.email.trim(),
@@ -119,8 +125,7 @@ function AuthPage() {
         try {
           await registerDevice({ data: { deviceId, userAgent: navigator.userAgent } });
         } catch (devErr) {
-          await supabase.auth.signOut();
-          throw devErr;
+          console.warn("device register skipped", devErr);
         }
 
         toast.success("Welcome to EarnVerse! 50 coins added as joining reward 🎉");
@@ -134,17 +139,27 @@ function AuthPage() {
         password: form.password,
       });
       if (error) throw error;
-      await trackDevice({
-        data: { deviceId: getDeviceId(), userAgent: navigator.userAgent },
-      });
+      try {
+        await trackDevice({
+          data: { deviceId: getDeviceId(), userAgent: navigator.userAgent },
+        });
+      } catch (devErr) {
+        console.warn("device track skipped", devErr);
+      }
       toast.success("Signed in");
       navigate({ to: "/tasks", replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(
+        /failed to fetch|network|load failed/i.test(msg)
+          ? "Network issue — please check your internet and try again."
+          : msg,
+      );
     } finally {
       setLoading(false);
     }
   }
+
 
 
   const heading = mode === "signup" ? "Welcome to EarnVerse" : "Good to see you again";
