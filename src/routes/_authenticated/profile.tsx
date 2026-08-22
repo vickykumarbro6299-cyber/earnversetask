@@ -32,7 +32,7 @@ import {
   getProfileStats,
   getProofUrl,
 } from "@/lib/earn.functions";
-import { APP_VERSION, toRupees, TELEGRAM_CHANNEL } from "@/lib/earn-constants";
+import { APP_VERSION, toRupees, TELEGRAM_CHANNEL, SITE_URL } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
