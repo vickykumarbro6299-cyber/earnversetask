@@ -18,6 +18,10 @@ export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
 export const REFERRAL_RATE = 0.03;
+/** One-time coins paid to the referrer once their invite completes the task goal. */
+export const REFERRAL_BONUS_COINS = 200;
+/** Approved tasks a referred user must complete before the referrer gets the bonus. */
+export const REFERRAL_TASK_GOAL = 10;
 
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
