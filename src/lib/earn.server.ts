@@ -94,8 +94,12 @@ export async function updateMyProfileImpl(
   const mobile = data.mobile.trim().slice(0, 20);
   if (name.length < 2) throw new Error("Name is too short");
   if (mobile && !/^[0-9+\-\s]{6,20}$/.test(mobile)) throw new Error("Enter a valid mobile number");
-  const patch: Record<string, unknown> = { name, mobile, dob: data.dob || null };
-  if (data.avatarUrl !== undefined) patch['avatar_url'] = data.avatarUrl;
+  const patch = {
+    name,
+    mobile,
+    dob: data.dob || null,
+    ...(data.avatarUrl !== undefined ? { avatar_url: data.avatarUrl } : {}),
+  };
   const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId);
   if (error) throw error;
   return { ok: true };
