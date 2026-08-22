@@ -136,23 +136,11 @@ function AdminPage() {
         {q.isLoading && <p className="mt-8 text-center text-muted-foreground">Loading data…</p>}
 
         {d && tab === "Proofs" && (
-          <List
-            empty="No proof submissions yet."
+          <ProofsTab
             items={d.submissions}
-            render={(s: any) => (
-              <Card
-                key={s.id}
-                title={s.tasks?.title ?? "Task"}
-                sub={`${s.user?.name ?? "User"} • ${s.user?.email ?? ""} • ${s.reward_coins} coins`}
-                note={s.note}
-                adminNote={s.admin_note}
-                status={s.status}
-                rejectNote
-                extra={<ProofButton path={s.proof_url} />}
-                onApprove={() => review("submission", s.id, true)}
-                onReject={(n: string) => review("submission", s.id, false, n)}
-              />
-            )}
+            onReview={(id: string, approve: boolean, note?: string) =>
+              review("submission", id, approve, note)
+            }
           />
         )}
 
