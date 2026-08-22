@@ -7,6 +7,7 @@ import {
   History,
   Gift,
   Trophy,
+  CalendarCheck,
 
   UserCircle,
   ShieldCheck,
