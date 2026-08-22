@@ -29,6 +29,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_bonus_claims: {
+        Row: {
+          bonus_date: string
+          coins: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bonus_date: string
+          coins?: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bonus_date?: string
+          coins?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       deposits: {
         Row: {
           amount_inr: number
