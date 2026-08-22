@@ -358,3 +358,17 @@ export const getLeaderboard = createServerFn({ method: "GET" })
     const m = await import("./earn.server");
     return m.leaderboardImpl({ userId: context.userId });
   });
+
+export const getDailyBonus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.dailyBonusImpl({ userId: context.userId });
+  });
+
+export const claimDailyBonus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.claimDailyBonusImpl({ userId: context.userId });
+  });
