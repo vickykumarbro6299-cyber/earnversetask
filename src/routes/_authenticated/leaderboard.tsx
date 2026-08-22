@@ -138,6 +138,9 @@ function LeaderboardPage() {
                   {top3[1].name}
                 </p>
                 <p className="text-xs font-extrabold text-slate-300">{formatCoins(top3[1].coins)}</p>
+                <span className="mt-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                  +{formatCoins(top3[1].reward)} coins
+                </span>
                 <div className="mt-2 flex h-24 w-20 flex-col items-center justify-end rounded-t-2xl bg-gradient-to-b from-slate-300 to-slate-500 pb-3 shadow-lg">
                   <span className="text-2xl font-extrabold text-primary-foreground">2</span>
                 </div>
@@ -162,6 +165,9 @@ function LeaderboardPage() {
                   {top3[0].name}
                 </p>
                 <p className="text-sm font-extrabold text-gold">{formatCoins(top3[0].coins)}</p>
+                <span className="mt-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-extrabold text-gold">
+                  +{formatCoins(top3[0].reward)} coins
+                </span>
                 <div className="mt-2 flex h-32 w-24 flex-col items-center justify-end rounded-t-2xl bg-gradient-to-b from-gold to-amber-600 pb-4 shadow-lg">
                   <span className="text-3xl font-extrabold text-primary-foreground">1</span>
                 </div>
@@ -184,6 +190,9 @@ function LeaderboardPage() {
                   {top3[2].name}
                 </p>
                 <p className="text-xs font-extrabold text-orange-300">{formatCoins(top3[2].coins)}</p>
+                <span className="mt-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                  +{formatCoins(top3[2].reward)} coins
+                </span>
                 <div className="mt-2 flex h-20 w-20 flex-col items-center justify-end rounded-t-2xl bg-gradient-to-b from-orange-300 to-orange-600 pb-3 shadow-lg">
                   <span className="text-2xl font-extrabold text-primary-foreground">3</span>
                 </div>
