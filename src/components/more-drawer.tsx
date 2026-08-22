@@ -6,6 +6,8 @@ import {
   Wallet,
   History,
   Gift,
+  Trophy,
+
   UserCircle,
   ShieldCheck,
   Rocket,
