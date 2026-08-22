@@ -764,6 +764,43 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
   });
 }
 
+/**
+ * One-time REFERRAL_BONUS_COINS to the referrer once this user has completed
+ * REFERRAL_TASK_GOAL approved tasks. Safe to call after every approval.
+ */
+async function maybePayReferralMilestone(earnerId: string) {
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("referred_by")
+    .eq("id", earnerId)
+    .maybeSingle();
+  const referrer = prof?.referred_by;
+  if (!referrer) return;
+
+  const { count: paid } = await supabaseAdmin
+    .from("referral_earnings")
+    .select("id", { count: "exact", head: true })
+    .eq("referrer_id", referrer)
+    .eq("referred_id", earnerId)
+    .eq("source", "milestone");
+  if ((paid ?? 0) > 0) return;
+
+  const { count: done } = await supabaseAdmin
+    .from("submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", earnerId)
+    .eq("status", "approved");
+  if ((done ?? 0) < REFERRAL_TASK_GOAL) return;
+
+  await addCoins(referrer, REFERRAL_BONUS_COINS);
+  await supabaseAdmin.from("referral_earnings").insert({
+    referrer_id: referrer,
+    referred_id: earnerId,
+    coins: REFERRAL_BONUS_COINS,
+    source: "milestone",
+  });
+}
+
 /** Give the reserved slot back to the pool (recalculated from real submissions). */
 async function releaseTaskSlot(taskId: string) {
   await recountTask(taskId);
