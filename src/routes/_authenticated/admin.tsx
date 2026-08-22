@@ -183,6 +183,8 @@ function AdminPage() {
 
         {d && tab === "Tasks" && <TasksTab tasks={d.tasks} onDone={refresh} />}
 
+        {d && tab === "Task History" && <TaskHistoryTab tasks={d.tasks} />}
+
         {d && tab === "Reviews" && <ReviewsTab tasks={d.tasks} onDone={refresh} />}
 
         {d && tab === "Users" && <UsersTab users={d.users} onDone={refresh} />}
