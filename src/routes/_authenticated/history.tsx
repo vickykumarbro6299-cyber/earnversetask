@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownToLine, ArrowUpFromLine, CheckCircle2, ClipboardCheck } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  CheckCircle2,
+  ClipboardCheck,
+  RotateCcw,
+  SlidersHorizontal,
+  Trophy,
+} from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
 import { CoinIcon } from "@/components/brand";
@@ -32,6 +40,9 @@ const ICONS = {
   task: ClipboardCheck,
   deposit: ArrowDownToLine,
   withdrawal: ArrowUpFromLine,
+  refund: RotateCcw,
+  adjustment: SlidersHorizontal,
+  leaderboard: Trophy,
 } as const;
 
 function HistoryPage() {
@@ -78,7 +89,7 @@ function HistoryPage() {
 
         <div className="mt-4 space-y-2">
           {items.map((it) => {
-            const Icon = ICONS[it.kind];
+            const Icon = ICONS[it.kind] ?? ClipboardCheck;
             const tone =
               it.status === "approved"
                 ? "bg-success/15 text-success"
