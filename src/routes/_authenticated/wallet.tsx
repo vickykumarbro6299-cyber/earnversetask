@@ -390,8 +390,8 @@ function DepositSheet({
               <span>₹{pack?.rupees}.00</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Tax (1%)</span>
-              <span>₹{((pack?.rupees ?? 0) * 0.01).toFixed(2)}</span>
+              <span>Tax (0%)</span>
+              <span>₹0.00</span>
             </div>
             <div className="flex justify-between border-t border-border pt-1 text-base font-extrabold text-primary">
               <span>Pay now</span>
