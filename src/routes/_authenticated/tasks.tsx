@@ -274,6 +274,7 @@ function AddTaskSheet({
   });
   const [busy, setBusy] = useState(false);
   const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
+  const minSlots = minSlotsFor(form.category);
   const base = form.rewardCoins * form.totalSlots;
   const feePct = Math.round(TASK_PLATFORM_FEE * 100);
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
