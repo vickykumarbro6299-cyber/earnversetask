@@ -1297,7 +1297,7 @@ function ProofsTab({
     queryKey: ["admin-proofs", gmail, date],
     queryFn: () => proofsFn({ data: { gmail, date: date || null } }),
   });
-  const items = pq.data?.items ?? [];
+  const items: any[] = (pq.data?.items ?? []) as any[];
 
   const list = items
 
