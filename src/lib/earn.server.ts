@@ -395,7 +395,9 @@ export async function createUserTaskImpl(
   const min = CATEGORY_MIN_REWARD[category] ?? MIN_TASK_REWARD;
   if (data.rewardCoins < min)
     throw new Error(`Minimum reward for this category is ${min} coins`);
-  if (data.totalSlots < 1) throw new Error("At least 1 slot required");
+  const minSlots = minSlotsFor(category);
+  if (data.totalSlots < minSlots)
+    throw new Error(`Minimum ${minSlots} slots required for this category`);
   if (!data.sampleImageUrl) throw new Error("Sample photo is required");
   const base = data.rewardCoins * data.totalSlots;
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
