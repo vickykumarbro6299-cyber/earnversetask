@@ -37,6 +37,7 @@ import {
   autoDescription,
   PROMOTE_TAGLINE,
   greeting,
+  minSlotsFor,
 } from "@/lib/earn-constants";
 
 
@@ -266,23 +267,26 @@ function AddTaskSheet({
     description: "",
     link: "",
     rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
-    totalSlots: 1,
+    totalSlots: minSlotsFor("other"),
     category: "other" as string,
     sampleImageUrl: "",
     allowMultiple: false,
   });
   const [busy, setBusy] = useState(false);
   const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
+  const minSlots = minSlotsFor(form.category);
   const base = form.rewardCoins * form.totalSlots;
   const feePct = Math.round(TASK_PLATFORM_FEE * 100);
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
 
   function pickCategory(key: string) {
     const min = CATEGORY_MIN_REWARD[key] ?? MIN_TASK_REWARD;
+    const slotMin = minSlotsFor(key);
     setForm((f) => ({
       ...f,
       category: key,
       rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
+      totalSlots: f.totalSlots < slotMin ? slotMin : f.totalSlots,
       link: NO_LINK_CATEGORIES.includes(key) ? "" : f.link,
       description:
         autoDescription(key) ??
@@ -298,6 +302,8 @@ function AddTaskSheet({
     try {
       if (form.rewardCoins < minReward)
         throw new Error(`Minimum reward for this category is ${minReward} coins`);
+      if (form.totalSlots < minSlots)
+        throw new Error(`Minimum ${minSlots} slots required for this category`);
       if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
@@ -407,10 +413,10 @@ function AddTaskSheet({
               />
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              Task limit (slots)
+              Task limit (min {minSlots} slots)
               <input
                 type="number"
-                min={1}
+                min={minSlots}
                 className={input}
                 value={form.totalSlots}
                 onChange={(e) => setForm({ ...form, totalSlots: Number(e.target.value) })}
