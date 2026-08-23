@@ -347,7 +347,7 @@ function DepositSheet({
         <>
           <h3 className="text-lg font-extrabold">Buy Coins</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose a coin pack • 1% tax added at payment
+            Choose a coin pack • no extra tax
           </p>
           <div className="mt-4">
             <PackGrid packs={DEPOSIT_PACKS} selected={rupees} onSelect={setRupees} tone="brand" />

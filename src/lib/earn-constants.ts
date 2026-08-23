@@ -4,7 +4,7 @@ export const MIN_WITHDRAW_COINS = 1500;
 /** Users can request at most this many withdrawals per 24 hours. */
 export const MAX_WITHDRAWALS_PER_DAY = 2;
 export const MIN_TASK_REWARD = 20;
-export const DEPOSIT_TAX = 0.01;
+export const DEPOSIT_TAX = 0;
 export const TASK_PLATFORM_FEE = 0.06;
 export const ADMIN_EMAIL = "trustmeiamjonathan12@gmail.com";
 export const APP_VERSION = "1.0.0";
