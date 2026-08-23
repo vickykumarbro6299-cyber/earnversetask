@@ -9,6 +9,7 @@ import {
   TASK_CATEGORIES,
   CATEGORY_MIN_REWARD,
   CATEGORY_MIN_WATCH_SECONDS,
+  minSlotsFor,
 } from "./earn-constants";
 
 export const COINS_PER_RUPEE = 100;
