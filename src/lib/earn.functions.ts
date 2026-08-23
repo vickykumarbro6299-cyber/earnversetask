@@ -381,3 +381,11 @@ export const claimDailyBonus = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.claimDailyBonusImpl({ userId: context.userId });
   });
+
+export const getAdminProofs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { gmail: boolean; date?: string | null }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.adminProofsImpl({ userId: context.userId }, data);
+  });
