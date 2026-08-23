@@ -30,9 +30,9 @@ export const PROMOTE_TAGLINE =
 
 /** Fixed deposit packs — users can only buy these. rupees -> coins */
 export const DEPOSIT_PACKS: { rupees: number; coins: number }[] = [
-  { rupees: 10, coins: 900 },
-  { rupees: 20, coins: 1900 },
-  { rupees: 30, coins: 2800 },
+  { rupees: 10, coins: 1000 },
+  { rupees: 20, coins: 2000 },
+  { rupees: 30, coins: 3000 },
   { rupees: 50, coins: 5000 },
   { rupees: 100, coins: 10000 },
   { rupees: 200, coins: 20000 },
