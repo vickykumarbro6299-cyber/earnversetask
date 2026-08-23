@@ -72,6 +72,15 @@ export const CATEGORY_MIN_REWARD: Record<string, number> = {
 /** Categories where a task link makes no sense. */
 export const NO_LINK_CATEGORIES = ["gmail"];
 
+/** Categories exempt from the 10-slot minimum. */
+export const LOW_SLOT_CATEGORIES = ["gmail", "telegram"];
+
+/** Minimum slots a user must offer when adding a task. */
+export const DEFAULT_MIN_SLOTS = 10;
+
+export const minSlotsFor = (category: string) =>
+  LOW_SLOT_CATEGORIES.includes(category) ? 1 : DEFAULT_MIN_SLOTS;
+
 /** Fixed instructions auto-filled for Video tasks. */
 export const VIDEO_TASK_DESCRIPTION = `1. Click on Start Task
 2. Watch Video Atleast 2 Minutes
