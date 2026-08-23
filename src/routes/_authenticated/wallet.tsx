@@ -347,7 +347,7 @@ function DepositSheet({
         <>
           <h3 className="text-lg font-extrabold">Buy Coins</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose a coin pack • 1% tax added at payment
+            Choose a coin pack • no extra tax
           </p>
           <div className="mt-4">
             <PackGrid packs={DEPOSIT_PACKS} selected={rupees} onSelect={setRupees} tone="brand" />
@@ -390,8 +390,8 @@ function DepositSheet({
               <span>₹{pack?.rupees}.00</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Tax (1%)</span>
-              <span>₹{((pack?.rupees ?? 0) * 0.01).toFixed(2)}</span>
+              <span>Tax (0%)</span>
+              <span>₹0.00</span>
             </div>
             <div className="flex justify-between border-t border-border pt-1 text-base font-extrabold text-primary">
               <span>Pay now</span>
