@@ -38,6 +38,7 @@ import {
   adminCancelTask,
   adminUpdateTaskReward,
   adminDeviceReport,
+  getAdminProofs,
 } from "@/lib/earn.functions";
 
 import {
@@ -136,9 +137,8 @@ function AdminPage() {
 
         {q.isLoading && <p className="mt-8 text-center text-muted-foreground">Loading data…</p>}
 
-        {d && tab === "Proofs" && (
+        {tab === "Proofs" && (
           <ProofsTab
-            items={d.submissions}
             onReview={(id: string, approve: boolean, note?: string) =>
               review("submission", id, approve, note)
             }
@@ -1284,27 +1284,23 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
 /* ---------------- Proofs ---------------- */
 
 function ProofsTab({
-  items,
   onReview,
 }: {
-  items: any[];
   onReview: (id: string, approve: boolean, note?: string) => void;
 }) {
   const [mode, setMode] = useState<"Gmail Task Proof" | "Other Task Proof">("Other Task Proof");
   const [q, setQ] = useState("");
   const [date, setDate] = useState("");
+  const proofsFn = useServerFn(getAdminProofs);
+  const gmail = mode === "Gmail Task Proof";
+  const pq = useQuery({
+    queryKey: ["admin-proofs", gmail, date],
+    queryFn: () => proofsFn({ data: { gmail, date: date || null } }),
+  });
+  const items: any[] = (pq.data?.items ?? []) as any[];
 
   const list = items
-    .filter((s) =>
-      mode === "Gmail Task Proof"
-        ? s.tasks?.category === "gmail"
-        : s.tasks?.category !== "gmail",
-    )
-    .filter((s) => {
-      if (mode !== "Gmail Task Proof" || !date) return true;
-      const d = s.submitted_at ?? s.claimed_at;
-      return d ? new Date(d).toLocaleDateString("en-CA") === date : false;
-    })
+
     .filter((s) => {
       const t = q.trim().toLowerCase();
       if (!t) return true;
@@ -1358,9 +1354,13 @@ function ProofsTab({
         </div>
       )}
 
-      <p className="text-xs font-semibold text-muted-foreground">{list.length} proof(s)</p>
+      <p className="text-xs font-semibold text-muted-foreground">
+        {pq.isLoading ? "Loading…" : `${list.length} proof(s)`}
+      </p>
 
-      {!list.length && <p className="mt-8 text-center text-muted-foreground">No proofs found.</p>}
+      {!pq.isLoading && !list.length && (
+        <p className="mt-8 text-center text-muted-foreground">No proofs found.</p>
+      )}
 
       {list.map((s: any) => (
         <Card

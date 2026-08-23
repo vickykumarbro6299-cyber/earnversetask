@@ -1565,3 +1565,35 @@ export async function claimDailyBonusImpl({ userId }: Ctx) {
   await addCoins(userId, DAILY_BONUS_COINS);
   return { ok: true, coins: DAILY_BONUS_COINS };
 }
+
+/** Admin: proofs filtered server-side (gmail vs other + optional IST date). */
+export async function adminProofsImpl(
+  { userId }: Ctx,
+  data: { gmail: boolean; date?: string | null },
+) {
+  await requireAdmin(userId);
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+  let query = supabaseAdmin
+    .from("submissions")
+    .select("*, tasks!inner(title, reward_coins, category, is_admin_task)")
+    .not("submitted_at", "is", null)
+    .order("submitted_at", { ascending: false })
+    .limit(5000);
+
+  query = data.gmail
+    ? query.eq("tasks.category", "gmail")
+    : query.neq("tasks.category", "gmail");
+
+  if (data.gmail && data.date) {
+    const start = new Date(new Date(`${data.date}T00:00:00.000Z`).getTime() - IST_OFFSET_MS);
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    query = query
+      .gte("submitted_at", start.toISOString())
+      .lt("submitted_at", end.toISOString());
+  }
+
+  const { data: rows, error } = await query;
+  if (error) throw new Error(error.message);
+  return { items: await withUser((rows ?? []) as never[]) };
+}
