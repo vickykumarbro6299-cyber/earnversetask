@@ -281,10 +281,12 @@ function AddTaskSheet({
 
   function pickCategory(key: string) {
     const min = CATEGORY_MIN_REWARD[key] ?? MIN_TASK_REWARD;
+    const slotMin = minSlotsFor(key);
     setForm((f) => ({
       ...f,
       category: key,
       rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
+      totalSlots: f.totalSlots < slotMin ? slotMin : f.totalSlots,
       link: NO_LINK_CATEGORIES.includes(key) ? "" : f.link,
       description:
         autoDescription(key) ??
