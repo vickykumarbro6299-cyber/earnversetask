@@ -302,6 +302,8 @@ function AddTaskSheet({
     try {
       if (form.rewardCoins < minReward)
         throw new Error(`Minimum reward for this category is ${minReward} coins`);
+      if (form.totalSlots < minSlots)
+        throw new Error(`Minimum ${minSlots} slots required for this category`);
       if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
       if (total > coins) throw new Error("Not enough coins in wallet");
       await createFn({ data: form });
