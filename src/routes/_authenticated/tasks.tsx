@@ -267,7 +267,7 @@ function AddTaskSheet({
     description: "",
     link: "",
     rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
-    totalSlots: 1,
+    totalSlots: minSlotsFor("other"),
     category: "other" as string,
     sampleImageUrl: "",
     allowMultiple: false,
