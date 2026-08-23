@@ -411,10 +411,10 @@ function AddTaskSheet({
               />
             </label>
             <label className="text-xs font-semibold text-muted-foreground">
-              Task limit (slots)
+              Task limit (min {minSlots} slots)
               <input
                 type="number"
-                min={1}
+                min={minSlots}
                 className={input}
                 value={form.totalSlots}
                 onChange={(e) => setForm({ ...form, totalSlots: Number(e.target.value) })}
