@@ -37,6 +37,7 @@ import {
   autoDescription,
   PROMOTE_TAGLINE,
   greeting,
+  minSlotsFor,
 } from "@/lib/earn-constants";
 
 
