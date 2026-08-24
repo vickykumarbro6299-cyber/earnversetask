@@ -8,6 +8,7 @@ import {
   Gift,
   Trophy,
   CalendarCheck,
+  Disc3,
 
   UserCircle,
   ShieldCheck,
