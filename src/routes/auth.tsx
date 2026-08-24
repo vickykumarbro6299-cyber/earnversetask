@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Mail, Lock, User, Phone, Gift, CircleAlert } from "lucide-react";
@@ -368,7 +368,24 @@ function AuthPage() {
             </p>
           )}
 
+          <p className="mt-4 text-center text-xs font-medium leading-relaxed text-muted-foreground">
+            By continuing you agree to our{" "}
+            <Link to="/terms" className="font-bold text-primary underline">
+              Terms &amp; Conditions
+            </Link>
+            ,{" "}
+            <Link to="/privacy" className="font-bold text-primary underline">
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link to="/refund" className="font-bold text-primary underline">
+              Refund &amp; Cancellation Policy
+            </Link>
+            .
+          </p>
+
         </div>
+
 
         <p className="mt-5 text-center text-xs font-medium text-muted-foreground">
           Watch • Work • Earn Daily
