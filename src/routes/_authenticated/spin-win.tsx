@@ -171,9 +171,9 @@ function Wheel() {
           {SPIN_SEGMENTS.map((s, i) => (
             <span
               key={s.key}
-              className="absolute left-1/2 top-1/2 origin-left text-sm font-extrabold text-white drop-shadow"
+              className="absolute left-1/2 top-1/2 origin-left whitespace-nowrap text-[11px] font-extrabold text-white drop-shadow"
               style={{
-                transform: `rotate(${i * slice + slice / 2 - 90}deg) translateX(38%)`,
+                transform: `rotate(${i * slice + slice / 2 - 90}deg) translateX(58%)`,
               }}
             >
               {s.label}
