@@ -21,10 +21,20 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CoinIcon } from "./brand";
+import { TelegramLogo, InstagramLogo } from "./social-logos";
 import { useMe } from "@/lib/use-earn";
 import { useTheme } from "./theme-toggle";
 
 type Item = { to: string; label: string; Icon: typeof Wallet };
+
+const socials = [
+  { href: "https://t.me/EarnVerseTask", label: "Telegram", Logo: TelegramLogo },
+  {
+    href: "https://www.instagram.com/earnversetask?igsi=MWxtZXNpbXlwZzQ2cA==",
+    label: "Instagram",
+    Logo: InstagramLogo,
+  },
+];
 
 const groups: { title: string; items: Item[] }[] = [
   {
@@ -53,9 +63,11 @@ const groups: { title: string; items: Item[] }[] = [
       { to: "/contact", label: "Contact Us", Icon: Mail },
       { to: "/privacy", label: "Privacy Policy", Icon: FileText },
       { to: "/terms", label: "Terms & Conditions", Icon: ScrollText },
+      { to: "/refund", label: "Refund & Cancellation", Icon: ReceiptText },
     ],
   },
 ];
+
 
 export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const me = useMe();
