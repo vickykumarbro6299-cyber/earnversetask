@@ -169,7 +169,27 @@ export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => vo
               )}
             </div>
           ))}
+
+          <div className="mb-2">
+            <p className="px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Social
+            </p>
+            {socials.map(({ href, label, Logo }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                onClick={onClose}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold text-foreground"
+              >
+                <Logo className="h-5 w-5" />
+                {label}
+              </a>
+            ))}
+          </div>
         </nav>
+
 
         <div className="border-t border-border px-3 py-2">
           <button
