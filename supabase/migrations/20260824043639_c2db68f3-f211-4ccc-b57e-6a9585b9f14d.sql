@@ -1,0 +1,11 @@
+REVOKE EXECUTE ON FUNCTION public.claim_task_slot(uuid, uuid, integer) FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.recount_task_slots(uuid) FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.register_device_account(text, uuid, text, text) FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.weekly_task_earnings(timestamptz, timestamptz) FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.gen_referral_code() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_updated_at_column() FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_task_slot(uuid, uuid, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.recount_task_slots(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.register_device_account(text, uuid, text, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.weekly_task_earnings(timestamptz, timestamptz) TO service_role;
