@@ -15,6 +15,8 @@ import {
   Mail,
   FileText,
   ScrollText,
+  ReceiptText,
+
   LogOut,
   Moon,
   Sun,
