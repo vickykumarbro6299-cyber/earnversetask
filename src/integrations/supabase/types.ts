@@ -310,6 +310,33 @@ export type Database = {
         }
         Relationships: []
       }
+      spin_results: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          label: string
+          spin_date: string
+          user_id: string
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          id?: string
+          label: string
+          spin_date: string
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          label?: string
+          spin_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       submissions: {
         Row: {
           admin_note: string | null

@@ -1597,3 +1597,85 @@ export async function adminProofsImpl(
   if (error) throw new Error(error.message);
   return { items: await withUser((rows ?? []) as never[]) };
 }
+
+/* ---------------- spin & win ---------------- */
+
+export const SPINS_PER_DAY = 10;
+
+/** key -> weight. 5 coins is intentionally 80% of all outcomes. */
+const SPIN_WEIGHTS: { key: string; coins: number; label: string; weight: number }[] = [
+  { key: "c5", coins: 5, label: "5 Coins", weight: 80 },
+  { key: "c15", coins: 15, label: "15 Coins", weight: 8 },
+  { key: "luck", coins: 0, label: "Better Luck", weight: 7 },
+  { key: "c50", coins: 50, label: "50 Coins", weight: 3 },
+  { key: "c200", coins: 200, label: "200 Coins", weight: 1.5 },
+  { key: "jackpot", coins: 1000, label: "JACKPOT!", weight: 0.5 },
+];
+
+async function spinState(userId: string) {
+  const { dateKey, end } = istDayWindow();
+  const { count } = await supabaseAdmin
+    .from("spin_results")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("spin_date", dateKey);
+
+  const { data: history } = await supabaseAdmin
+    .from("spin_results")
+    .select("label, coins, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const used = count ?? 0;
+  return {
+    dateKey,
+    used,
+    limit: SPINS_PER_DAY,
+    remaining: Math.max(0, SPINS_PER_DAY - used),
+    resetAt: end.toISOString(),
+    history: history ?? [],
+  };
+}
+
+export async function spinStateImpl({ userId }: Ctx) {
+  const state = await spinState(userId);
+  const coins = await getCoins(userId);
+  return { ...state, coins };
+}
+
+export async function spinImpl({ userId }: Ctx) {
+  const state = await spinState(userId);
+  if (state.remaining <= 0) throw new Error("Daily spin limit reached. Come back tomorrow!");
+
+  const total = SPIN_WEIGHTS.reduce((s, w) => s + w.weight, 0);
+  let roll = Math.random() * total;
+  let picked = SPIN_WEIGHTS[0]!;
+  for (const w of SPIN_WEIGHTS) {
+    roll -= w.weight;
+    if (roll <= 0) {
+      picked = w;
+      break;
+    }
+  }
+
+  const { error } = await supabaseAdmin.from("spin_results").insert({
+    user_id: userId,
+    spin_date: state.dateKey,
+    label: picked.label,
+    coins: picked.coins,
+  });
+  if (error) throw new Error("Could not record spin");
+
+  if (picked.coins > 0) {
+    await addCoins(userId, picked.coins);
+    await logLedger(userId, "spin", `Spin & Win — ${picked.label}`, picked.coins);
+  }
+
+  return {
+    key: picked.key,
+    label: picked.label,
+    coins: picked.coins,
+    remaining: state.remaining - 1,
+  };
+}

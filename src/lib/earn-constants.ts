@@ -121,3 +121,16 @@ export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
 
 /** Public site URL used for shareable links (referral, profile). */
 export const SITE_URL = "https://earnverse.life";
+
+/** Spin & Win wheel — segments shown on the wheel (clockwise from top-right). */
+export const SPIN_SEGMENTS: { key: string; label: string; coins: number; color: string }[] = [
+  { key: "c5", label: "5 Coins", coins: 5, color: "#2f7fe8" },
+  { key: "c15", label: "15 Coins", coins: 15, color: "#12a06a" },
+  { key: "luck", label: "Better Luck", coins: 0, color: "#e5413f" },
+  { key: "c50", label: "50 Coins", coins: 50, color: "#f0a319" },
+  { key: "c200", label: "200 Coins", coins: 200, color: "#8b5cf6" },
+  { key: "jackpot", label: "JACKPOT!", coins: 1000, color: "#ec4899" },
+];
+
+/** Maximum spins a user can make per day. */
+export const SPINS_PER_DAY = 10;

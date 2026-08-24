@@ -389,3 +389,17 @@ export const getAdminProofs = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminProofsImpl({ userId: context.userId }, data);
   });
+
+export const getSpinState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.spinStateImpl({ userId: context.userId });
+  });
+
+export const spinWheel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.spinImpl({ userId: context.userId });
+  });
