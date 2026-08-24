@@ -25,6 +25,7 @@ import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenti
 import { Route as AuthenticatedMyTasksRouteImport } from './routes/_authenticated/my-tasks'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedReferEarnRouteImport } from './routes/_authenticated/refer-earn'
+import { Route as AuthenticatedSpinWinRouteImport } from './routes/_authenticated/spin-win'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedAdminTaskTaskIdRouteImport } from './routes/_authenticated/admin_.task.$taskId'
@@ -110,6 +111,11 @@ const AuthenticatedReferEarnRoute = AuthenticatedReferEarnRouteImport.update({
   path: '/refer-earn',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSpinWinRoute = AuthenticatedSpinWinRouteImport.update({
+  id: '/spin-win',
+  path: '/spin-win',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/my-tasks': typeof AuthenticatedMyTasksRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refer-earn': typeof AuthenticatedReferEarnRoute
+  '/spin-win': typeof AuthenticatedSpinWinRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/admin/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/my-tasks': typeof AuthenticatedMyTasksRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refer-earn': typeof AuthenticatedReferEarnRoute
+  '/spin-win': typeof AuthenticatedSpinWinRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/admin/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/_authenticated/my-tasks': typeof AuthenticatedMyTasksRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/refer-earn': typeof AuthenticatedReferEarnRoute
+  '/_authenticated/spin-win': typeof AuthenticatedSpinWinRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/admin_/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
     | '/my-tasks'
     | '/profile'
     | '/refer-earn'
+    | '/spin-win'
     | '/tasks'
     | '/wallet'
     | '/admin/task/$taskId'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/my-tasks'
     | '/profile'
     | '/refer-earn'
+    | '/spin-win'
     | '/tasks'
     | '/wallet'
     | '/admin/task/$taskId'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/my-tasks'
     | '/_authenticated/profile'
     | '/_authenticated/refer-earn'
+    | '/_authenticated/spin-win'
     | '/_authenticated/tasks'
     | '/_authenticated/wallet'
     | '/_authenticated/admin_/task/$taskId'
@@ -378,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReferEarnRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/spin-win': {
+      id: '/_authenticated/spin-win'
+      path: '/spin-win'
+      fullPath: '/spin-win'
+      preLoaderRoute: typeof AuthenticatedSpinWinRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks': {
       id: '/_authenticated/tasks'
       path: '/tasks'
@@ -411,6 +430,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMyTasksRoute: typeof AuthenticatedMyTasksRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReferEarnRoute: typeof AuthenticatedReferEarnRoute
+  AuthenticatedSpinWinRoute: typeof AuthenticatedSpinWinRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedAdminTaskTaskIdRoute: typeof AuthenticatedAdminTaskTaskIdRoute
@@ -425,6 +445,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMyTasksRoute: AuthenticatedMyTasksRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReferEarnRoute: AuthenticatedReferEarnRoute,
+  AuthenticatedSpinWinRoute: AuthenticatedSpinWinRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedAdminTaskTaskIdRoute: AuthenticatedAdminTaskTaskIdRoute,
