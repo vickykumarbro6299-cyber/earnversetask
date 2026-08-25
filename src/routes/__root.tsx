@@ -76,37 +76,28 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "monetag", content: "1ead29841616bcd4d3a6fa385faf3c8b" },
-      { title: "EarnVerse — Watch, Work & Earn Daily Rewards" },
-      { name: "description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "EarnVerse — Watch, Work & Earn Daily Rewards" },
-      { property: "og:description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "EarnVerse — Watch, Work & Earn Daily Rewards" },
-      { name: "twitter:description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/D5sU4GLp2aT3AK8U44Ivh1P2Vrs2/social-images/social-1785686268359-social-image.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/D5sU4GLp2aT3AK8U44Ivh1P2Vrs2/social-images/social-1785686268359-social-image.webp" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-    scripts: [
-      {
-        src: "https://quge5.com/88/tag.min.js",
-        "data-zone": "272989",
-        async: true,
-        "data-cfasync": "false",
-      },
-    ],
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: "EarnVerse — Watch, Work & Earn Daily Rewards" },
+        { name: "description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
+        { name: "author", content: "Lovable" },
+        { property: "og:title", content: "EarnVerse — Watch, Work & Earn Daily Rewards" },
+        { property: "og:description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:site", content: "@Lovable" },
+        { name: "twitter:title", content: "EarnVerse — Watch, Work & Earn Daily Rewards" },
+        { name: "twitter:description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
+        { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/D5sU4GLp2aT3AK8U44Ivh1P2Vrs2/social-images/social-1785686268359-social-image.webp" },
+        { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/D5sU4GLp2aT3AK8U44Ivh1P2Vrs2/social-images/social-1785686268359-social-image.webp" },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+      ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
