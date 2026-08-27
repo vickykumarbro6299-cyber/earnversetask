@@ -46,7 +46,7 @@ export function ReferEarn() {
       </h2>
       <p className="mt-1 text-xs font-medium text-muted-foreground">
         Share your link and get <span className="font-bold text-foreground">{bonus} coins</span> per
-        referral, plus <span className="font-bold text-foreground">3% lifetime commission</span> on
+        referral, plus <span className="font-bold text-foreground">2% lifetime commission</span> on
         every task your friends complete.
       </p>
 
