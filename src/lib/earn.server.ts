@@ -18,7 +18,7 @@ export const MIN_WITHDRAW_COINS = 1500;
 export const MIN_TASK_REWARD = 20;
 export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
-export const REFERRAL_RATE = 0.03;
+export const REFERRAL_RATE = 0.02;
 /** One-time coins paid to the referrer once their invite completes the task goal. */
 export const REFERRAL_BONUS_COINS = 200;
 /** Approved tasks a referred user must complete before the referrer gets the bonus. */
@@ -797,7 +797,7 @@ export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: strin
 }
 
 
-/** Pay 10% lifetime commission to the referrer of `earnerId`. */
+/** Pay 2% lifetime commission to the referrer of `earnerId`. */
 async function payReferralCommission(earnerId: string, earnedCoins: number) {
   if (earnedCoins <= 0) return;
   const { data: prof } = await supabaseAdmin

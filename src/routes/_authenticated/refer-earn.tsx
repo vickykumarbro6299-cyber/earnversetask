@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated/refer-earn")({
       { title: "Refer & Earn — EarnVerse" },
       {
         name: "description",
-        content: "Invite friends to EarnVerse and earn 3% lifetime commission on every task they complete.",
+        content: "Invite friends to EarnVerse and earn 2% lifetime commission on every task they complete.",
       },
       { property: "og:title", content: "Refer & Earn — EarnVerse" },
       {
