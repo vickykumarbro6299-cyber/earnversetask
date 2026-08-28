@@ -6,6 +6,7 @@ import {
   ArrowUpFromLine,
   CheckCircle2,
   ClipboardCheck,
+  Gift,
   RotateCcw,
   SlidersHorizontal,
   Trophy,

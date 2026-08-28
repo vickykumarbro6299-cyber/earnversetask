@@ -311,7 +311,7 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("referral_earnings")
-      .select("id, coins, source, created_at, referred:referred_id(name)")
+      .select("id, coins, source, created_at")
       .eq("referrer_id", userId)
       .order("created_at", { ascending: false }),
   ]);
@@ -375,7 +375,7 @@ export async function earningHistoryImpl({ userId }: Ctx) {
     ...(refEarn.data ?? []).map((r) => ({
       id: r.id,
       kind: "referral" as const,
-      title: `Referral ${r.source === "signup" ? "signup bonus" : "commission"} • ${(r.referred as { name: string } | null)?.name || "Friend"}`,
+      title: r.source === "signup" ? "Referral signup bonus" : "Referral commission",
       coins: r.coins,
       status: "approved",
       date: r.created_at,
