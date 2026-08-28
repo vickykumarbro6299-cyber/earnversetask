@@ -43,6 +43,7 @@ const ICONS = {
   refund: RotateCcw,
   adjustment: SlidersHorizontal,
   leaderboard: Trophy,
+  referral: Gift,
 } as const;
 
 function HistoryPage() {

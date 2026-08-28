@@ -372,11 +372,22 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       date: p.created_at,
       note: `Weekly task earnings: ${p.earned_coins} coins`,
     })),
+    ...(refEarn.data ?? []).map((r) => ({
+      id: r.id,
+      kind: "referral" as const,
+      title: `Referral ${r.source === "signup" ? "signup bonus" : "commission"} • ${(r.referred as { name: string } | null)?.name || "Friend"}`,
+      coins: r.coins,
+      status: "approved",
+      date: r.created_at,
+      note: null,
+    })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const totalEarned = (subs.data ?? [])
-    .filter((s) => s.status === "approved")
-    .reduce((n, s) => n + s.reward_coins, 0);
+  const totalEarned =
+    (subs.data ?? [])
+      .filter((s) => s.status === "approved")
+      .reduce((n, s) => n + s.reward_coins, 0) +
+    (refEarn.data ?? []).reduce((n, r) => n + r.coins, 0);
   const totalWithdrawn = (wds.data ?? [])
     .filter((w) => w.status === "approved")
     .reduce((n, w) => n + w.coins, 0);
