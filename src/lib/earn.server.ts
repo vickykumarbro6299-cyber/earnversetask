@@ -283,7 +283,7 @@ export async function submitProofImpl(
 
 /** Approved task earnings + deposits/withdrawals as one chronological ledger. */
 export async function earningHistoryImpl({ userId }: Ctx) {
-  const [subs, deps, wds, ledger, payouts] = await Promise.all([
+  const [subs, deps, wds, ledger, payouts, refEarn] = await Promise.all([
     supabaseAdmin
       .from("submissions")
       .select("id, reward_coins, status, reviewed_at, submitted_at, tasks(title, category)")
@@ -309,11 +309,16 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       .select("id, week_start, rank, coins, earned_coins, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("referral_earnings")
+      .select("id, coins, source, created_at, referred:referred_id(name)")
+      .eq("referrer_id", userId)
+      .order("created_at", { ascending: false }),
   ]);
 
   type Entry = {
     id: string;
-    kind: "task" | "deposit" | "withdrawal" | "refund" | "adjustment" | "leaderboard";
+    kind: "task" | "deposit" | "withdrawal" | "refund" | "adjustment" | "leaderboard" | "referral";
     title: string;
     coins: number;
     status: string;
