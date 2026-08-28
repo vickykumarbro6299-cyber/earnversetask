@@ -128,11 +128,12 @@ function RootComponent() {
       <Outlet />
       <Toaster
         position="top-center"
-        richColors
         toastOptions={{
           classNames: {
-            toast: "!rounded-full !px-5 !py-3 !shadow-xl !border-none",
-            title: "!text-sm !font-semibold",
+            toast: "!rounded-full !bg-toast-bg !px-5 !py-3 !shadow-xl !border-none !text-toast-fg",
+            title: "!text-sm !font-semibold !text-toast-fg",
+            description: "!text-xs !text-toast-fg/80",
+            icon: "!text-toast-fg",
           },
         }}
       />
