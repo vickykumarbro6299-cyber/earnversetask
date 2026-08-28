@@ -72,7 +72,13 @@ function TasksPage() {
   const refresh = useRefreshAll();
   const listFn = useServerFn(listTasks);
   const claimFn = useServerFn(claimTask);
-  const tasksQ = useQuery({ queryKey: ["tasks"], queryFn: () => listFn() });
+  const hasSession = useHasSession();
+  const tasksQ = useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => listFn(),
+    enabled: hasSession === true,
+    retry: false,
+  });
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [busy, setBusy] = useState<string | null>(null);
