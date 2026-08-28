@@ -6,6 +6,7 @@ import {
   ArrowUpFromLine,
   CheckCircle2,
   ClipboardCheck,
+  Gift,
   RotateCcw,
   SlidersHorizontal,
   Trophy,
@@ -43,6 +44,7 @@ const ICONS = {
   refund: RotateCcw,
   adjustment: SlidersHorizontal,
   leaderboard: Trophy,
+  referral: Gift,
 } as const;
 
 function HistoryPage() {

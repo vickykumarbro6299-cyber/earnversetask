@@ -283,7 +283,7 @@ export async function submitProofImpl(
 
 /** Approved task earnings + deposits/withdrawals as one chronological ledger. */
 export async function earningHistoryImpl({ userId }: Ctx) {
-  const [subs, deps, wds, ledger, payouts] = await Promise.all([
+  const [subs, deps, wds, ledger, payouts, refEarn] = await Promise.all([
     supabaseAdmin
       .from("submissions")
       .select("id, reward_coins, status, reviewed_at, submitted_at, tasks(title, category)")
@@ -309,11 +309,16 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       .select("id, week_start, rank, coins, earned_coins, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("referral_earnings")
+      .select("id, coins, source, created_at")
+      .eq("referrer_id", userId)
+      .order("created_at", { ascending: false }),
   ]);
 
   type Entry = {
     id: string;
-    kind: "task" | "deposit" | "withdrawal" | "refund" | "adjustment" | "leaderboard";
+    kind: "task" | "deposit" | "withdrawal" | "refund" | "adjustment" | "leaderboard" | "referral";
     title: string;
     coins: number;
     status: string;
@@ -367,11 +372,22 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       date: p.created_at,
       note: `Weekly task earnings: ${p.earned_coins} coins`,
     })),
+    ...(refEarn.data ?? []).map((r) => ({
+      id: r.id,
+      kind: "referral" as const,
+      title: r.source === "signup" ? "Referral signup bonus" : "Referral commission",
+      coins: r.coins,
+      status: "approved",
+      date: r.created_at,
+      note: null,
+    })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const totalEarned = (subs.data ?? [])
-    .filter((s) => s.status === "approved")
-    .reduce((n, s) => n + s.reward_coins, 0);
+  const totalEarned =
+    (subs.data ?? [])
+      .filter((s) => s.status === "approved")
+      .reduce((n, s) => n + s.reward_coins, 0) +
+    (refEarn.data ?? []).reduce((n, r) => n + r.coins, 0);
   const totalWithdrawn = (wds.data ?? [])
     .filter((w) => w.status === "approved")
     .reduce((n, w) => n + w.coins, 0);
