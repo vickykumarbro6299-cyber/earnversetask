@@ -18,7 +18,15 @@ async function getRegistration() {
 /** Fires a real device notification (mobile pop-up) for a new task. */
 export async function fireTaskNotification(title: string) {
   const body = title || "Open EarnVerse to claim it.";
-  toast.success(MESSAGE, { description: body });
+  toast.success(`${MESSAGE} ${body}`, {
+    description: undefined,
+    classNames: {
+      toast:
+        "!rounded-full !border-none !bg-[#101828] !px-6 !py-3.5 !shadow-xl",
+      title: "!text-white !text-sm !font-semibold",
+      icon: "!text-white",
+    },
+  });
 
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
