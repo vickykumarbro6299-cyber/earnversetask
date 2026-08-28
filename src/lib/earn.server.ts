@@ -562,10 +562,27 @@ async function withUser<T extends { user_id: string }>(rows: T[]) {
   return rows.map((r) => ({ ...r, user: map.get(r.user_id) ?? null }));
 }
 
+async function fetchAllProfiles() {
+  const pageSize = 1000;
+  const all: any[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) break;
+    const rows = data ?? [];
+    all.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+  return { data: all };
+}
+
 export async function adminDataImpl({ userId }: Ctx) {
   await requireAdmin(userId);
   const [users, subs, deps, wds, tasks, settings, promos] = await Promise.all([
-    supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
+    fetchAllProfiles(),
     supabaseAdmin
       .from("submissions")
       .select("*, tasks(title, reward_coins, category, is_admin_task)")
