@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMe } from "./earn.functions";
 
 /** True once a Supabase session is confirmed present in this browser. */
-function useHasSession() {
+export function useHasSession() {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
