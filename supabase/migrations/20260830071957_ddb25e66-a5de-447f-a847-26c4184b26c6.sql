@@ -1,0 +1,2 @@
+ALTER TABLE public.tasks DROP CONSTRAINT tasks_category_check;
+ALTER TABLE public.tasks ADD CONSTRAINT tasks_category_check CHECK (category = ANY (ARRAY['video','shorts','gmail','app','telegram','instagram','other']));
