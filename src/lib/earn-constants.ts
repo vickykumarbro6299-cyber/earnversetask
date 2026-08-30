@@ -114,7 +114,7 @@ Note: Submitting before 10 seconds will be marked as a failed submission.`;
 /** Auto-filled description for a category, if any. */
 export function autoDescription(category: string): string | null {
   if (category === "video") return VIDEO_TASK_DESCRIPTION;
-  if (category === "shorts") return SHORTS_TASK_DESCRIPTION;
+  if (category === "shorts" || category === "instagram") return SHORTS_TASK_DESCRIPTION;
   return null;
 }
 
