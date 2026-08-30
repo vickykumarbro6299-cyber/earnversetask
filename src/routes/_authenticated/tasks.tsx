@@ -22,22 +22,13 @@ import { BottomNav } from "@/components/bottom-nav";
 import { TelegramNotice } from "@/components/telegram-notice";
 
 import { CoinIcon } from "@/components/brand";
-import { SamplePhotoInput } from "@/components/sample-photo";
 import { useMe, useRefreshAll, useHasSession } from "@/lib/use-earn";
-import { listTasks, claimTask, createUserTask } from "@/lib/earn.functions";
+import { listTasks, claimTask } from "@/lib/earn.functions";
 import {
-  MIN_TASK_REWARD,
-  TASK_PLATFORM_FEE,
   TASK_CATEGORIES,
-  CATEGORY_MIN_REWARD,
   CLAIM_MINUTES,
-  NO_LINK_CATEGORIES,
-  VIDEO_TASK_DESCRIPTION,
-  SHORTS_TASK_DESCRIPTION,
-  autoDescription,
   PROMOTE_TAGLINE,
   greeting,
-  minSlotsFor,
 } from "@/lib/earn-constants";
 
 
@@ -79,7 +70,6 @@ function TasksPage() {
     enabled: hasSession === true,
     retry: false,
   });
-  const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -241,210 +231,18 @@ function TasksPage() {
           </div>
           <p className="mt-1 text-sm text-primary-foreground/85">{PROMOTE_TAGLINE}</p>
 
-          <button
-            onClick={() => setShowAdd(true)}
+          <Link
+            to="/add-task"
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-card py-3 font-extrabold text-primary active:scale-95"
           >
             <Plus className="h-4 w-4" /> Add Your Task
-          </button>
+          </Link>
         </section>
       </main>
 
-      {showAdd && <AddTaskSheet coins={coins} onClose={() => setShowAdd(false)} onDone={refresh} />}
       <TelegramNotice />
       <BottomNav />
 
-    </div>
-  );
-}
-
-function AddTaskSheet({
-  coins,
-  onClose,
-  onDone,
-}: {
-  coins: number;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const createFn = useServerFn(createUserTask);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    link: "",
-    rewardCoins: CATEGORY_MIN_REWARD["other"] ?? MIN_TASK_REWARD,
-    totalSlots: minSlotsFor("other"),
-    category: "other" as string,
-    sampleImageUrl: "",
-    allowMultiple: false,
-  });
-  const [busy, setBusy] = useState(false);
-  const minReward = CATEGORY_MIN_REWARD[form.category] ?? MIN_TASK_REWARD;
-  const minSlots = minSlotsFor(form.category);
-  const base = form.rewardCoins * form.totalSlots;
-  const feePct = Math.round(TASK_PLATFORM_FEE * 100);
-  const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
-
-  function pickCategory(key: string) {
-    const min = CATEGORY_MIN_REWARD[key] ?? MIN_TASK_REWARD;
-    const slotMin = minSlotsFor(key);
-    setForm((f) => ({
-      ...f,
-      category: key,
-      rewardCoins: f.rewardCoins < min ? min : f.rewardCoins,
-      totalSlots: f.totalSlots < slotMin ? slotMin : f.totalSlots,
-      link: NO_LINK_CATEGORIES.includes(key) ? "" : f.link,
-      description:
-        autoDescription(key) ??
-        (f.description === VIDEO_TASK_DESCRIPTION || f.description === SHORTS_TASK_DESCRIPTION
-          ? ""
-          : f.description),
-    }));
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      if (form.rewardCoins < minReward)
-        throw new Error(`Minimum reward for this category is ${minReward} coins`);
-      if (form.totalSlots < minSlots)
-        throw new Error(`Minimum ${minSlots} slots required for this category`);
-      if (!form.sampleImageUrl) throw new Error("Please upload a sample photo");
-      if (total > coins) throw new Error("Not enough coins in wallet");
-      await createFn({ data: form });
-      toast.success(`Task sent for review • ${total} coins deducted. It goes live after admin approval.`);
-      onDone();
-      onClose();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not create task");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-
-  const input =
-    "w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ring/40";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-foreground/50" onClick={onClose}>
-      <div
-        className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-extrabold">Promote Your Platform</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Minimum reward: Video {CATEGORY_MIN_REWARD["video"]} • Gmail {CATEGORY_MIN_REWARD["gmail"]}{" "}
-          • App {CATEGORY_MIN_REWARD["app"]} • Telegram {CATEGORY_MIN_REWARD["telegram"]} coins.{" "}
-          {feePct}% platform fee applies. Your task goes live only after admin approval.
-        </p>
-
-        <form onSubmit={submit} className="mt-4 space-y-3">
-          <div className="grid grid-cols-3 gap-2">
-            {TASK_CATEGORIES.map((c) => (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => pickCategory(c.key)}
-                className={`rounded-xl px-2 py-2 text-xs font-bold ${
-                  form.category === c.key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {c.label.replace(" Task", "")}
-              </button>
-            ))}
-          </div>
-          <input
-            className={input}
-            placeholder="Task title"
-            required
-            maxLength={100}
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-          />
-          {(form.category === "video" || form.category === "shorts") && (
-            <p className="rounded-lg bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground">
-              {form.category === "video"
-                ? "Long video rules are pre-filled. Submitting before 2 minutes = failed submission."
-                : "Shorts rules are pre-filled. Submitting before 10 seconds = failed submission."}
-            </p>
-          )}
-          <textarea
-            className={input}
-            placeholder="Full instructions — how should the user complete this task?"
-            rows={4}
-            maxLength={600}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-          {!NO_LINK_CATEGORIES.includes(form.category) && (
-            <input
-              className={input}
-              placeholder="Task link"
-              maxLength={300}
-              value={form.link}
-              onChange={(e) => setForm({ ...form, link: e.target.value })}
-            />
-          )}
-          <SamplePhotoInput
-            value={form.sampleImageUrl}
-            onChange={(p) => setForm((f) => ({ ...f, sampleImageUrl: p }))}
-          />
-          <button
-            type="button"
-            onClick={() => setForm((f) => ({ ...f, allowMultiple: !f.allowMultiple }))}
-            className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-bold ${
-              form.allowMultiple
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            Allow Multiple Times
-            <span className="text-xs font-semibold">{form.allowMultiple ? "ON" : "OFF"}</span>
-          </button>
-          <div className="grid grid-cols-2 gap-3">
-
-            <label className="text-xs font-semibold text-muted-foreground">
-              Reward coins (min {minReward})
-              <input
-                type="number"
-                min={minReward}
-                className={input}
-
-                value={form.rewardCoins}
-                onChange={(e) => setForm({ ...form, rewardCoins: Number(e.target.value) })}
-              />
-            </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              Task limit (min {minSlots} slots)
-              <input
-                type="number"
-                min={minSlots}
-                className={input}
-                value={form.totalSlots}
-                onChange={(e) => setForm({ ...form, totalSlots: Number(e.target.value) })}
-              />
-            </label>
-          </div>
-          <div className="rounded-xl bg-muted px-3 py-2 text-sm font-semibold">
-            Total cost: {base} + {feePct}% fee ={" "}
-            <span className="text-primary">{total} coins</span>
-
-            <div className="text-xs font-medium text-muted-foreground">
-              Your balance: {coins} coins
-            </div>
-          </div>
-          <button
-            disabled={busy}
-            className="w-full rounded-xl bg-gradient-purple py-3 font-bold text-primary-foreground disabled:opacity-60"
-          >
-            {busy ? "Submitting…" : "Submit Task for Review"}
-          </button>
-        </form>
-      </div>
     </div>
   );
 }
