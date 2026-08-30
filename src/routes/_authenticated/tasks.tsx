@@ -79,7 +79,6 @@ function TasksPage() {
     enabled: hasSession === true,
     retry: false,
   });
-  const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -241,16 +240,15 @@ function TasksPage() {
           </div>
           <p className="mt-1 text-sm text-primary-foreground/85">{PROMOTE_TAGLINE}</p>
 
-          <button
-            onClick={() => setShowAdd(true)}
+          <Link
+            to="/add-task"
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-card py-3 font-extrabold text-primary active:scale-95"
           >
             <Plus className="h-4 w-4" /> Add Your Task
-          </button>
+          </Link>
         </section>
       </main>
 
-      {showAdd && <AddTaskSheet coins={coins} onClose={() => setShowAdd(false)} onDone={refresh} />}
       <TelegramNotice />
       <BottomNav />
 
