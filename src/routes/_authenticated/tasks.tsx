@@ -57,6 +57,7 @@ const CAT_LOGO: Record<string, React.FC<{ className?: string }>> = {
   gmail: GmailLogo,
   app: AppLogo,
   telegram: TelegramLogo,
+  instagram: InstagramLogo,
   other: OtherLogo,
 };
 
