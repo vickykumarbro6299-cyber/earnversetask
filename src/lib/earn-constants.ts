@@ -56,6 +56,7 @@ export const TASK_CATEGORIES = [
   { key: "gmail", label: "Gmail Task" },
   { key: "app", label: "App Task" },
   { key: "telegram", label: "Telegram Task" },
+  { key: "instagram", label: "Instagram Task" },
   { key: "other", label: "Other" },
 ] as const;
 
@@ -66,6 +67,7 @@ export const CATEGORY_MIN_REWARD: Record<string, number> = {
   gmail: 2000,
   app: 300,
   telegram: 20,
+  instagram: 20,
   other: 50,
 };
 
@@ -112,7 +114,7 @@ Note: Submitting before 10 seconds will be marked as a failed submission.`;
 /** Auto-filled description for a category, if any. */
 export function autoDescription(category: string): string | null {
   if (category === "video") return VIDEO_TASK_DESCRIPTION;
-  if (category === "shorts") return SHORTS_TASK_DESCRIPTION;
+  if (category === "shorts" || category === "instagram") return SHORTS_TASK_DESCRIPTION;
   return null;
 }
 
