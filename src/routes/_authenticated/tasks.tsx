@@ -22,22 +22,13 @@ import { BottomNav } from "@/components/bottom-nav";
 import { TelegramNotice } from "@/components/telegram-notice";
 
 import { CoinIcon } from "@/components/brand";
-import { SamplePhotoInput } from "@/components/sample-photo";
 import { useMe, useRefreshAll, useHasSession } from "@/lib/use-earn";
-import { listTasks, claimTask, createUserTask } from "@/lib/earn.functions";
+import { listTasks, claimTask } from "@/lib/earn.functions";
 import {
-  MIN_TASK_REWARD,
-  TASK_PLATFORM_FEE,
   TASK_CATEGORIES,
-  CATEGORY_MIN_REWARD,
   CLAIM_MINUTES,
-  NO_LINK_CATEGORIES,
-  VIDEO_TASK_DESCRIPTION,
-  SHORTS_TASK_DESCRIPTION,
-  autoDescription,
   PROMOTE_TAGLINE,
   greeting,
-  minSlotsFor,
 } from "@/lib/earn-constants";
 
 
