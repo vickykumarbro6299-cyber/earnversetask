@@ -174,7 +174,7 @@ function TasksPage() {
               (s) => s.task_id === t.id && (!s.submitted_at || s.status === "pending"),
             );
             const mine = t.allow_multiple ? openSub : claimedIds.has(t.id);
-            const Icon = CAT_ICON[t.category] ?? Sparkles;
+            const Logo = CAT_LOGO[t.category] ?? OtherLogo;
 
             const catLabel =
               TASK_CATEGORIES.find((c) => c.key === t.category)?.label ?? "Task";
