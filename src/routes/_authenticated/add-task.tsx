@@ -12,6 +12,7 @@ import {
   FacebookLogo,
   AppLogo,
   OtherLogo,
+  GmailLogo,
 } from "@/components/social-logos";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { createUserTask } from "@/lib/earn.functions";
@@ -56,6 +57,7 @@ type Platform = {
 
 const PLATFORMS: Platform[] = [
   { key: "youtube", label: "YouTube", category: "video", Logo: YouTubeLogo },
+  { key: "gmail", label: "Gmail", category: "gmail", Logo: GmailLogo },
   { key: "facebook", label: "Facebook", category: "other", Logo: FacebookLogo },
   { key: "instagram", label: "Instagram", category: "other", Logo: InstagramLogo },
   { key: "app", label: "App Task", category: "app", Logo: AppLogo },
