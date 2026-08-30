@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
@@ -51,7 +51,7 @@ type Platform = {
   key: string;
   label: string;
   category: string;
-  Logo: (p: { className?: string }) => React.ReactElement;
+  Logo: (p: { className?: string }) => ReactElement;
 };
 
 const PLATFORMS: Platform[] = [
