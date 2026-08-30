@@ -7,11 +7,6 @@ import {
   Plus,
   Users,
   Megaphone,
-  Video,
-  Mail,
-  Smartphone,
-  Sparkles,
-  Send,
   Rocket,
   ChevronRight,
   Bell,
@@ -30,6 +25,13 @@ import {
   PROMOTE_TAGLINE,
   greeting,
 } from "@/lib/earn-constants";
+import {
+  YouTubeLogo,
+  GmailLogo,
+  AppLogo,
+  TelegramLogo,
+  OtherLogo,
+} from "@/components/social-logos";
 
 
 export const Route = createFileRoute("/_authenticated/tasks")({
@@ -48,12 +50,13 @@ export const Route = createFileRoute("/_authenticated/tasks")({
   component: TasksPage,
 });
 
-const CAT_ICON: Record<string, typeof Video> = {
-  video: Video,
-  gmail: Mail,
-  app: Smartphone,
-  telegram: Send,
-  other: Sparkles,
+const CAT_LOGO: Record<string, React.FC<{ className?: string }>> = {
+  video: YouTubeLogo,
+  shorts: YouTubeLogo,
+  gmail: GmailLogo,
+  app: AppLogo,
+  telegram: TelegramLogo,
+  other: OtherLogo,
 };
 
 const FILTERS = [{ key: "all", label: "All" }, ...TASK_CATEGORIES];
@@ -171,7 +174,7 @@ function TasksPage() {
               (s) => s.task_id === t.id && (!s.submitted_at || s.status === "pending"),
             );
             const mine = t.allow_multiple ? openSub : claimedIds.has(t.id);
-            const Icon = CAT_ICON[t.category] ?? Sparkles;
+            const Logo = CAT_LOGO[t.category] ?? OtherLogo;
 
             const catLabel =
               TASK_CATEGORIES.find((c) => c.key === t.category)?.label ?? "Task";
@@ -180,7 +183,7 @@ function TasksPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 gap-3">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
-                      <Icon className="h-5 w-5" />
+                      <Logo className="h-6 w-6" />
                     </span>
                     <div className="min-w-0">
                       <h3 className="truncate text-base font-bold text-foreground">{t.title}</h3>
