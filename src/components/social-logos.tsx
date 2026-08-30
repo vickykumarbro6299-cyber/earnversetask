@@ -86,3 +86,15 @@ export function InstagramLogo({ className = "h-5 w-5" }: { className?: string })
     </svg>
   );
 }
+
+export function GmailLogo({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} role="img" aria-label="Gmail">
+      <path fill="#EA4335" d="M2 6.5l4.8 3.6L2 18V6.5z" />
+      <path fill="#34A853" d="M22 6.5v11.5l-4.8-7.9L22 6.5z" />
+      <path fill="#FBBC05" d="M22 6.5l-4.8 3.6L12 12 6.8 10.1 2 6.5l10-7.5 10 7.5z" />
+      <path fill="#C5221F" d="M2 6.5v11.5l4.8-7.9L2 6.5z" />
+      <path fill="#4285F4" d="M6.8 10.1V20h10.4v-9.9L12 12l-5.2-1.9z" />
+    </svg>
+  );
+}
