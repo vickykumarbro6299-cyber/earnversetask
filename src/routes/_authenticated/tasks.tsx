@@ -30,6 +30,7 @@ import {
   GmailLogo,
   AppLogo,
   TelegramLogo,
+  InstagramLogo,
   OtherLogo,
 } from "@/components/social-logos";
 
