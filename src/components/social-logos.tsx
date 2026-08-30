@@ -1,4 +1,51 @@
 /** Official-style brand marks for social links. */
+
+export function YouTubeLogo({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 20" className={className} role="img" aria-label="YouTube">
+      <path
+        fill="#FF0000"
+        d="M27.4 3.1c-.3-1.2-1.3-2.2-2.5-2.5C22.7 0 14 0 14 0S5.3 0 3.1.6C1.9.9.9 1.9.6 3.1 0 5.3 0 10 0 10s0 4.7.6 6.9c.3 1.2 1.3 2.2 2.5 2.5C5.3 20 14 20 14 20s8.7 0 10.9-.6c1.2-.3 2.2-1.3 2.5-2.5.6-2.2.6-6.9.6-6.9s0-4.7-.6-6.9z"
+      />
+      <path fill="#fff" d="M11.2 14.3V5.7L18.5 10l-7.3 4.3z" />
+    </svg>
+  );
+}
+
+export function FacebookLogo({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} role="img" aria-label="Facebook">
+      <circle cx="12" cy="12" r="12" fill="#1877F2" />
+      <path
+        fill="#fff"
+        d="M16.5 12h-2.7v8h-3.6v-8H8.4V9.3h1.8V7.5c0-2.1 1-3.5 3.7-3.5h2.6v2.9h-1.9c-.9 0-1.1.4-1.1 1.1v1.3h3.1l-.5 2.7z"
+      />
+    </svg>
+  );
+}
+
+export function AppLogo({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} role="img" aria-label="App task">
+      <rect x="2" y="2" width="9" height="9" rx="2.5" fill="#4285F4" />
+      <rect x="13" y="2" width="9" height="9" rx="2.5" fill="#EA4335" />
+      <rect x="2" y="13" width="9" height="9" rx="2.5" fill="#FBBC05" />
+      <rect x="13" y="13" width="9" height="9" rx="4.5" fill="#34A853" />
+    </svg>
+  );
+}
+
+export function OtherLogo({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} role="img" aria-label="Other">
+      <circle cx="12" cy="12" r="11" fill="oklch(0.85 0.17 88)" />
+      <path
+        fill="oklch(0.3 0.1 70)"
+        d="M12 4.5l2.2 4.5 5 .7-3.6 3.5.9 4.9L12 15.9l-4.5 2.2.9-4.9-3.6-3.5 5-.7z"
+      />
+    </svg>
+  );
+}
 export function TelegramLogo({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 240 240" className={className} role="img" aria-label="Telegram">
