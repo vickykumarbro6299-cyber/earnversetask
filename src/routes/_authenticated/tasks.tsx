@@ -183,7 +183,7 @@ function TasksPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 gap-3">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
-                      <Icon className="h-5 w-5" />
+                      <Logo className="h-6 w-6" />
                     </span>
                     <div className="min-w-0">
                       <h3 className="truncate text-base font-bold text-foreground">{t.title}</h3>
