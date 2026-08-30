@@ -7,11 +7,6 @@ import {
   Plus,
   Users,
   Megaphone,
-  Video,
-  Mail,
-  Smartphone,
-  Sparkles,
-  Send,
   Rocket,
   ChevronRight,
   Bell,
@@ -30,6 +25,13 @@ import {
   PROMOTE_TAGLINE,
   greeting,
 } from "@/lib/earn-constants";
+import {
+  YouTubeLogo,
+  GmailLogo,
+  AppLogo,
+  TelegramLogo,
+  OtherLogo,
+} from "@/components/social-logos";
 
 
 export const Route = createFileRoute("/_authenticated/tasks")({
@@ -48,12 +50,13 @@ export const Route = createFileRoute("/_authenticated/tasks")({
   component: TasksPage,
 });
 
-const CAT_ICON: Record<string, typeof Video> = {
-  video: Video,
-  gmail: Mail,
-  app: Smartphone,
-  telegram: Send,
-  other: Sparkles,
+const CAT_LOGO: Record<string, React.FC<{ className?: string }>> = {
+  video: YouTubeLogo,
+  shorts: YouTubeLogo,
+  gmail: GmailLogo,
+  app: AppLogo,
+  telegram: TelegramLogo,
+  other: OtherLogo,
 };
 
 const FILTERS = [{ key: "all", label: "All" }, ...TASK_CATEGORIES];
