@@ -51,7 +51,7 @@ type Platform = {
   key: string;
   label: string;
   category: string;
-  Logo: (p: { className?: string }) => JSX.Element;
+  Logo: (p: { className?: string }) => React.ReactElement;
 };
 
 const PLATFORMS: Platform[] = [

@@ -17,6 +17,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AuthenticatedAddTaskRouteImport } from './routes/_authenticated/add-task'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedCreatorStudioRouteImport } from './routes/_authenticated/creator-studio'
 import { Route as AuthenticatedDailyBonusRouteImport } from './routes/_authenticated/daily-bonus'
@@ -68,6 +69,11 @@ const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAddTaskRoute = AuthenticatedAddTaskRouteImport.update({
+  id: '/add-task',
+  path: '/add-task',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/add-task': typeof AuthenticatedAddTaskRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/daily-bonus': typeof AuthenticatedDailyBonusRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/add-task': typeof AuthenticatedAddTaskRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/daily-bonus': typeof AuthenticatedDailyBonusRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/_authenticated/add-task': typeof AuthenticatedAddTaskRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/_authenticated/daily-bonus': typeof AuthenticatedDailyBonusRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/refund'
     | '/reset-password'
     | '/terms'
+    | '/add-task'
     | '/admin'
     | '/creator-studio'
     | '/daily-bonus'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/refund'
     | '/reset-password'
     | '/terms'
+    | '/add-task'
     | '/admin'
     | '/creator-studio'
     | '/daily-bonus'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/refund'
     | '/reset-password'
     | '/terms'
+    | '/_authenticated/add-task'
     | '/_authenticated/admin'
     | '/_authenticated/creator-studio'
     | '/_authenticated/daily-bonus'
@@ -333,6 +345,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/add-task': {
+      id: '/_authenticated/add-task'
+      path: '/add-task'
+      fullPath: '/add-task'
+      preLoaderRoute: typeof AuthenticatedAddTaskRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -422,6 +441,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAddTaskRoute: typeof AuthenticatedAddTaskRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCreatorStudioRoute: typeof AuthenticatedCreatorStudioRoute
   AuthenticatedDailyBonusRoute: typeof AuthenticatedDailyBonusRoute
@@ -437,6 +457,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAddTaskRoute: AuthenticatedAddTaskRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCreatorStudioRoute: AuthenticatedCreatorStudioRoute,
   AuthenticatedDailyBonusRoute: AuthenticatedDailyBonusRoute,
