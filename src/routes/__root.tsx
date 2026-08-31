@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
       meta: [
         { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" },
         { title: "EarnVerse — Watch, Work & Earn Daily Rewards" },
         { name: "description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
         { name: "author", content: "Lovable" },
@@ -96,13 +96,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         {
           rel: "stylesheet",
           href: appCss,
-        },
-      ],
-      scripts: [
-        {
-          async: true,
-          src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7369614430690134",
-          crossOrigin: "anonymous",
         },
       ],
   }),
