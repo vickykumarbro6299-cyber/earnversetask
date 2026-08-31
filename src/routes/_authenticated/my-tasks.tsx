@@ -187,7 +187,7 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
             <Clock className="h-4 w-4" /> In verification
           </span>
         ) : (
-          <ProofForm submissionId={sub.id} disabled={expired} onDone={onDone} />
+          <ProofForm submissionId={sub.id} rewardCoins={sub.reward_coins} disabled={expired} onDone={onDone} />
         )}
       </div>
     </article>
