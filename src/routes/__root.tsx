@@ -137,7 +137,43 @@ function RootComponent() {
           },
         }}
       />
+      <ClientScripts />
     </QueryClientProvider>
   );
+}
+
+function ClientScripts() {
+  useEffect(() => {
+    // Load AdSense only on the client to avoid SSR hydration mismatches.
+    const key = "__earnverse_adsense_injected";
+    if ((window as Record<string, unknown>)[key]) return;
+    (window as Record<string, unknown>)[key] = true;
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7369614430690134";
+    script.crossOrigin = "anonymous";
+    document.head.appendChild(script);
+
+    // Prevent pinch zoom and double-tap zoom while allowing scrolling and text selection.
+    const preventGesture = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", preventGesture);
+    document.addEventListener("gesturechange", preventGesture);
+    document.addEventListener("gestureend", preventGesture);
+
+    const preventPinch = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    document.addEventListener("touchmove", preventPinch, { passive: false });
+
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("gestureend", preventGesture);
+      document.removeEventListener("touchmove", preventPinch);
+    };
+  }, []);
+
+  return null;
 }
 
