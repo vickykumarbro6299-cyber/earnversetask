@@ -122,6 +122,24 @@
   --shadow-pop: 0 14px 40px -16px oklch(0.33 0.17 296 / 0.5);
 }
 
+/* Disable pinch/double-tap zoom while keeping text selection/copy available. */
+html,
+body {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+input,
+textarea,
+select,
+[contenteditable] {
+  touch-action: manipulation;
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
 .dark {
   --background: oklch(0.19 0.06 296);
   --foreground: oklch(0.97 0.01 300);

@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
       meta: [
         { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" },
         { title: "EarnVerse — Watch, Work & Earn Daily Rewards" },
         { name: "description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
         { name: "author", content: "Lovable" },
@@ -96,13 +96,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         {
           rel: "stylesheet",
           href: appCss,
-        },
-      ],
-      scripts: [
-        {
-          async: true,
-          src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7369614430690134",
-          crossOrigin: "anonymous",
         },
       ],
   }),
@@ -144,7 +137,41 @@ function RootComponent() {
           },
         }}
       />
+      <ClientScripts />
     </QueryClientProvider>
   );
+}
+
+function ClientScripts() {
+  useEffect(() => {
+    // Load AdSense only on the client to avoid SSR hydration mismatches.
+    if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7369614430690134";
+    script.crossOrigin = "anonymous";
+    document.head.appendChild(script);
+
+    // Prevent pinch zoom and double-tap zoom while allowing scrolling and text selection.
+    const preventGesture = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", preventGesture);
+    document.addEventListener("gesturechange", preventGesture);
+    document.addEventListener("gestureend", preventGesture);
+
+    const preventPinch = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    document.addEventListener("touchmove", preventPinch, { passive: false });
+
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("gestureend", preventGesture);
+      document.removeEventListener("touchmove", preventPinch);
+    };
+  }, []);
+
+  return null;
 }
 
