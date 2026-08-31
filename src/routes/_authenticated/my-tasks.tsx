@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Clock, CheckCircle2, XCircle, Upload, Hourglass, PlayCircle } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Upload, Hourglass, PlayCircle, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -187,7 +187,7 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
             <Clock className="h-4 w-4" /> In verification
           </span>
         ) : (
-          <ProofForm submissionId={sub.id} disabled={expired} onDone={onDone} />
+          <ProofForm submissionId={sub.id} rewardCoins={sub.reward_coins} disabled={expired} onDone={onDone} />
         )}
       </div>
     </article>
@@ -196,10 +196,12 @@ function MyTaskCard({ sub, onDone }: { sub: Sub; onDone: () => void }) {
 
 function ProofForm({
   submissionId,
+  rewardCoins,
   disabled,
   onDone,
 }: {
   submissionId: string;
+  rewardCoins: number;
   disabled: boolean;
   onDone: () => void;
 }) {
@@ -207,6 +209,10 @@ function ProofForm({
   const [files, setFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [modal, setModal] = useState<{
+    type: "success" | "rejected";
+    coins?: number;
+  } | null>(null);
 
   async function upload() {
     if (!files.length) {
@@ -229,49 +235,123 @@ function ProofForm({
       await submitFn({
         data: { submissionId, proofPath: paths.join(","), note: note.slice(0, 300) },
       });
-      toast.success("Proof submitted — waiting for admin verification");
+      setFiles([]);
+      setNote("");
+      setModal({ type: "success", coins: rewardCoins });
       onDone();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      if (msg.toLowerCase().includes("failed submission")) {
+        setModal({ type: "rejected" });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
   }
 
+  function closeModal() {
+    setModal(null);
+  }
+
   return (
-    <div className="space-y-2 rounded-xl bg-muted p-3">
-      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground">
-        <Upload className="h-4 w-4" />
-        {files.length
-          ? `${files.length}/${MAX_SCREENSHOTS} screenshot${files.length > 1 ? "s" : ""} selected`
-          : `Choose proof screenshots (max ${MAX_SCREENSHOTS})`}
+    <>
+      <div className="space-y-2 rounded-xl bg-muted p-3">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground">
+          <Upload className="h-4 w-4" />
+          {files.length
+            ? `${files.length}/${MAX_SCREENSHOTS} screenshot${files.length > 1 ? "s" : ""} selected`
+            : `Choose proof screenshots (max ${MAX_SCREENSHOTS})`}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              if (picked.length > MAX_SCREENSHOTS)
+                toast.error(`Only the first ${MAX_SCREENSHOTS} screenshots will be used`);
+              setFiles(picked.slice(0, MAX_SCREENSHOTS));
+            }}
+          />
+        </label>
         <input
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const picked = Array.from(e.target.files ?? []);
-            if (picked.length > MAX_SCREENSHOTS)
-              toast.error(`Only the first ${MAX_SCREENSHOTS} screenshots will be used`);
-            setFiles(picked.slice(0, MAX_SCREENSHOTS));
-          }}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={300}
+          placeholder="Note (optional)"
+          className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none"
         />
-      </label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        maxLength={300}
-        placeholder="Note (optional)"
-        className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none"
-      />
-      <button
-        onClick={upload}
-        disabled={busy || disabled}
-        className="w-full rounded-lg bg-gradient-brand py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
-      >
-        {disabled ? "Expired" : busy ? "Submitting…" : "Submit Proof"}
-      </button>
-    </div>
+        <button
+          onClick={upload}
+          disabled={busy || disabled}
+          className="w-full rounded-lg bg-gradient-brand py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
+        >
+          {disabled ? "Expired" : busy ? "Submitting…" : "Submit Proof"}
+        </button>
+      </div>
+
+      {modal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="relative w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeModal}
+              className="absolute right-4 top-4 text-muted-foreground"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {modal.type === "success" ? (
+              <>
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success">
+                  <Check className="h-10 w-10 text-white" strokeWidth={3} />
+                </div>
+                <h3 className="mt-5 text-xl font-extrabold text-success">
+                  Task Submitted 🎉
+                </h3>
+                <p className="mt-2 text-sm font-semibold text-muted-foreground">
+                  Task verified coins will add shortly
+                </p>
+                <p className="mt-1 text-lg font-extrabold text-foreground">
+                  {modal.coins ?? 0} coins
+                </p>
+                <button
+                  onClick={closeModal}
+                  className="mt-6 w-full rounded-2xl bg-success py-3 text-base font-extrabold text-white active:scale-95"
+                >
+                  Okay
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive">
+                  <X className="h-10 w-10 text-white" strokeWidth={3} />
+                </div>
+                <h3 className="mt-5 text-xl font-extrabold text-destructive">
+                  Task Rejected ❌
+                </h3>
+                <p className="mt-2 text-sm font-semibold text-muted-foreground">
+                  Your Task Is Rejected Do Task Properly.
+                </p>
+                <button
+                  onClick={closeModal}
+                  className="mt-6 w-full rounded-2xl bg-destructive py-3 text-base font-extrabold text-white active:scale-95"
+                >
+                  Okay
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
