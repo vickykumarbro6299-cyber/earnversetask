@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Clock, CheckCircle2, XCircle, Upload, Hourglass, PlayCircle } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Upload, Hourglass, PlayCircle, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TopBar } from "@/components/top-bar";
 import { BottomNav } from "@/components/bottom-nav";
