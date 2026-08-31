@@ -145,9 +145,7 @@ function RootComponent() {
 function ClientScripts() {
   useEffect(() => {
     // Load AdSense only on the client to avoid SSR hydration mismatches.
-    const key = "__earnverse_adsense_injected";
-    if ((window as Record<string, unknown>)[key]) return;
-    (window as Record<string, unknown>)[key] = true;
+    if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
 
     const script = document.createElement("script");
     script.async = true;
