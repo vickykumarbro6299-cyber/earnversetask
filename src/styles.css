@@ -118,6 +118,8 @@
 
   --gradient-purple: linear-gradient(160deg, oklch(0.42 0.22 296), oklch(0.32 0.17 296));
   --gradient-gold: linear-gradient(135deg, oklch(0.9 0.16 95), oklch(0.79 0.18 75));
+  --shadow-card: 0 8px 24px -12px oklch(0.33 0.17 296 / 0.35);
+  --shadow-pop: 0 14px 40px -16px oklch(0.33 0.17 296 / 0.5);
 }
 
 /* Disable pinch/double-tap zoom while keeping text selection/copy available. */
@@ -136,9 +138,6 @@ select,
   touch-action: manipulation;
   user-select: auto;
   -webkit-user-select: auto;
-}
-  --shadow-card: 0 8px 24px -12px oklch(0.33 0.17 296 / 0.35);
-  --shadow-pop: 0 14px 40px -16px oklch(0.33 0.17 296 / 0.5);
 }
 
 .dark {
