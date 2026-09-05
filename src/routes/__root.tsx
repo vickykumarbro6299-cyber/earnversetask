@@ -149,8 +149,13 @@ function RootComponent() {
 
 function ClientScripts() {
   useEffect(() => {
+    // Telegram Mini App: full-height viewport, no swipe-to-close.
+    initTelegramWebApp();
+    if (isTelegramMiniApp()) document.documentElement.classList.add("tg-mini-app");
+
     // Load AdSense only on the client to avoid SSR hydration mismatches.
     if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
+
 
     const script = document.createElement("script");
     script.async = true;
