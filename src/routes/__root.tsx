@@ -98,7 +98,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           href: appCss,
         },
       ],
+      scripts: [
+        // Telegram Mini App SDK — must load before the app initialises.
+        { src: "https://telegram.org/js/telegram-web-app.js" },
+      ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
