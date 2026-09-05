@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X, PartyPopper } from "lucide-react";
+import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { getSpinState } from "@/lib/earn.functions";
+import { getSpinState, spinWheel } from "@/lib/earn.functions";
 import { SPIN_SEGMENTS, SPINS_PER_DAY } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/spin-win")({
@@ -28,13 +29,85 @@ export const Route = createFileRoute("/_authenticated/spin-win")({
   component: SpinWinPage,
 });
 
+type SpinResult = { key: string; label: string; coins: number; remaining: number };
+
+declare global {
+  interface Window {
+    show_11729008?: (type?: "pop") => Promise<unknown>;
+  }
+}
+
+/** Plays a rewarded ad. Resolves true when the ad was watched, false otherwise. */
+async function showRewardedAd(type?: "pop"): Promise<boolean> {
+  const fn = window.show_11729008;
+  if (typeof fn !== "function") return false;
+  try {
+    await fn(type);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function SpinWinPage() {
+  const queryClient = useQueryClient();
   const fetchState = useServerFn(getSpinState);
+  const runSpin = useServerFn(spinWheel);
   const q = useQuery({ queryKey: ["spin-state"], queryFn: () => fetchState() });
-  const [noAds, setNoAds] = useState(false);
+
+  const [busy, setBusy] = useState(false);
+  const [spinning, setSpinning] = useState(false);
+  const [rotation, setRotation] = useState(0);
+  const [result, setResult] = useState<SpinResult | null>(null);
+  const rotationRef = useRef(0);
 
   const coins = q.data?.coins ?? 0;
-  const remaining = q.data?.remaining ?? SPINS_PER_DAY;
+  const remaining = result ? result.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
+
+  const handleSpin = async () => {
+    if (busy || spinning) return;
+    if (remaining <= 0) {
+      toast.error("Daily spin limit reached. Come back tomorrow!");
+      return;
+    }
+    setBusy(true);
+    try {
+      // Step 1: user must watch the rewarded ad first.
+      const watched = await showRewardedAd();
+      if (!watched) {
+        toast.error("Ad not completed — please watch the full ad to spin.");
+        return;
+      }
+
+      // Step 2: record the spin on the server and get the result.
+      const res = (await runSpin()) as SpinResult;
+
+      // Step 3: animate the wheel to the winning segment.
+      const idx = Math.max(
+        0,
+        SPIN_SEGMENTS.findIndex((s) => s.key === res.key),
+      );
+      const slice = 360 / SPIN_SEGMENTS.length;
+      const targetMod = 360 - (idx * slice + slice / 2);
+      const currentMod = rotationRef.current % 360;
+      const delta = (targetMod - currentMod + 360) % 360;
+      const next = rotationRef.current + 360 * 6 + delta;
+      rotationRef.current = next;
+      setRotation(next);
+      setSpinning(true);
+
+      window.setTimeout(() => {
+        setSpinning(false);
+        setResult(res);
+        void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
+        void queryClient.invalidateQueries({ queryKey: ["me"] });
+      }, 5200);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not spin — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -81,39 +154,42 @@ function SpinWinPage() {
           </p>
         </div>
 
-        <Wheel />
+        <Wheel rotation={rotation} spinning={spinning} />
 
         <button
-          onClick={() => setNoAds(true)}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95"
+          onClick={handleSpin}
+          disabled={busy || spinning || remaining <= 0}
+          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
         >
-          <Play className="h-6 w-6" /> Watch Ad &amp; Spin
+          <Play className="h-6 w-6" />
+          {busy ? "Loading Ad…" : spinning ? "Spinning…" : "Watch Ad & Spin"}
         </button>
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            You get up to {SPINS_PER_DAY} spins a day. Rewards are added straight to your
-            EarnVerse coin balance.
+            Watch a short ad to spin the wheel. You get up to {SPINS_PER_DAY} spins a day — rewards
+            are added straight to your EarnVerse coin balance.
           </p>
         </div>
       </main>
 
-      {noAds && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6"
-          onClick={() => setNoAds(false)}
-        >
-          <div
-            className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-2xl font-extrabold text-foreground">No Ads Available ❌</p>
+      {result && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
+          <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+              <PartyPopper className="h-8 w-8 text-success" />
+            </span>
+            <p className="mt-3 text-2xl font-extrabold text-foreground">
+              {result.coins > 0 ? `You Won ${result.coins} Coins 🎉` : "Better Luck Next Time!"}
+            </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
-              Please try again later.
+              {result.coins > 0
+                ? "Coins have been added to your wallet."
+                : "Spin again for another chance to win."}
             </p>
             <button
-              onClick={() => setNoAds(false)}
+              onClick={() => setResult(null)}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95"
             >
               <X className="h-4 w-4" /> Close
@@ -153,7 +229,7 @@ function StatBox({
   );
 }
 
-function Wheel() {
+function Wheel({ rotation, spinning }: { rotation: number; spinning: boolean }) {
   const n = SPIN_SEGMENTS.length;
   const slice = 360 / n;
   const gradient = SPIN_SEGMENTS.map(
@@ -166,7 +242,11 @@ function Wheel() {
       <div className="absolute inset-0 rounded-full bg-primary/30 p-2">
         <div
           className="relative h-full w-full rounded-full border-[6px] border-primary"
-          style={{ background: `conic-gradient(${gradient})` }}
+          style={{
+            background: `conic-gradient(${gradient})`,
+            transform: `rotate(${rotation}deg)`,
+            transition: spinning ? "transform 5s cubic-bezier(0.12, 0.8, 0.08, 1)" : undefined,
+          }}
         >
           {SPIN_SEGMENTS.map((s, i) => (
             <span
