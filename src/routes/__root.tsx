@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { initTelegramWebApp, isTelegramMiniApp } from "../lib/telegram-webapp";
+
 
 
 function NotFoundComponent() {
@@ -98,7 +100,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           href: appCss,
         },
       ],
+      scripts: [
+        // Telegram Mini App SDK — must load before the app initialises.
+        { src: "https://telegram.org/js/telegram-web-app.js" },
+      ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -144,8 +151,13 @@ function RootComponent() {
 
 function ClientScripts() {
   useEffect(() => {
+    // Telegram Mini App: full-height viewport, no swipe-to-close.
+    initTelegramWebApp();
+    if (isTelegramMiniApp()) document.documentElement.classList.add("tg-mini-app");
+
     // Load AdSense only on the client to avoid SSR hydration mismatches.
     if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
+
 
     const script = document.createElement("script");
     script.async = true;
