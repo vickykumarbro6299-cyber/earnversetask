@@ -1767,7 +1767,13 @@ export async function startMathQuizImpl({ userId }: Ctx) {
   const a = 10 + Math.floor(Math.random() * 90);
   const b = 10 + Math.floor(Math.random() * 90);
   const correct = a + b;
-  const reward = 10 + Math.floor(Math.random() * 41); // 10–50 coins
+  // 10/20 most common; 30 occasional; 40/50 only ~3% combined.
+  const rewardRoll = Math.random();
+  const reward =
+    rewardRoll < 0.45 ? 10 :
+    rewardRoll < 0.90 ? 20 :
+    rewardRoll < 0.97 ? 30 :
+    rewardRoll < 0.985 ? 40 : 50;
 
   const wrong = new Set<number>();
   while (wrong.size < 3) {
