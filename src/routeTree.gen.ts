@@ -23,6 +23,7 @@ import { Route as AuthenticatedCreatorStudioRouteImport } from './routes/_authen
 import { Route as AuthenticatedDailyBonusRouteImport } from './routes/_authenticated/daily-bonus'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
+import { Route as AuthenticatedMathQuizRouteImport } from './routes/_authenticated/math-quiz'
 import { Route as AuthenticatedMyTasksRouteImport } from './routes/_authenticated/my-tasks'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedReferEarnRouteImport } from './routes/_authenticated/refer-earn'
@@ -102,6 +103,11 @@ const AuthenticatedLeaderboardRoute =
     path: '/leaderboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMathQuizRoute = AuthenticatedMathQuizRouteImport.update({
+  id: '/math-quiz',
+  path: '/math-quiz',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMyTasksRoute = AuthenticatedMyTasksRouteImport.update({
   id: '/my-tasks',
   path: '/my-tasks',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/daily-bonus': typeof AuthenticatedDailyBonusRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
+  '/math-quiz': typeof AuthenticatedMathQuizRoute
   '/my-tasks': typeof AuthenticatedMyTasksRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refer-earn': typeof AuthenticatedReferEarnRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/daily-bonus': typeof AuthenticatedDailyBonusRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
+  '/math-quiz': typeof AuthenticatedMathQuizRoute
   '/my-tasks': typeof AuthenticatedMyTasksRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/refer-earn': typeof AuthenticatedReferEarnRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/_authenticated/daily-bonus': typeof AuthenticatedDailyBonusRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
+  '/_authenticated/math-quiz': typeof AuthenticatedMathQuizRoute
   '/_authenticated/my-tasks': typeof AuthenticatedMyTasksRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/refer-earn': typeof AuthenticatedReferEarnRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/daily-bonus'
     | '/history'
     | '/leaderboard'
+    | '/math-quiz'
     | '/my-tasks'
     | '/profile'
     | '/refer-earn'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/daily-bonus'
     | '/history'
     | '/leaderboard'
+    | '/math-quiz'
     | '/my-tasks'
     | '/profile'
     | '/refer-earn'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/_authenticated/daily-bonus'
     | '/_authenticated/history'
     | '/_authenticated/leaderboard'
+    | '/_authenticated/math-quiz'
     | '/_authenticated/my-tasks'
     | '/_authenticated/profile'
     | '/_authenticated/refer-earn'
@@ -388,6 +400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeaderboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/math-quiz': {
+      id: '/_authenticated/math-quiz'
+      path: '/math-quiz'
+      fullPath: '/math-quiz'
+      preLoaderRoute: typeof AuthenticatedMathQuizRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/my-tasks': {
       id: '/_authenticated/my-tasks'
       path: '/my-tasks'
@@ -447,6 +466,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDailyBonusRoute: typeof AuthenticatedDailyBonusRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
+  AuthenticatedMathQuizRoute: typeof AuthenticatedMathQuizRoute
   AuthenticatedMyTasksRoute: typeof AuthenticatedMyTasksRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReferEarnRoute: typeof AuthenticatedReferEarnRoute
@@ -463,6 +483,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDailyBonusRoute: AuthenticatedDailyBonusRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
+  AuthenticatedMathQuizRoute: AuthenticatedMathQuizRoute,
   AuthenticatedMyTasksRoute: AuthenticatedMyTasksRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReferEarnRoute: AuthenticatedReferEarnRoute,

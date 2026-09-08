@@ -176,6 +176,48 @@ export type Database = {
         }
         Relationships: []
       }
+      math_quizzes: {
+        Row: {
+          a: number
+          answered: boolean
+          b: number
+          correct: number
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          options: Json
+          quiz_date: string
+          reward: number
+          user_id: string
+        }
+        Insert: {
+          a: number
+          answered?: boolean
+          b: number
+          correct: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          options: Json
+          quiz_date: string
+          reward: number
+          user_id: string
+        }
+        Update: {
+          a?: number
+          answered?: boolean
+          b?: number
+          correct?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          options?: Json
+          quiz_date?: string
+          reward?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

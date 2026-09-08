@@ -403,3 +403,25 @@ export const spinWheel = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.spinImpl({ userId: context.userId });
   });
+
+export const getMathQuizState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.mathQuizStateImpl({ userId: context.userId });
+  });
+
+export const startMathQuiz = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.startMathQuizImpl({ userId: context.userId });
+  });
+
+export const answerMathQuiz = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { quizId: string; choice: number }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.answerMathQuizImpl({ userId: context.userId }, data);
+  });

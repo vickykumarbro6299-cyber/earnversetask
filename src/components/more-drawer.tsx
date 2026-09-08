@@ -9,6 +9,8 @@ import {
   Trophy,
   CalendarCheck,
   Disc3,
+  Calculator,
+
 
   UserCircle,
   ShieldCheck,
@@ -56,6 +58,7 @@ const groups: { title: string; items: Item[] }[] = [
       { to: "/leaderboard", label: "Leaderboard", Icon: Trophy },
       { to: "/daily-bonus", label: "Daily Bonus", Icon: CalendarCheck },
       { to: "/spin-win", label: "Spin & Win", Icon: Disc3 },
+      { to: "/math-quiz", label: "Math Quiz", Icon: Calculator },
       { to: "/refer-earn", label: "Refer & Earn", Icon: Gift },
     ],
   },

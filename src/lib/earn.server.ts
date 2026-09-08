@@ -1712,3 +1712,117 @@ export async function spinImpl({ userId }: Ctx) {
     remaining: state.remaining - 1,
   };
 }
+
+/* ---------------- math quiz ---------------- */
+
+export const MATH_QUIZZES_PER_DAY = 10;
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  return a;
+}
+
+async function mathQuizState(userId: string) {
+  const { dateKey, end } = istDayWindow();
+  const { count } = await supabaseAdmin
+    .from("math_quizzes")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("quiz_date", dateKey);
+
+  const { data: earnedRows } = await supabaseAdmin
+    .from("math_quizzes")
+    .select("reward")
+    .eq("user_id", userId)
+    .eq("quiz_date", dateKey)
+    .eq("is_correct", true);
+
+  const used = count ?? 0;
+  return {
+    dateKey,
+    used,
+    limit: MATH_QUIZZES_PER_DAY,
+    remaining: Math.max(0, MATH_QUIZZES_PER_DAY - used),
+    earnedToday: (earnedRows ?? []).reduce((s, r) => s + (r.reward as number), 0),
+    resetAt: end.toISOString(),
+  };
+}
+
+export async function mathQuizStateImpl({ userId }: Ctx) {
+  const state = await mathQuizState(userId);
+  const coins = await getCoins(userId);
+  return { ...state, coins };
+}
+
+/** Starts a new quiz (call after the user watched the rewarded ad). */
+export async function startMathQuizImpl({ userId }: Ctx) {
+  const state = await mathQuizState(userId);
+  if (state.remaining <= 0)
+    throw new Error("Daily quiz limit reached. Come back tomorrow!");
+
+  const a = 10 + Math.floor(Math.random() * 90);
+  const b = 10 + Math.floor(Math.random() * 90);
+  const correct = a + b;
+  const reward = 10 + Math.floor(Math.random() * 41); // 10–50 coins
+
+  const wrong = new Set<number>();
+  while (wrong.size < 3) {
+    const delta = (Math.floor(Math.random() * 20) + 1) * (Math.random() < 0.5 ? -1 : 1);
+    const candidate = correct + delta;
+    if (candidate > 0 && candidate !== correct) wrong.add(candidate);
+  }
+  const options = shuffle([correct, ...wrong]);
+
+  const { data, error } = await supabaseAdmin
+    .from("math_quizzes")
+    .insert({ user_id: userId, quiz_date: state.dateKey, a, b, correct, options, reward })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error("Could not start quiz — try again.");
+
+  return {
+    id: data.id as string,
+    a,
+    b,
+    options,
+    reward,
+    remaining: state.remaining - 1,
+  };
+}
+
+export async function answerMathQuizImpl(
+  { userId }: Ctx,
+  data: { quizId: string; choice: number },
+) {
+  const { data: quiz, error } = await supabaseAdmin
+    .from("math_quizzes")
+    .select("id, correct, reward, answered")
+    .eq("id", data.quizId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !quiz) throw new Error("Quiz not found");
+  if (quiz.answered) throw new Error("This quiz is already answered");
+
+  const isCorrect = Number(data.choice) === quiz.correct;
+  const { error: upErr } = await supabaseAdmin
+    .from("math_quizzes")
+    .update({ answered: true, is_correct: isCorrect })
+    .eq("id", quiz.id)
+    .eq("answered", false);
+  if (upErr) throw new Error("This quiz is already answered");
+
+  if (isCorrect) {
+    await addCoins(userId, quiz.reward as number);
+    await logLedger(userId, "math-quiz", "Math Quiz — correct answer", quiz.reward as number);
+  }
+
+  return {
+    correct: isCorrect,
+    coins: isCorrect ? (quiz.reward as number) : 0,
+    correctAnswer: quiz.correct as number,
+  };
+}
