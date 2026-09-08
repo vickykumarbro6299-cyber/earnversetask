@@ -9,6 +9,8 @@ import {
   Trophy,
   CalendarCheck,
   Disc3,
+  Calculator,
+
 
   UserCircle,
   ShieldCheck,
