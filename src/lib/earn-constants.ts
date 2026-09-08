@@ -131,7 +131,7 @@ export const SPIN_SEGMENTS: { key: string; label: string; coins: number; color: 
   { key: "luck", label: "Better Luck", coins: 0, color: "#e5413f" },
   { key: "c50", label: "50 Coins", coins: 50, color: "#f0a319" },
   { key: "c200", label: "200 Coins", coins: 200, color: "#8b5cf6" },
-  { key: "jackpot", label: "JACKPOT!", coins: 1000, color: "#ec4899" },
+  { key: "jackpot", label: "JACKPOT!", coins: 250, color: "#ec4899" },
 ];
 
 /** Maximum spins a user can make per day. */

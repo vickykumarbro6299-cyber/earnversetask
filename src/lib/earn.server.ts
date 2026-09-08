@@ -1635,14 +1635,14 @@ export async function adminProofsImpl(
 
 export const SPINS_PER_DAY = 10;
 
-/** key -> weight. 5 coins is intentionally 80% of all outcomes. */
+/** key -> weight. 5 coins is intentionally ~80% of all outcomes. */
 const SPIN_WEIGHTS: { key: string; coins: number; label: string; weight: number }[] = [
   { key: "c5", coins: 5, label: "5 Coins", weight: 80 },
   { key: "c15", coins: 15, label: "15 Coins", weight: 8 },
   { key: "luck", coins: 0, label: "Better Luck", weight: 7 },
   { key: "c50", coins: 50, label: "50 Coins", weight: 3 },
   { key: "c200", coins: 200, label: "200 Coins", weight: 1.5 },
-  { key: "jackpot", coins: 1000, label: "JACKPOT!", weight: 0.5 },
+  { key: "jackpot", coins: 250, label: "JACKPOT!", weight: 2 },
 ];
 
 async function spinState(userId: string) {
