@@ -58,31 +58,34 @@ function SpinWinPage() {
   const [busy, setBusy] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [pending, setPending] = useState<SpinResult | null>(null);
   const [result, setResult] = useState<SpinResult | null>(null);
+  const [cooldown, setCooldown] = useState(0);
   const rotationRef = useRef(0);
 
   const coins = q.data?.coins ?? 0;
-  const remaining = result ? result.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
+  const last = pending ?? result;
+  const remaining = last ? last.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
+
+  // 20-second cooldown between rounds.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = window.setInterval(() => setCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, [cooldown]);
 
   const handleSpin = async () => {
-    if (busy || spinning) return;
+    if (busy || spinning || cooldown > 0) return;
     if (remaining <= 0) {
       toast.error("Daily spin limit reached. Come back tomorrow!");
       return;
     }
     setBusy(true);
     try {
-      // Step 1: user must watch the rewarded ad first.
-      const watched = await showRewardedAd();
-      if (!watched) {
-        toast.error("Ad not completed — please watch the full ad to spin.");
-        return;
-      }
-
-      // Step 2: record the spin on the server and get the result.
+      // Step 1: record the spin on the server and get the result.
       const res = (await runSpin()) as SpinResult;
 
-      // Step 3: animate the wheel to the winning segment.
+      // Step 2: animate the wheel to the winning segment.
       const idx = Math.max(
         0,
         SPIN_SEGMENTS.findIndex((s) => s.key === res.key),
@@ -98,12 +101,32 @@ function SpinWinPage() {
 
       window.setTimeout(() => {
         setSpinning(false);
-        setResult(res);
-        void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
-        void queryClient.invalidateQueries({ queryKey: ["me"] });
+        // Step 3: ask the user to watch an ad to collect the reward.
+        setPending(res);
       }, 5200);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not spin — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const collectCoins = async () => {
+    if (!pending || busy) return;
+    setBusy(true);
+    try {
+      if (pending.coins > 0) {
+        const watched = await showRewardedAd();
+        if (!watched) {
+          toast.error("Ad not completed — please watch the full ad to collect your coins.");
+          return;
+        }
+      }
+      setResult(pending);
+      setPending(null);
+      setCooldown(20);
+      void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
     } finally {
       setBusy(false);
     }
