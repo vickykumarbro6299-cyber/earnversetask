@@ -148,12 +148,12 @@ function MathQuizPage() {
   };
 
   const optionClass = (opt: number) => {
-    if (!result)
+    if (!answered)
       return picked === opt
         ? "border-primary bg-primary/10 text-foreground"
         : "border-border bg-card text-foreground active:scale-95";
-    if (opt === result.correctAnswer) return "border-success bg-success/15 text-success";
-    if (opt === picked && !result.correct)
+    if (opt === answered.correctAnswer) return "border-success bg-success/15 text-success";
+    if (opt === picked && !answered.correct)
       return "border-destructive bg-destructive/15 text-destructive";
     return "border-border bg-card text-muted-foreground opacity-60";
   };
