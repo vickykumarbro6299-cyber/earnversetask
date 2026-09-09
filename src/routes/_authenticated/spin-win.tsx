@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
@@ -58,31 +58,34 @@ function SpinWinPage() {
   const [busy, setBusy] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [pending, setPending] = useState<SpinResult | null>(null);
   const [result, setResult] = useState<SpinResult | null>(null);
+  const [cooldown, setCooldown] = useState(0);
   const rotationRef = useRef(0);
 
   const coins = q.data?.coins ?? 0;
-  const remaining = result ? result.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
+  const last = pending ?? result;
+  const remaining = last ? last.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
+
+  // 20-second cooldown between rounds.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = window.setInterval(() => setCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, [cooldown]);
 
   const handleSpin = async () => {
-    if (busy || spinning) return;
+    if (busy || spinning || cooldown > 0) return;
     if (remaining <= 0) {
       toast.error("Daily spin limit reached. Come back tomorrow!");
       return;
     }
     setBusy(true);
     try {
-      // Step 1: user must watch the rewarded ad first.
-      const watched = await showRewardedAd();
-      if (!watched) {
-        toast.error("Ad not completed — please watch the full ad to spin.");
-        return;
-      }
-
-      // Step 2: record the spin on the server and get the result.
+      // Step 1: record the spin on the server and get the result.
       const res = (await runSpin()) as SpinResult;
 
-      // Step 3: animate the wheel to the winning segment.
+      // Step 2: animate the wheel to the winning segment.
       const idx = Math.max(
         0,
         SPIN_SEGMENTS.findIndex((s) => s.key === res.key),
@@ -98,12 +101,32 @@ function SpinWinPage() {
 
       window.setTimeout(() => {
         setSpinning(false);
-        setResult(res);
-        void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
-        void queryClient.invalidateQueries({ queryKey: ["me"] });
+        // Step 3: ask the user to watch an ad to collect the reward.
+        setPending(res);
       }, 5200);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not spin — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const collectCoins = async () => {
+    if (!pending || busy) return;
+    setBusy(true);
+    try {
+      if (pending.coins > 0) {
+        const watched = await showRewardedAd();
+        if (!watched) {
+          toast.error("Ad not completed — please watch the full ad to collect your coins.");
+          return;
+        }
+      }
+      setResult(pending);
+      setPending(null);
+      setCooldown(20);
+      void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
     } finally {
       setBusy(false);
     }
@@ -158,11 +181,17 @@ function SpinWinPage() {
 
         <button
           onClick={handleSpin}
-          disabled={busy || spinning || remaining <= 0}
+          disabled={busy || spinning || remaining <= 0 || cooldown > 0 || !!pending}
           className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
         >
           <Play className="h-6 w-6" />
-          {busy ? "Loading Ad…" : spinning ? "Spinning…" : "Watch Ad & Spin"}
+          {cooldown > 0
+            ? `Next Spin in ${cooldown}s`
+            : busy
+              ? "Please wait…"
+              : spinning
+                ? "Spinning…"
+                : "Spin Now"}
         </button>
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
@@ -174,6 +203,32 @@ function SpinWinPage() {
         </div>
       </main>
 
+      {pending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
+          <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/20">
+              <Gift className="h-8 w-8 text-gold" />
+            </span>
+            <p className="mt-3 text-2xl font-extrabold text-foreground">
+              {pending.coins > 0 ? `You Won ${pending.coins} Coins 🎉` : "Better Luck Next Time!"}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-muted-foreground">
+              {pending.coins > 0
+                ? "Watch a short ad to collect your coins."
+                : "Close this and spin again for another chance."}
+            </p>
+            <button
+              onClick={collectCoins}
+              disabled={busy}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
+            >
+              <Play className="h-4 w-4" />
+              {busy ? "Loading Ad…" : pending.coins > 0 ? "Watch Ad & Collect" : "Continue"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
           <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
@@ -181,7 +236,7 @@ function SpinWinPage() {
               <PartyPopper className="h-8 w-8 text-success" />
             </span>
             <p className="mt-3 text-2xl font-extrabold text-foreground">
-              {result.coins > 0 ? `You Won ${result.coins} Coins 🎉` : "Better Luck Next Time!"}
+              {result.coins > 0 ? `${result.coins} Coins Credited ✅` : "Better Luck Next Time!"}
             </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               {result.coins > 0

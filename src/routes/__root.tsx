@@ -103,8 +103,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       scripts: [
         // Telegram Mini App SDK — must load before the app initialises.
         { src: "https://telegram.org/js/telegram-web-app.js" },
-        // Monetag rewarded ads SDK (Spin & Win).
-        { src: "https://libtl.com/sdk.js", "data-zone": "11729008", "data-sdk": "show_11729008" },
       ],
   }),
 
@@ -118,6 +116,9 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* Monetag rewarded ads SDK — must sit directly inside <head> so ad
+            clicks can open the advertiser link in a new tab. */}
+        <script src="//libtl.com/sdk.js" data-zone="11729008" data-sdk="show_11729008" />
         <HeadContent />
       </head>
       <body>
