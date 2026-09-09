@@ -181,11 +181,17 @@ function SpinWinPage() {
 
         <button
           onClick={handleSpin}
-          disabled={busy || spinning || remaining <= 0}
+          disabled={busy || spinning || remaining <= 0 || cooldown > 0 || !!pending}
           className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
         >
           <Play className="h-6 w-6" />
-          {busy ? "Loading Ad…" : spinning ? "Spinning…" : "Watch Ad & Spin"}
+          {cooldown > 0
+            ? `Next Spin in ${cooldown}s`
+            : busy
+              ? "Please wait…"
+              : spinning
+                ? "Spinning…"
+                : "Spin Now"}
         </button>
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
