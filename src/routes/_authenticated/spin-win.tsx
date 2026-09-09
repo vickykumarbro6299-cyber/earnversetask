@@ -203,6 +203,32 @@ function SpinWinPage() {
         </div>
       </main>
 
+      {pending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
+          <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/20">
+              <Gift className="h-8 w-8 text-gold" />
+            </span>
+            <p className="mt-3 text-2xl font-extrabold text-foreground">
+              {pending.coins > 0 ? `You Won ${pending.coins} Coins 🎉` : "Better Luck Next Time!"}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-muted-foreground">
+              {pending.coins > 0
+                ? "Watch a short ad to collect your coins."
+                : "Close this and spin again for another chance."}
+            </p>
+            <button
+              onClick={collectCoins}
+              disabled={busy}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
+            >
+              <Play className="h-4 w-4" />
+              {busy ? "Loading Ad…" : pending.coins > 0 ? "Watch Ad & Collect" : "Continue"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
           <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
@@ -210,7 +236,7 @@ function SpinWinPage() {
               <PartyPopper className="h-8 w-8 text-success" />
             </span>
             <p className="mt-3 text-2xl font-extrabold text-foreground">
-              {result.coins > 0 ? `You Won ${result.coins} Coins 🎉` : "Better Luck Next Time!"}
+              {result.coins > 0 ? `${result.coins} Coins Credited ✅` : "Better Luck Next Time!"}
             </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               {result.coins > 0
