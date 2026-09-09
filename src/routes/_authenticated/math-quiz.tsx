@@ -260,22 +260,53 @@ function MathQuizPage() {
         {!quiz && (
           <button
             onClick={unlockQuiz}
-            disabled={busy || remaining <= 0}
+            disabled={busy || remaining <= 0 || cooldown > 0}
             className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
           >
             <Play className="h-6 w-6" />
-            {busy ? "Loading Ad…" : "Watch Ad & Unlock Quiz"}
+            {cooldown > 0
+              ? `Next Quiz in ${cooldown}s`
+              : busy
+                ? "Please wait…"
+                : "Start Quiz"}
           </button>
         )}
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Watch a short ad to unlock a two-digit math quiz. Correct answer wins 10–50 coins,
-            added straight to your EarnVerse wallet. You get up to {limit} quizzes a day.
+            Answer a two-digit math quiz, then watch a short ad to collect your coins. Correct
+            answer wins 10–50 coins, added straight to your EarnVerse wallet. You get up to {limit}{" "}
+            quizzes a day.
           </p>
         </div>
       </main>
+
+      {pending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
+          <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/20">
+              <Gift className="h-8 w-8 text-gold" />
+            </span>
+            <p className="mt-3 text-2xl font-extrabold text-foreground">
+              {pending.correct ? `You Won ${pending.coins} Coins 🎉` : "Wrong Answer!"}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-muted-foreground">
+              {pending.correct
+                ? "Watch a short ad to collect your coins."
+                : `The correct answer was ${pending.correctAnswer}.`}
+            </p>
+            <button
+              onClick={collectCoins}
+              disabled={busy}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
+            >
+              <Play className="h-4 w-4" />
+              {busy ? "Loading Ad…" : pending.correct ? "Watch Ad & Collect" : "Continue"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {result?.correct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
@@ -284,7 +315,7 @@ function MathQuizPage() {
               <PartyPopper className="h-8 w-8 text-success" />
             </span>
             <p className="mt-3 text-2xl font-extrabold text-foreground">
-              You Won {result.coins} Coins 🎉
+              {result.coins} Coins Credited ✅
             </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               Coins have been added to your wallet.
