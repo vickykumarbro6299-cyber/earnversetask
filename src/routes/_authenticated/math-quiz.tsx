@@ -235,36 +235,23 @@ function MathQuizPage() {
                 </button>
               ))}
             </div>
-            {result && (
+            {answered && (
               <div className="mt-4 space-y-3">
                 <p
                   className={`flex items-center justify-center gap-2 text-base font-extrabold ${
-                    result.correct ? "text-success" : "text-destructive"
+                    answered.correct ? "text-success" : "text-destructive"
                   }`}
                 >
-                  {result.correct ? (
+                  {answered.correct ? (
                     <>
-                      <CheckCircle2 className="h-5 w-5" /> Correct! +{result.coins} coins
+                      <CheckCircle2 className="h-5 w-5" /> Correct! +{answered.coins} coins
                     </>
                   ) : (
                     <>
-                      <XCircle className="h-5 w-5" /> Wrong! Answer was {result.correctAnswer}
+                      <XCircle className="h-5 w-5" /> Wrong! Answer was {answered.correctAnswer}
                     </>
                   )}
                 </p>
-                <button
-                  onClick={() => {
-                    setQuiz(null);
-                    setResult(null);
-                    setPicked(null);
-                    void unlockQuiz();
-                  }}
-                  disabled={busy || remaining <= 0}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
-                >
-                  <Play className="h-5 w-5" />
-                  {busy ? "Loading Ad…" : "Watch Ad & Next Quiz"}
-                </button>
               </div>
             )}
           </div>
