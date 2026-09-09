@@ -227,7 +227,7 @@ function MathQuizPage() {
               {quiz.options.map((opt) => (
                 <button
                   key={opt}
-                  disabled={!!result || busy}
+                  disabled={!!answered || busy}
                   onClick={() => submitAnswer(opt)}
                   className={`rounded-2xl border-2 py-4 text-xl font-extrabold transition-all ${optionClass(opt)}`}
                 >
