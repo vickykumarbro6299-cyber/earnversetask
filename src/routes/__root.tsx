@@ -116,6 +116,9 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* Monetag rewarded ads SDK — must sit directly inside <head> so ad
+            clicks can open the advertiser link in a new tab. */}
+        <script src="//libtl.com/sdk.js" data-zone="11729008" data-sdk="show_11729008" />
         <HeadContent />
       </head>
       <body>
