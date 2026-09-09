@@ -208,9 +208,11 @@ function MathQuizPage() {
           <div className="flex items-center justify-center gap-3 rounded-2xl bg-success/15 px-4 py-4">
             <Calculator className="h-6 w-6 text-success" />
             <p className="text-base font-extrabold text-success">
-              {remaining > 0
-                ? "Watch an ad to unlock a quiz!"
-                : "Daily quiz limit reached. Come back tomorrow."}
+              {remaining <= 0
+                ? "Daily quiz limit reached. Come back tomorrow."
+                : cooldown > 0
+                  ? `Next quiz unlocks in ${cooldown}s`
+                  : "Start a quiz and win coins!"}
             </p>
           </div>
         ) : (
