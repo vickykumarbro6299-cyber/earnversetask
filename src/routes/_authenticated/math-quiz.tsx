@@ -70,29 +70,35 @@ function MathQuizPage() {
   const [busy, setBusy] = useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
+  const [pending, setPending] = useState<AnswerResult | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
+  const [cooldown, setCooldown] = useState(0);
 
   const coins = q.data?.coins ?? 0;
   const remaining = q.data?.remaining ?? 10;
   const limit = q.data?.limit ?? 10;
   const earnedToday = q.data?.earnedToday ?? 0;
+  const answered = pending ?? result;
+
+  // 20-second cooldown between rounds.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = window.setInterval(() => setCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, [cooldown]);
 
   const unlockQuiz = async () => {
-    if (busy) return;
+    if (busy || cooldown > 0) return;
     if (remaining <= 0) {
       toast.error("Daily quiz limit reached. Come back tomorrow!");
       return;
     }
     setBusy(true);
     try {
-      const watched = await showRewardedAd();
-      if (!watched) {
-        toast.error("Ad not completed — please watch the full ad to unlock the quiz.");
-        return;
-      }
       const res = (await startFn()) as Quiz & { remaining: number };
       setQuiz({ id: res.id, a: res.a, b: res.b, options: res.options, reward: res.reward });
       setPicked(null);
+      setPending(null);
       setResult(null);
       void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
     } catch (e) {
@@ -103,17 +109,39 @@ function MathQuizPage() {
   };
 
   const submitAnswer = async (choice: number) => {
-    if (!quiz || result || busy) return;
+    if (!quiz || answered || busy) return;
     setPicked(choice);
     setBusy(true);
     try {
       const res = (await answerFn({ data: { quizId: quiz.id, choice } })) as AnswerResult;
-      setResult(res);
+      setPending(res);
       void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
-      void queryClient.invalidateQueries({ queryKey: ["me"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not submit answer");
       setPicked(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const collectCoins = async () => {
+    if (!pending || busy) return;
+    setBusy(true);
+    try {
+      if (pending.correct && pending.coins > 0) {
+        const watched = await showRewardedAd();
+        if (!watched) {
+          toast.error("Ad not completed — please watch the full ad to collect your coins.");
+          return;
+        }
+      }
+      setResult(pending);
+      setPending(null);
+      setQuiz(null);
+      setPicked(null);
+      setCooldown(20);
+      void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
     } finally {
       setBusy(false);
     }
