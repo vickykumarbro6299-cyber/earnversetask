@@ -145,6 +145,7 @@ function SpinWinPage() {
       }
       setResult(pending);
       setPending(null);
+      setUnlocked(false);
       setCooldown(20);
       void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
