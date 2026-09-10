@@ -188,6 +188,7 @@ export type Database = {
           options: Json
           quiz_date: string
           reward: number
+          reward_claimed: boolean
           user_id: string
         }
         Insert: {
@@ -201,6 +202,7 @@ export type Database = {
           options: Json
           quiz_date: string
           reward: number
+          reward_claimed?: boolean
           user_id: string
         }
         Update: {
@@ -214,6 +216,7 @@ export type Database = {
           options?: Json
           quiz_date?: string
           reward?: number
+          reward_claimed?: boolean
           user_id?: string
         }
         Relationships: []
@@ -358,6 +361,7 @@ export type Database = {
           created_at: string
           id: string
           label: string
+          reward_claimed: boolean
           spin_date: string
           user_id: string
         }
@@ -366,6 +370,7 @@ export type Database = {
           created_at?: string
           id?: string
           label: string
+          reward_claimed?: boolean
           spin_date: string
           user_id: string
         }
@@ -374,6 +379,7 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
+          reward_claimed?: boolean
           spin_date?: string
           user_id?: string
         }
