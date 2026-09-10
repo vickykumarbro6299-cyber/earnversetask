@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { getSpinState, spinWheel } from "@/lib/earn.functions";
+import { collectSpinReward, getSpinState, spinWheel } from "@/lib/earn.functions";
 import { SPIN_SEGMENTS, SPINS_PER_DAY } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/spin-win")({
@@ -29,7 +29,8 @@ export const Route = createFileRoute("/_authenticated/spin-win")({
   component: SpinWinPage,
 });
 
-type SpinResult = { key: string; label: string; coins: number; remaining: number };
+type SpinResult = { id: string; key: string; label: string; coins: number; remaining: number };
+const SPIN_COOLDOWN_KEY = "earnverse:spin-cooldown-until";
 
 declare global {
   interface Window {
@@ -49,10 +50,21 @@ async function showRewardedAd(type?: "pop"): Promise<boolean> {
   }
 }
 
+function saveSpinCooldown(): number {
+  const until = Date.now() + 20_000;
+  try {
+    window.localStorage.setItem(SPIN_COOLDOWN_KEY, String(until));
+  } catch {
+    // The in-memory timer still works when browser storage is unavailable.
+  }
+  return 20;
+}
+
 function SpinWinPage() {
   const queryClient = useQueryClient();
   const fetchState = useServerFn(getSpinState);
   const runSpin = useServerFn(spinWheel);
+  const collectReward = useServerFn(collectSpinReward);
   const q = useQuery({ queryKey: ["spin-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
@@ -68,12 +80,23 @@ function SpinWinPage() {
   const last = pending ?? result;
   const remaining = last ? last.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
 
-  // 20-second cooldown between rounds.
+  // Keep the cooldown tied to an expiry time so navigation cannot reset it.
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = window.setInterval(() => setCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000);
+    const update = () => {
+      let until = 0;
+      try {
+        until = Number(window.localStorage.getItem(SPIN_COOLDOWN_KEY) ?? 0);
+      } catch {
+        return;
+      }
+      const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      setCooldown(seconds);
+      if (seconds === 0 && until > 0) window.localStorage.removeItem(SPIN_COOLDOWN_KEY);
+    };
+    update();
+    const t = window.setInterval(update, 500);
     return () => window.clearInterval(t);
-  }, [cooldown]);
+  }, []);
 
   const unlockSpin = async () => {
     if (busy || spinning || cooldown > 0 || unlocked) return;
@@ -83,7 +106,7 @@ function SpinWinPage() {
     }
     setBusy(true);
     try {
-      const watched = await showRewardedAd();
+      const watched = await showRewardedAd("pop");
       if (!watched) {
         toast.error("Ad not completed — watch the full ad to unlock your spin.");
         return;
@@ -137,16 +160,17 @@ function SpinWinPage() {
     setBusy(true);
     try {
       if (pending.coins > 0) {
-        const watched = await showRewardedAd();
+        const watched = await showRewardedAd("pop");
         if (!watched) {
           toast.error("Ad not completed — please watch the full ad to collect your coins.");
           return;
         }
+        await collectReward({ data: { spinId: pending.id } });
       }
       setResult(pending);
       setPending(null);
       setUnlocked(false);
-      setCooldown(20);
+      setCooldown(saveSpinCooldown());
       void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
     } finally {

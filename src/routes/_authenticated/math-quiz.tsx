@@ -16,7 +16,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { getMathQuizState, startMathQuiz, answerMathQuiz } from "@/lib/earn.functions";
+import {
+  answerMathQuiz,
+  collectMathQuizReward,
+  getMathQuizState,
+  startMathQuiz,
+} from "@/lib/earn.functions";
 
 export const Route = createFileRoute("/_authenticated/math-quiz")({
   head: () => ({
@@ -40,7 +45,8 @@ export const Route = createFileRoute("/_authenticated/math-quiz")({
 });
 
 type Quiz = { id: string; a: number; b: number; options: number[]; reward: number };
-type AnswerResult = { correct: boolean; coins: number; correctAnswer: number };
+type AnswerResult = { quizId: string; correct: boolean; coins: number; correctAnswer: number };
+const QUIZ_COOLDOWN_KEY = "earnverse:math-quiz-cooldown-until";
 
 declare global {
   interface Window {
@@ -60,11 +66,22 @@ async function showRewardedAd(type?: "pop"): Promise<boolean> {
   }
 }
 
+function saveQuizCooldown(): number {
+  const until = Date.now() + 20_000;
+  try {
+    window.localStorage.setItem(QUIZ_COOLDOWN_KEY, String(until));
+  } catch {
+    // The in-memory timer still works when browser storage is unavailable.
+  }
+  return 20;
+}
+
 function MathQuizPage() {
   const queryClient = useQueryClient();
   const fetchState = useServerFn(getMathQuizState);
   const startFn = useServerFn(startMathQuiz);
   const answerFn = useServerFn(answerMathQuiz);
+  const collectReward = useServerFn(collectMathQuizReward);
   const q = useQuery({ queryKey: ["math-quiz-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
@@ -80,12 +97,23 @@ function MathQuizPage() {
   const earnedToday = q.data?.earnedToday ?? 0;
   const answered = pending ?? result;
 
-  // 20-second cooldown between rounds.
+  // Keep the cooldown tied to an expiry time so navigation cannot reset it.
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = window.setInterval(() => setCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000);
+    const update = () => {
+      let until = 0;
+      try {
+        until = Number(window.localStorage.getItem(QUIZ_COOLDOWN_KEY) ?? 0);
+      } catch {
+        return;
+      }
+      const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      setCooldown(seconds);
+      if (seconds === 0 && until > 0) window.localStorage.removeItem(QUIZ_COOLDOWN_KEY);
+    };
+    update();
+    const t = window.setInterval(update, 500);
     return () => window.clearInterval(t);
-  }, [cooldown]);
+  }, []);
 
   const unlockQuiz = async () => {
     if (busy || cooldown > 0) return;
@@ -95,7 +123,7 @@ function MathQuizPage() {
     }
     setBusy(true);
     try {
-      const watched = await showRewardedAd();
+      const watched = await showRewardedAd("pop");
       if (!watched) {
         toast.error("Ad not completed — watch the full ad to unlock your quiz.");
         return;
@@ -134,17 +162,18 @@ function MathQuizPage() {
     setBusy(true);
     try {
       if (pending.correct && pending.coins > 0) {
-        const watched = await showRewardedAd();
+        const watched = await showRewardedAd("pop");
         if (!watched) {
           toast.error("Ad not completed — please watch the full ad to collect your coins.");
           return;
         }
+        await collectReward({ data: { quizId: pending.quizId } });
       }
       setResult(pending);
       setPending(null);
       setQuiz(null);
       setPicked(null);
-      setCooldown(20);
+      setCooldown(saveQuizCooldown());
       void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
     } finally {
