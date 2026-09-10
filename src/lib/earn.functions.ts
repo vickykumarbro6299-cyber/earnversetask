@@ -105,7 +105,6 @@ export const adminSetPromoActive = createServerFn({ method: "POST" })
     return m.adminSetPromoActiveImpl({ userId: context.userId }, data);
   });
 
-
 export const createDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { rupees: number; utr: string; proofPath?: string | undefined }) => d)
@@ -121,7 +120,6 @@ export const createWithdrawal = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.createWithdrawalImpl({ userId: context.userId }, data);
   });
-
 
 export const getWallet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -158,7 +156,6 @@ export const adminCreateTask = createServerFn({ method: "POST" })
       sampleImageUrl?: string;
       allowMultiple?: boolean;
     }) => d,
-
   )
 
   .handler(async ({ context, data }) => {
@@ -248,7 +245,6 @@ export const getReferral = createServerFn({ method: "GET" })
     return m.referralImpl({ userId: context.userId });
   });
 
-
 export const listMyCreatedTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -336,7 +332,6 @@ export const trackDevice = createServerFn({ method: "POST" })
     );
   });
 
-
 export const adminDeviceReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -351,7 +346,6 @@ export const adminTaskDetail = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminTaskDetailImpl({ userId: context.userId }, data);
   });
-
 
 export const adminReviewTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

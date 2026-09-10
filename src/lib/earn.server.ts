@@ -24,14 +24,11 @@ export const REFERRAL_BONUS_COINS = 200;
 /** Approved tasks a referred user must complete before the referrer gets the bonus. */
 export const REFERRAL_TASK_GOAL = 10;
 
-
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
 const normalizeCategory = (c: string | undefined) =>
   c && VALID_CATEGORIES.includes(c) ? c : "other";
 
-
 type Ctx = { userId: string };
-
 
 export async function isAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -183,10 +180,7 @@ export async function listTasksImpl({ userId }: Ctx) {
     .eq("active", true)
     .eq("approved", true)
     .order("created_at", { ascending: false });
-  const { data: mine } = await supabaseAdmin
-    .from("submissions")
-    .select("*")
-    .eq("user_id", userId);
+  const { data: mine } = await supabaseAdmin.from("submissions").select("*").eq("user_id", userId);
   return { tasks: tasks ?? [], mySubmissions: mine ?? [] };
 }
 
@@ -228,9 +222,6 @@ export async function cancelMyClaimImpl({ userId }: Ctx, data: { submissionId: s
   await recountTask(sub.task_id);
   return { ok: true };
 }
-
-
-
 
 export async function submitProofImpl(
   { userId }: Ctx,
@@ -410,8 +401,7 @@ export async function createUserTaskImpl(
 ) {
   const category = normalizeCategory(data.category);
   const min = CATEGORY_MIN_REWARD[category] ?? MIN_TASK_REWARD;
-  if (data.rewardCoins < min)
-    throw new Error(`Minimum reward for this category is ${min} coins`);
+  if (data.rewardCoins < min) throw new Error(`Minimum reward for this category is ${min} coins`);
   const minSlots = minSlotsFor(category);
   if (data.totalSlots < minSlots)
     throw new Error(`Minimum ${minSlots} slots required for this category`);
@@ -472,11 +462,16 @@ export async function adminReviewTaskImpl(
     .eq("id", task.id);
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
-    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, "Task rejected by admin");
+    await logLedger(
+      task.created_by,
+      "refund",
+      `Task refund • ${task.title}`,
+      refund,
+      "Task rejected by admin",
+    );
   }
   return { approved: false, refund };
 }
-
 
 export async function createDepositImpl(
   { userId }: Ctx,
@@ -532,7 +527,6 @@ export async function createWithdrawalImpl(
     throw error;
   }
   return { amount };
-
 }
 
 export async function walletImpl({ userId }: Ctx) {
@@ -603,7 +597,7 @@ export async function adminDataImpl({ userId }: Ctx) {
   const subRows = subs.data ?? [];
   const userRows = users.data ?? [];
 
-  const sum = <T,>(rows: T[], pick: (r: T) => number) => rows.reduce((n, r) => n + pick(r), 0);
+  const sum = <T>(rows: T[], pick: (r: T) => number) => rows.reduce((n, r) => n + pick(r), 0);
 
   const overview = {
     totalUsers: userRows.length,
@@ -722,7 +716,6 @@ export async function adminCreateTaskImpl(
 
   if (error) throw error;
   return { ok: true };
-
 }
 
 /** Admin: update the reward coins of any task. */
@@ -824,11 +817,16 @@ export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: strin
 
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
-    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by admin)`);
+    await logLedger(
+      task.created_by,
+      "refund",
+      `Task refund • ${task.title}`,
+      refund,
+      `${unusedSlots} unused slots (cancelled by admin)`,
+    );
   }
   return { refund, unusedSlots };
 }
-
 
 /** Pay 2% lifetime commission to the referrer of `earnerId`. */
 async function payReferralCommission(earnerId: string, earnedCoins: number) {
@@ -892,7 +890,6 @@ async function maybePayReferralMilestone(earnerId: string) {
 async function releaseTaskSlot(taskId: string) {
   await recountTask(taskId);
 }
-
 
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
@@ -990,8 +987,6 @@ export async function referralImpl({ userId }: Ctx) {
   };
 }
 
-
-
 export async function adminReviewDepositImpl(
   { userId }: Ctx,
   data: { id: string; approve: boolean },
@@ -1044,20 +1039,17 @@ export async function adminUpdateSettingsImpl(
   data: { upi: string; name: string },
 ) {
   await requireAdmin(userId);
-  await supabaseAdmin
-    .from("app_settings")
-    .upsert([
-      { key: "deposit_upi", value: data.upi },
-      { key: "deposit_name", value: data.name },
-    ]);
+  await supabaseAdmin.from("app_settings").upsert([
+    { key: "deposit_upi", value: data.upi },
+    { key: "deposit_name", value: data.name },
+  ]);
   return { ok: true };
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
   const isSample = data.path.includes("/samples/") || data.path.includes("/avatars/");
   const admin = isSample ? false : await isAdmin(userId);
-  if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
-    throw new Error("Forbidden");
+  if (!isSample && !admin && !data.path.startsWith(`${userId}/`)) throw new Error("Forbidden");
 
   const { data: signed, error } = await supabaseAdmin.storage
     .from("proofs")
@@ -1134,10 +1126,15 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
     .eq("id", task.id);
 
-
   if (refund > 0) {
     await addCoins(userId, refund);
-    await logLedger(userId, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by you)`);
+    await logLedger(
+      userId,
+      "refund",
+      `Task refund • ${task.title}`,
+      refund,
+      `${unusedSlots} unused slots (cancelled by you)`,
+    );
   }
   return { refund, unusedSlots };
 }
@@ -1169,10 +1166,7 @@ export async function adminSetUserCoinsImpl(
   return { coins };
 }
 
-export async function adminDeleteUserImpl(
-  { userId }: Ctx,
-  data: { targetUserId: string },
-) {
+export async function adminDeleteUserImpl({ userId }: Ctx, data: { targetUserId: string }) {
   await requireAdmin(userId);
   if (data.targetUserId === userId) throw new Error("You cannot delete your own account");
   if (await isAdmin(data.targetUserId)) throw new Error("Admin accounts cannot be deleted");
@@ -1182,10 +1176,7 @@ export async function adminDeleteUserImpl(
 }
 
 /** Admin: read any user's earning / deposit / withdrawal ledger. */
-export async function adminUserHistoryImpl(
-  { userId }: Ctx,
-  data: { targetUserId: string },
-) {
+export async function adminUserHistoryImpl({ userId }: Ctx, data: { targetUserId: string }) {
   await requireAdmin(userId);
   return earningHistoryImpl({ userId: data.targetUserId });
 }
@@ -1251,7 +1242,6 @@ export function requestFingerprint() {
     "";
   return serverFingerprint(ua, ip);
 }
-
 
 /** Public check used before sign-up: has any account already been created on this device? */
 export async function checkDeviceImpl(data: { deviceId: string; fingerprint?: string }) {
@@ -1331,7 +1321,6 @@ export async function trackDeviceImpl(
   return { ok: true };
 }
 
-
 /** Admin: devices that carry more than one account. */
 export async function adminDeviceReportImpl({ userId }: Ctx) {
   await requireAdmin(userId);
@@ -1355,7 +1344,10 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
   };
   const seen = new Map<string, number>();
   allRows.forEach((row, index) => {
-    [row.device_id && `device:${row.device_id}`, row.fingerprint && `fingerprint:${row.fingerprint}`]
+    [
+      row.device_id && `device:${row.device_id}`,
+      row.fingerprint && `fingerprint:${row.fingerprint}`,
+    ]
       .filter((key): key is string => Boolean(key))
       .forEach((key) => {
         const previous = seen.get(key);
@@ -1434,7 +1426,6 @@ async function weeklyTaskEarnings(start: Date, end: Date) {
     .filter((r) => r.coins > 0)
     .sort((a, b) => b.coins - a.coins);
 }
-
 
 /** Pays last week's prizes exactly once (idempotent via unique week_start+user_id). */
 async function settlePreviousWeek() {
@@ -1614,16 +1605,12 @@ export async function adminProofsImpl(
     .order("submitted_at", { ascending: false })
     .limit(5000);
 
-  query = data.gmail
-    ? query.eq("tasks.category", "gmail")
-    : query.neq("tasks.category", "gmail");
+  query = data.gmail ? query.eq("tasks.category", "gmail") : query.neq("tasks.category", "gmail");
 
   if (data.gmail && data.date) {
     const start = new Date(new Date(`${data.date}T00:00:00.000Z`).getTime() - IST_OFFSET_MS);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    query = query
-      .gte("submitted_at", start.toISOString())
-      .lt("submitted_at", end.toISOString());
+    query = query.gte("submitted_at", start.toISOString()).lt("submitted_at", end.toISOString());
   }
 
   const { data: rows, error } = await query;
@@ -1779,8 +1766,7 @@ export async function mathQuizStateImpl({ userId }: Ctx) {
 /** Starts a new quiz (call after the user watched the rewarded ad). */
 export async function startMathQuizImpl({ userId }: Ctx) {
   const state = await mathQuizState(userId);
-  if (state.remaining <= 0)
-    throw new Error("Daily quiz limit reached. Come back tomorrow!");
+  if (state.remaining <= 0) throw new Error("Daily quiz limit reached. Come back tomorrow!");
 
   const a = 10 + Math.floor(Math.random() * 90);
   const b = 10 + Math.floor(Math.random() * 90);
@@ -1788,10 +1774,15 @@ export async function startMathQuizImpl({ userId }: Ctx) {
   // 10/20 most common; 30 occasional; 40/50 only ~3% combined.
   const rewardRoll = Math.random();
   const reward =
-    rewardRoll < 0.45 ? 10 :
-    rewardRoll < 0.90 ? 20 :
-    rewardRoll < 0.97 ? 30 :
-    rewardRoll < 0.985 ? 40 : 50;
+    rewardRoll < 0.45
+      ? 10
+      : rewardRoll < 0.9
+        ? 20
+        : rewardRoll < 0.97
+          ? 30
+          : rewardRoll < 0.985
+            ? 40
+            : 50;
 
   const wrong = new Set<number>();
   while (wrong.size < 3) {
