@@ -16,7 +16,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { getMathQuizState, startMathQuiz, answerMathQuiz } from "@/lib/earn.functions";
+import {
+  answerMathQuiz,
+  collectMathQuizReward,
+  getMathQuizState,
+  startMathQuiz,
+} from "@/lib/earn.functions";
 
 export const Route = createFileRoute("/_authenticated/math-quiz")({
   head: () => ({
@@ -40,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/math-quiz")({
 });
 
 type Quiz = { id: string; a: number; b: number; options: number[]; reward: number };
-type AnswerResult = { correct: boolean; coins: number; correctAnswer: number };
+type AnswerResult = { quizId: string; correct: boolean; coins: number; correctAnswer: number };
 const QUIZ_COOLDOWN_KEY = "earnverse:math-quiz-cooldown-until";
 
 declare global {
@@ -76,6 +81,7 @@ function MathQuizPage() {
   const fetchState = useServerFn(getMathQuizState);
   const startFn = useServerFn(startMathQuiz);
   const answerFn = useServerFn(answerMathQuiz);
+  const collectReward = useServerFn(collectMathQuizReward);
   const q = useQuery({ queryKey: ["math-quiz-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
@@ -161,6 +167,7 @@ function MathQuizPage() {
           toast.error("Ad not completed — please watch the full ad to collect your coins.");
           return;
         }
+        await collectReward({ data: { quizId: pending.quizId } });
       }
       setResult(pending);
       setPending(null);

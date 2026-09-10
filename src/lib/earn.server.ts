@@ -1692,25 +1692,43 @@ export async function spinImpl({ userId }: Ctx) {
     }
   }
 
-  const { error } = await supabaseAdmin.from("spin_results").insert({
-    user_id: userId,
-    spin_date: state.dateKey,
-    label: picked.label,
-    coins: picked.coins,
-  });
-  if (error) throw new Error("Could not record spin");
-
-  if (picked.coins > 0) {
-    await addCoins(userId, picked.coins);
-    await logLedger(userId, "spin", `Spin & Win — ${picked.label}`, picked.coins);
-  }
+  const { data: spin, error } = await supabaseAdmin
+    .from("spin_results")
+    .insert({
+      user_id: userId,
+      spin_date: state.dateKey,
+      label: picked.label,
+      coins: picked.coins,
+      reward_claimed: picked.coins <= 0,
+    })
+    .select("id")
+    .single();
+  if (error || !spin) throw new Error("Could not record spin");
 
   return {
+    id: spin.id as string,
     key: picked.key,
     label: picked.label,
     coins: picked.coins,
     remaining: state.remaining - 1,
   };
+}
+
+export async function collectSpinRewardImpl({ userId }: Ctx, data: { spinId: string }) {
+  const { data: spin, error } = await supabaseAdmin
+    .from("spin_results")
+    .update({ reward_claimed: true })
+    .eq("id", data.spinId)
+    .eq("user_id", userId)
+    .eq("reward_claimed", false)
+    .gt("coins", 0)
+    .select("coins, label")
+    .maybeSingle();
+  if (error || !spin) throw new Error("Reward already collected or unavailable");
+
+  await addCoins(userId, spin.coins as number);
+  await logLedger(userId, "spin", `Spin & Win — ${spin.label}`, spin.coins as number);
+  return { coins: spin.coins as number };
 }
 
 /* ---------------- math quiz ---------------- */
@@ -1821,14 +1839,28 @@ export async function answerMathQuizImpl(
     .eq("answered", false);
   if (upErr) throw new Error("This quiz is already answered");
 
-  if (isCorrect) {
-    await addCoins(userId, quiz.reward as number);
-    await logLedger(userId, "math-quiz", "Math Quiz — correct answer", quiz.reward as number);
-  }
-
   return {
+    quizId: quiz.id as string,
     correct: isCorrect,
     coins: isCorrect ? (quiz.reward as number) : 0,
     correctAnswer: quiz.correct as number,
   };
+}
+
+export async function collectMathQuizRewardImpl({ userId }: Ctx, data: { quizId: string }) {
+  const { data: quiz, error } = await supabaseAdmin
+    .from("math_quizzes")
+    .update({ reward_claimed: true })
+    .eq("id", data.quizId)
+    .eq("user_id", userId)
+    .eq("answered", true)
+    .eq("is_correct", true)
+    .eq("reward_claimed", false)
+    .select("reward")
+    .maybeSingle();
+  if (error || !quiz) throw new Error("Reward already collected or unavailable");
+
+  await addCoins(userId, quiz.reward as number);
+  await logLedger(userId, "math-quiz", "Math Quiz — correct answer", quiz.reward as number);
+  return { coins: quiz.reward as number };
 }

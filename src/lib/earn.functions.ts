@@ -404,6 +404,14 @@ export const spinWheel = createServerFn({ method: "POST" })
     return m.spinImpl({ userId: context.userId });
   });
 
+export const collectSpinReward = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { spinId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.collectSpinRewardImpl({ userId: context.userId }, data);
+  });
+
 export const getMathQuizState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -424,4 +432,12 @@ export const answerMathQuiz = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.answerMathQuizImpl({ userId: context.userId }, data);
+  });
+
+export const collectMathQuizReward = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { quizId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.collectMathQuizRewardImpl({ userId: context.userId }, data);
   });

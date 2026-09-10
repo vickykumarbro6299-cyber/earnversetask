@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { getSpinState, spinWheel } from "@/lib/earn.functions";
+import { collectSpinReward, getSpinState, spinWheel } from "@/lib/earn.functions";
 import { SPIN_SEGMENTS, SPINS_PER_DAY } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/spin-win")({
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/spin-win")({
   component: SpinWinPage,
 });
 
-type SpinResult = { key: string; label: string; coins: number; remaining: number };
+type SpinResult = { id: string; key: string; label: string; coins: number; remaining: number };
 const SPIN_COOLDOWN_KEY = "earnverse:spin-cooldown-until";
 
 declare global {
@@ -64,6 +64,7 @@ function SpinWinPage() {
   const queryClient = useQueryClient();
   const fetchState = useServerFn(getSpinState);
   const runSpin = useServerFn(spinWheel);
+  const collectReward = useServerFn(collectSpinReward);
   const q = useQuery({ queryKey: ["spin-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
@@ -164,6 +165,7 @@ function SpinWinPage() {
           toast.error("Ad not completed — please watch the full ad to collect your coins.");
           return;
         }
+        await collectReward({ data: { spinId: pending.id } });
       }
       setResult(pending);
       setPending(null);
