@@ -61,6 +61,7 @@ function SpinWinPage() {
   const [pending, setPending] = useState<SpinResult | null>(null);
   const [result, setResult] = useState<SpinResult | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [unlocked, setUnlocked] = useState(false);
   const rotationRef = useRef(0);
 
   const coins = q.data?.coins ?? 0;
@@ -74,8 +75,28 @@ function SpinWinPage() {
     return () => window.clearInterval(t);
   }, [cooldown]);
 
+  const unlockSpin = async () => {
+    if (busy || spinning || cooldown > 0 || unlocked) return;
+    if (remaining <= 0) {
+      toast.error("Daily spin limit reached. Come back tomorrow!");
+      return;
+    }
+    setBusy(true);
+    try {
+      const watched = await showRewardedAd();
+      if (!watched) {
+        toast.error("Ad not completed — watch the full ad to unlock your spin.");
+        return;
+      }
+      setUnlocked(true);
+      toast.success("Spin unlocked! Tap Spin Now.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleSpin = async () => {
-    if (busy || spinning || cooldown > 0) return;
+    if (busy || spinning || cooldown > 0 || !unlocked) return;
     if (remaining <= 0) {
       toast.error("Daily spin limit reached. Come back tomorrow!");
       return;
@@ -124,6 +145,7 @@ function SpinWinPage() {
       }
       setResult(pending);
       setPending(null);
+      setUnlocked(false);
       setCooldown(20);
       void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -171,34 +193,46 @@ function SpinWinPage() {
         <div className="flex items-center justify-center gap-3 rounded-2xl bg-success/15 px-4 py-4">
           <Unlock className="h-6 w-6 text-success" />
           <p className="text-base font-extrabold text-success">
-            {remaining > 0
-              ? "Great! The wheel is ready to spin."
-              : "Daily spin limit reached. Come back tomorrow."}
+            {remaining <= 0
+              ? "Daily spin limit reached. Come back tomorrow."
+              : unlocked
+                ? "Spin unlocked! Tap Spin Now."
+                : "Watch an ad to unlock your spin."}
           </p>
         </div>
 
         <Wheel rotation={rotation} spinning={spinning} />
 
-        <button
-          onClick={handleSpin}
-          disabled={busy || spinning || remaining <= 0 || cooldown > 0 || !!pending}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
-        >
-          <Play className="h-6 w-6" />
-          {cooldown > 0
-            ? `Next Spin in ${cooldown}s`
-            : busy
-              ? "Please wait…"
-              : spinning
-                ? "Spinning…"
-                : "Spin Now"}
-        </button>
+        {unlocked ? (
+          <button
+            onClick={handleSpin}
+            disabled={busy || spinning || remaining <= 0 || cooldown > 0 || !!pending}
+            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
+          >
+            <Play className="h-6 w-6" />
+            {busy ? "Please wait…" : spinning ? "Spinning…" : "Spin Now"}
+          </button>
+        ) : (
+          <button
+            onClick={unlockSpin}
+            disabled={busy || remaining <= 0 || cooldown > 0 || !!pending}
+            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
+          >
+            <Unlock className="h-6 w-6" />
+            {cooldown > 0
+              ? `Next Spin in ${cooldown}s`
+              : busy
+                ? "Loading Ad…"
+                : "Watch Ad & Unlock Spin"}
+          </button>
+        )}
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Watch a short ad to spin the wheel. You get up to {SPINS_PER_DAY} spins a day — rewards
-            are added straight to your EarnVerse coin balance.
+            Watch a short ad to unlock a spin, then watch one more ad to collect your winnings. You
+            get up to {SPINS_PER_DAY} spins a day — rewards are added straight to your EarnVerse
+            coin balance.
           </p>
         </div>
       </main>
