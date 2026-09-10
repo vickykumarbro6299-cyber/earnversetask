@@ -95,6 +95,11 @@ function MathQuizPage() {
     }
     setBusy(true);
     try {
+      const watched = await showRewardedAd();
+      if (!watched) {
+        toast.error("Ad not completed — watch the full ad to unlock your quiz.");
+        return;
+      }
       const res = (await startFn()) as Quiz & { remaining: number };
       setQuiz({ id: res.id, a: res.a, b: res.b, options: res.options, reward: res.reward });
       setPicked(null);
