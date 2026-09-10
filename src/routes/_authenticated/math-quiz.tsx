@@ -272,8 +272,8 @@ function MathQuizPage() {
             {cooldown > 0
               ? `Next Quiz in ${cooldown}s`
               : busy
-                ? "Please wait…"
-                : "Start Quiz"}
+                ? "Loading Ad…"
+                : "Watch Ad & Unlock Quiz"}
           </button>
         )}
 
