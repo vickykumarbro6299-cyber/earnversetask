@@ -61,6 +61,7 @@ function SpinWinPage() {
   const [pending, setPending] = useState<SpinResult | null>(null);
   const [result, setResult] = useState<SpinResult | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [unlocked, setUnlocked] = useState(false);
   const rotationRef = useRef(0);
 
   const coins = q.data?.coins ?? 0;
