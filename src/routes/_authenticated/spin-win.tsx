@@ -75,8 +75,28 @@ function SpinWinPage() {
     return () => window.clearInterval(t);
   }, [cooldown]);
 
+  const unlockSpin = async () => {
+    if (busy || spinning || cooldown > 0 || unlocked) return;
+    if (remaining <= 0) {
+      toast.error("Daily spin limit reached. Come back tomorrow!");
+      return;
+    }
+    setBusy(true);
+    try {
+      const watched = await showRewardedAd();
+      if (!watched) {
+        toast.error("Ad not completed — watch the full ad to unlock your spin.");
+        return;
+      }
+      setUnlocked(true);
+      toast.success("Spin unlocked! Tap Spin Now.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleSpin = async () => {
-    if (busy || spinning || cooldown > 0) return;
+    if (busy || spinning || cooldown > 0 || !unlocked) return;
     if (remaining <= 0) {
       toast.error("Daily spin limit reached. Come back tomorrow!");
       return;
