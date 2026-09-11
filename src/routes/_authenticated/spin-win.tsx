@@ -34,16 +34,16 @@ const SPIN_COOLDOWN_KEY = "earnverse:spin-cooldown-until";
 
 declare global {
   interface Window {
-    show_11729008?: (type?: "pop") => Promise<unknown>;
+    show_11729008?: () => Promise<unknown>;
   }
 }
 
 /** Plays a rewarded ad. Resolves true when the ad was watched, false otherwise. */
-async function showRewardedAd(type?: "pop"): Promise<boolean> {
+async function showRewardedAd(): Promise<boolean> {
   const fn = window.show_11729008;
   if (typeof fn !== "function") return false;
   try {
-    await fn(type);
+    await fn();
     return true;
   } catch {
     return false;
@@ -106,7 +106,7 @@ function SpinWinPage() {
     }
     setBusy(true);
     try {
-      const watched = await showRewardedAd("pop");
+      const watched = await showRewardedAd();
       if (!watched) {
         toast.error("Ad not completed — watch the full ad to unlock your spin.");
         return;
@@ -160,7 +160,7 @@ function SpinWinPage() {
     setBusy(true);
     try {
       if (pending.coins > 0) {
-        const watched = await showRewardedAd("pop");
+        const watched = await showRewardedAd();
         if (!watched) {
           toast.error("Ad not completed — please watch the full ad to collect your coins.");
           return;
