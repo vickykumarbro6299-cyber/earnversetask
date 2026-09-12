@@ -834,41 +834,94 @@ function SettingsTab({
   const fn = useServerFn(adminUpdateSettings);
   const [upi, setUpi] = useState(settings["deposit_upi"] ?? "");
   const [name, setName] = useState(settings["deposit_name"] ?? "");
+  const [maintenanceMode, setMaintenanceMode] = useState(
+    settings["maintenance_mode"] === "true",
+  );
   const [busy, setBusy] = useState(false);
 
+  async function save(nextMaintenanceMode = maintenanceMode) {
+    setBusy(true);
+    try {
+      await fn({
+        data: {
+          upi: upi.trim(),
+          name: name.trim(),
+          maintenanceMode: nextMaintenanceMode,
+        },
+      });
+      onDone();
+      return true;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        try {
-          await fn({ data: { upi: upi.trim(), name: name.trim() } });
-          toast.success("Deposit details updated");
-          onDone();
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Failed");
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="mt-4 space-y-3 rounded-2xl bg-card p-4 shadow-card"
-    >
-      <h3 className="font-extrabold">Deposit Details</h3>
-      <label className="block text-xs font-semibold text-muted-foreground">
-        UPI ID
-        <input className={inputClass} value={upi} onChange={(e) => setUpi(e.target.value)} />
-      </label>
-      <label className="block text-xs font-semibold text-muted-foreground">
-        Display name
-        <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <button
-        disabled={busy}
-        className="w-full rounded-xl bg-gradient-purple py-3 font-bold text-primary-foreground disabled:opacity-60"
+    <div className="mt-4 space-y-3">
+      <section className="rounded-2xl bg-card p-4 shadow-card">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="font-extrabold">Maintenance Mode</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {maintenanceMode
+                ? "Site is closed for users. Admin access remains available."
+                : "Site is currently available to all users."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={maintenanceMode}
+            aria-label="Maintenance mode"
+            disabled={busy}
+            onClick={async () => {
+              const next = !maintenanceMode;
+              const saved = await save(next);
+              if (saved) {
+                setMaintenanceMode(next);
+                toast.success(next ? "Maintenance mode enabled" : "Maintenance mode disabled");
+              }
+            }}
+            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
+              maintenanceMode ? "bg-destructive" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-6 w-6 rounded-full bg-card shadow-card transition-transform ${
+                maintenanceMode ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      </section>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (await save()) toast.success("Deposit details updated");
+        }}
+        className="space-y-3 rounded-2xl bg-card p-4 shadow-card"
       >
-        {busy ? "Saving…" : "Save"}
-      </button>
-    </form>
+        <h3 className="font-extrabold">Deposit Details</h3>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          UPI ID
+          <input className={inputClass} value={upi} onChange={(e) => setUpi(e.target.value)} />
+        </label>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          Display name
+          <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <button
+          disabled={busy}
+          className="w-full rounded-xl bg-gradient-purple py-3 font-bold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </form>
+    </div>
   );
 }
 

@@ -224,7 +224,7 @@ export const adminReviewWithdrawal = createServerFn({ method: "POST" })
 
 export const adminUpdateSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { upi: string; name: string }) => d)
+  .inputValidator((d: { upi: string; name: string; maintenanceMode: boolean }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.adminUpdateSettingsImpl({ userId: context.userId }, data);
