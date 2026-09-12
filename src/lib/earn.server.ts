@@ -1036,13 +1036,15 @@ export async function adminReviewWithdrawalImpl(
 
 export async function adminUpdateSettingsImpl(
   { userId }: Ctx,
-  data: { upi: string; name: string },
+  data: { upi: string; name: string; maintenanceMode: boolean },
 ) {
   await requireAdmin(userId);
-  await supabaseAdmin.from("app_settings").upsert([
+  const { error } = await supabaseAdmin.from("app_settings").upsert([
     { key: "deposit_upi", value: data.upi },
     { key: "deposit_name", value: data.name },
+    { key: "maintenance_mode", value: data.maintenanceMode ? "true" : "false" },
   ]);
+  if (error) throw error;
   return { ok: true };
 }
 

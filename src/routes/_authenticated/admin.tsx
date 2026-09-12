@@ -51,7 +51,6 @@ import {
   autoDescription,
 } from "@/lib/earn-constants";
 
-
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
@@ -82,7 +81,6 @@ const TABS = [
   "Settings",
 ] as const;
 type Tab = (typeof TABS)[number];
-
 
 function AdminPage() {
   const me = useMe();
@@ -159,7 +157,6 @@ function AdminPage() {
                 extra={x.proof_url ? <ProofButton path={x.proof_url} /> : null}
                 onApprove={() => review("deposit", x.id, true)}
                 onReject={() => review("deposit", x.id, false)}
-
               />
             )}
           />
@@ -173,9 +170,7 @@ function AdminPage() {
               <WithdrawalCard
                 key={x.id}
                 item={x}
-                onReview={(approve, adminNote) =>
-                  review("withdrawal", x.id, approve, adminNote)
-                }
+                onReview={(approve, adminNote) => review("withdrawal", x.id, approve, adminNote)}
               />
             )}
           />
@@ -190,8 +185,6 @@ function AdminPage() {
         {d && tab === "Users" && <UsersTab users={d.users} onDone={refresh} />}
 
         {tab === "Devices" && <DevicesTab />}
-
-
 
         {d && tab === "Overview" && <OverviewTab o={d.overview} />}
 
@@ -642,7 +635,10 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
 
       <h3 className="font-extrabold">Task List</h3>
       {tasks.map((t) => (
-        <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card">
+        <div
+          key={t.id}
+          className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card"
+        >
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
             <p className="text-xs text-muted-foreground">
@@ -716,7 +712,9 @@ function ReviewsTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
     setBusy(taskId);
     try {
       const r = await reviewFn({ data: { taskId, approve } });
-      toast.success(approve ? "Task approved & live" : `Task rejected • ${r.refund} coins refunded`);
+      toast.success(
+        approve ? "Task approved & live" : `Task rejected • ${r.refund} coins refunded`,
+      );
       onDone();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
@@ -737,7 +735,9 @@ function ReviewsTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
             {t.category} • {t.reward_coins} coins × {t.total_slots} slots
           </p>
           {t.description && (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{t.description}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+              {t.description}
+            </p>
           )}
           {t.link && (
             <a
@@ -834,41 +834,92 @@ function SettingsTab({
   const fn = useServerFn(adminUpdateSettings);
   const [upi, setUpi] = useState(settings["deposit_upi"] ?? "");
   const [name, setName] = useState(settings["deposit_name"] ?? "");
+  const [maintenanceMode, setMaintenanceMode] = useState(settings["maintenance_mode"] === "true");
   const [busy, setBusy] = useState(false);
 
+  async function save(nextMaintenanceMode = maintenanceMode) {
+    setBusy(true);
+    try {
+      await fn({
+        data: {
+          upi: upi.trim(),
+          name: name.trim(),
+          maintenanceMode: nextMaintenanceMode,
+        },
+      });
+      onDone();
+      return true;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        try {
-          await fn({ data: { upi: upi.trim(), name: name.trim() } });
-          toast.success("Deposit details updated");
-          onDone();
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Failed");
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="mt-4 space-y-3 rounded-2xl bg-card p-4 shadow-card"
-    >
-      <h3 className="font-extrabold">Deposit Details</h3>
-      <label className="block text-xs font-semibold text-muted-foreground">
-        UPI ID
-        <input className={inputClass} value={upi} onChange={(e) => setUpi(e.target.value)} />
-      </label>
-      <label className="block text-xs font-semibold text-muted-foreground">
-        Display name
-        <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <button
-        disabled={busy}
-        className="w-full rounded-xl bg-gradient-purple py-3 font-bold text-primary-foreground disabled:opacity-60"
+    <div className="mt-4 space-y-3">
+      <section className="rounded-2xl bg-card p-4 shadow-card">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="font-extrabold">Maintenance Mode</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {maintenanceMode
+                ? "Site is closed for users. Admin access remains available."
+                : "Site is currently available to all users."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={maintenanceMode}
+            aria-label="Maintenance mode"
+            disabled={busy}
+            onClick={async () => {
+              const next = !maintenanceMode;
+              const saved = await save(next);
+              if (saved) {
+                setMaintenanceMode(next);
+                toast.success(next ? "Maintenance mode enabled" : "Maintenance mode disabled");
+              }
+            }}
+            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
+              maintenanceMode ? "bg-destructive" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-6 w-6 rounded-full bg-card shadow-card transition-transform ${
+                maintenanceMode ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      </section>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (await save()) toast.success("Deposit details updated");
+        }}
+        className="space-y-3 rounded-2xl bg-card p-4 shadow-card"
       >
-        {busy ? "Saving…" : "Save"}
-      </button>
-    </form>
+        <h3 className="font-extrabold">Deposit Details</h3>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          UPI ID
+          <input className={inputClass} value={upi} onChange={(e) => setUpi(e.target.value)} />
+        </label>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          Display name
+          <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <button
+          disabled={busy}
+          className="w-full rounded-xl bg-gradient-purple py-3 font-bold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -900,9 +951,7 @@ function UsersTab({ users, onDone }: { users: any[]; onDone: () => void }) {
       {list.map((u: any) => (
         <UserRow key={u.id} user={u} onDone={onDone} />
       ))}
-      {!list.length && (
-        <p className="mt-8 text-center text-muted-foreground">No matching users.</p>
-      )}
+      {!list.length && <p className="mt-8 text-center text-muted-foreground">No matching users.</p>}
     </div>
   );
 }
@@ -1094,7 +1143,6 @@ function UserHistory({ userId }: { userId: string }) {
   );
 }
 
-
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-card">
@@ -1214,7 +1262,6 @@ function PromoTab({ promos, onDone }: { promos: any[]; onDone: () => void }) {
   );
 }
 
-
 /* ---------------- Task History ---------------- */
 
 function TaskHistoryTab({ tasks }: { tasks: any[] }) {
@@ -1234,7 +1281,9 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
             key={m}
             onClick={() => setMode(m)}
             className={`rounded-xl py-2.5 text-sm font-bold ${
-              mode === m ? "bg-gradient-brand text-primary-foreground" : "bg-muted text-muted-foreground"
+              mode === m
+                ? "bg-gradient-brand text-primary-foreground"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {m}
@@ -1257,7 +1306,10 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
       {!list.length && <p className="mt-8 text-center text-muted-foreground">No tasks found.</p>}
 
       {list.map((t) => (
-        <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card">
+        <div
+          key={t.id}
+          className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card"
+        >
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
             <p className="text-xs capitalize text-muted-foreground">
@@ -1265,7 +1317,13 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
             </p>
             <p className="text-xs text-muted-foreground">
               {new Date(t.created_at).toLocaleString()} •{" "}
-              {t.disabled ? "Cancelled" : !t.approved ? "Under review" : t.active ? "Live" : "Closed"}
+              {t.disabled
+                ? "Cancelled"
+                : !t.approved
+                  ? "Under review"
+                  : t.active
+                    ? "Live"
+                    : "Closed"}
             </p>
           </div>
           <Link
@@ -1299,15 +1357,13 @@ function ProofsTab({
   });
   const items: any[] = (pq.data?.items ?? []) as any[];
 
-  const list = items
-
-    .filter((s) => {
-      const t = q.trim().toLowerCase();
-      if (!t) return true;
-      return `${s.tasks?.title ?? ""} ${s.user?.name ?? ""} ${s.user?.email ?? ""} ${s.note ?? ""}`
-        .toLowerCase()
-        .includes(t);
-    });
+  const list = items.filter((s) => {
+    const t = q.trim().toLowerCase();
+    if (!t) return true;
+    return `${s.tasks?.title ?? ""} ${s.user?.name ?? ""} ${s.user?.email ?? ""} ${s.note ?? ""}`
+      .toLowerCase()
+      .includes(t);
+  });
 
   return (
     <div className="mt-4 space-y-3">
@@ -1317,7 +1373,9 @@ function ProofsTab({
             key={m}
             onClick={() => setMode(m)}
             className={`rounded-xl py-2.5 text-sm font-bold ${
-              mode === m ? "bg-gradient-brand text-primary-foreground" : "bg-muted text-muted-foreground"
+              mode === m
+                ? "bg-gradient-brand text-primary-foreground"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {m}
