@@ -51,7 +51,6 @@ import {
   autoDescription,
 } from "@/lib/earn-constants";
 
-
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
@@ -82,7 +81,6 @@ const TABS = [
   "Settings",
 ] as const;
 type Tab = (typeof TABS)[number];
-
 
 function AdminPage() {
   const me = useMe();
@@ -159,7 +157,6 @@ function AdminPage() {
                 extra={x.proof_url ? <ProofButton path={x.proof_url} /> : null}
                 onApprove={() => review("deposit", x.id, true)}
                 onReject={() => review("deposit", x.id, false)}
-
               />
             )}
           />
@@ -173,9 +170,7 @@ function AdminPage() {
               <WithdrawalCard
                 key={x.id}
                 item={x}
-                onReview={(approve, adminNote) =>
-                  review("withdrawal", x.id, approve, adminNote)
-                }
+                onReview={(approve, adminNote) => review("withdrawal", x.id, approve, adminNote)}
               />
             )}
           />
@@ -190,8 +185,6 @@ function AdminPage() {
         {d && tab === "Users" && <UsersTab users={d.users} onDone={refresh} />}
 
         {tab === "Devices" && <DevicesTab />}
-
-
 
         {d && tab === "Overview" && <OverviewTab o={d.overview} />}
 
@@ -642,7 +635,10 @@ function TasksTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
 
       <h3 className="font-extrabold">Task List</h3>
       {tasks.map((t) => (
-        <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card">
+        <div
+          key={t.id}
+          className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card"
+        >
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
             <p className="text-xs text-muted-foreground">
@@ -716,7 +712,9 @@ function ReviewsTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
     setBusy(taskId);
     try {
       const r = await reviewFn({ data: { taskId, approve } });
-      toast.success(approve ? "Task approved & live" : `Task rejected • ${r.refund} coins refunded`);
+      toast.success(
+        approve ? "Task approved & live" : `Task rejected • ${r.refund} coins refunded`,
+      );
       onDone();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
@@ -737,7 +735,9 @@ function ReviewsTab({ tasks, onDone }: { tasks: any[]; onDone: () => void }) {
             {t.category} • {t.reward_coins} coins × {t.total_slots} slots
           </p>
           {t.description && (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{t.description}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+              {t.description}
+            </p>
           )}
           {t.link && (
             <a
@@ -834,9 +834,7 @@ function SettingsTab({
   const fn = useServerFn(adminUpdateSettings);
   const [upi, setUpi] = useState(settings["deposit_upi"] ?? "");
   const [name, setName] = useState(settings["deposit_name"] ?? "");
-  const [maintenanceMode, setMaintenanceMode] = useState(
-    settings["maintenance_mode"] === "true",
-  );
+  const [maintenanceMode, setMaintenanceMode] = useState(settings["maintenance_mode"] === "true");
   const [busy, setBusy] = useState(false);
 
   async function save(nextMaintenanceMode = maintenanceMode) {
@@ -953,9 +951,7 @@ function UsersTab({ users, onDone }: { users: any[]; onDone: () => void }) {
       {list.map((u: any) => (
         <UserRow key={u.id} user={u} onDone={onDone} />
       ))}
-      {!list.length && (
-        <p className="mt-8 text-center text-muted-foreground">No matching users.</p>
-      )}
+      {!list.length && <p className="mt-8 text-center text-muted-foreground">No matching users.</p>}
     </div>
   );
 }
@@ -1147,7 +1143,6 @@ function UserHistory({ userId }: { userId: string }) {
   );
 }
 
-
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-card">
@@ -1267,7 +1262,6 @@ function PromoTab({ promos, onDone }: { promos: any[]; onDone: () => void }) {
   );
 }
 
-
 /* ---------------- Task History ---------------- */
 
 function TaskHistoryTab({ tasks }: { tasks: any[] }) {
@@ -1287,7 +1281,9 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
             key={m}
             onClick={() => setMode(m)}
             className={`rounded-xl py-2.5 text-sm font-bold ${
-              mode === m ? "bg-gradient-brand text-primary-foreground" : "bg-muted text-muted-foreground"
+              mode === m
+                ? "bg-gradient-brand text-primary-foreground"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {m}
@@ -1310,7 +1306,10 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
       {!list.length && <p className="mt-8 text-center text-muted-foreground">No tasks found.</p>}
 
       {list.map((t) => (
-        <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card">
+        <div
+          key={t.id}
+          className="flex flex-wrap items-center gap-2 rounded-xl bg-card p-3 shadow-card"
+        >
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold">{t.title}</p>
             <p className="text-xs capitalize text-muted-foreground">
@@ -1318,7 +1317,13 @@ function TaskHistoryTab({ tasks }: { tasks: any[] }) {
             </p>
             <p className="text-xs text-muted-foreground">
               {new Date(t.created_at).toLocaleString()} •{" "}
-              {t.disabled ? "Cancelled" : !t.approved ? "Under review" : t.active ? "Live" : "Closed"}
+              {t.disabled
+                ? "Cancelled"
+                : !t.approved
+                  ? "Under review"
+                  : t.active
+                    ? "Live"
+                    : "Closed"}
             </p>
           </div>
           <Link
@@ -1352,15 +1357,13 @@ function ProofsTab({
   });
   const items: any[] = (pq.data?.items ?? []) as any[];
 
-  const list = items
-
-    .filter((s) => {
-      const t = q.trim().toLowerCase();
-      if (!t) return true;
-      return `${s.tasks?.title ?? ""} ${s.user?.name ?? ""} ${s.user?.email ?? ""} ${s.note ?? ""}`
-        .toLowerCase()
-        .includes(t);
-    });
+  const list = items.filter((s) => {
+    const t = q.trim().toLowerCase();
+    if (!t) return true;
+    return `${s.tasks?.title ?? ""} ${s.user?.name ?? ""} ${s.user?.email ?? ""} ${s.note ?? ""}`
+      .toLowerCase()
+      .includes(t);
+  });
 
   return (
     <div className="mt-4 space-y-3">
@@ -1370,7 +1373,9 @@ function ProofsTab({
             key={m}
             onClick={() => setMode(m)}
             className={`rounded-xl py-2.5 text-sm font-bold ${
-              mode === m ? "bg-gradient-brand text-primary-foreground" : "bg-muted text-muted-foreground"
+              mode === m
+                ? "bg-gradient-brand text-primary-foreground"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {m}
