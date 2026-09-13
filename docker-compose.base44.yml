@@ -1,0 +1,30 @@
+services:
+  web:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "3000:3000"
+    environment:
+      # Publishable (public) Supabase keys — also in committed .env, duplicated
+      # here so the SSR server process sees them via process.env.
+      SUPABASE_URL: https://socabrlslvbhlsnwgdcz.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_sCgFE4peqxyaSTcKTMIBew_tffTUpNy
+      VITE_SUPABASE_URL: https://socabrlslvbhlsnwgdcz.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_sCgFE4peqxyaSTcKTMIBew_tffTUpNy
+      VITE_SUPABASE_PROJECT_ID: socabrlslvbhlsnwgdcz
+      # Platform host/origin vars for Vite allowed-hosts detection.
+      - BASE44_PUBLIC_HOST_SUFFIX
+      - BASE44_SANDBOX_HOST_DOMAIN
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+    env_file:
+      - .env
+      - /run/base44/app.env
+    command: sh -c "bun install && bun run dev --port 3000 --host 0.0.0.0"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
