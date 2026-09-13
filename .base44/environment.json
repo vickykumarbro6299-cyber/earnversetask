@@ -1,0 +1,37 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "SUPABASE_SERVICE_ROLE_KEY",
+      "description": "Supabase service role key (sb_secret_...) from Supabase dashboard → Settings → API → service_role key. Needed for server-side admin operations (auth, database writes bypassing RLS).",
+      "requiredAtBoot": true,
+      "generatedForDevelopment": false
+    },
+    {
+      "name": "SUPABASE_URL",
+      "description": "Supabase project URL (https://<project-id>.supabase.co). Publishable — also in committed .env.",
+      "requiredAtBoot": true,
+      "generatedForDevelopment": false
+    },
+    {
+      "name": "SUPABASE_PUBLISHABLE_KEY",
+      "description": "Supabase publishable key (sb_publishable_...). Public, also in committed .env.",
+      "requiredAtBoot": true,
+      "generatedForDevelopment": false
+    },
+    {
+      "name": "VITE_SUPABASE_URL",
+      "description": "Same as SUPABASE_URL, VITE-prefixed for client-side access.",
+      "requiredAtBoot": true,
+      "generatedForDevelopment": false
+    },
+    {
+      "name": "VITE_SUPABASE_PUBLISHABLE_KEY",
+      "description": "Same as SUPABASE_PUBLISHABLE_KEY, VITE-prefixed for client-side access.",
+      "requiredAtBoot": true,
+      "generatedForDevelopment": false
+    }
+  ]
+}
