@@ -11,8 +11,6 @@ import {
   Disc3,
   Calculator,
   Palette,
-
-
   UserCircle,
   ShieldCheck,
   Rocket,
@@ -20,7 +18,6 @@ import {
   FileText,
   ScrollText,
   ReceiptText,
-
   LogOut,
   Moon,
   Sun,
@@ -76,7 +73,6 @@ const groups: { title: string; items: Item[] }[] = [
     ],
   },
 ];
-
 
 export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const me = useMe();
@@ -196,7 +192,6 @@ export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             ))}
           </div>
         </nav>
-
 
         <div className="border-t border-border px-3 py-2">
           <button
