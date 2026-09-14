@@ -435,3 +435,33 @@ export const collectMathQuizReward = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.collectMathQuizRewardImpl({ userId: context.userId }, data);
   });
+
+export const getGuessColorState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.guessColorStateImpl({ userId: context.userId });
+  });
+
+export const startGuessColor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.startGuessColorImpl({ userId: context.userId });
+  });
+
+export const answerGuessColor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { roundId: string; choice: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.answerGuessColorImpl({ userId: context.userId }, data);
+  });
+
+export const collectGuessColorReward = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { roundId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const m = await import("./earn.server");
+    return m.collectGuessColorRewardImpl({ userId: context.userId }, data);
+  });

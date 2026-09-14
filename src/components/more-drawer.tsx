@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   Disc3,
   Calculator,
+  Palette,
 
 
   UserCircle,
@@ -59,6 +60,7 @@ const groups: { title: string; items: Item[] }[] = [
       { to: "/daily-bonus", label: "Daily Bonus", Icon: CalendarCheck },
       { to: "/spin-win", label: "Spin & Win", Icon: Disc3 },
       { to: "/math-quiz", label: "Math Quiz", Icon: Calculator },
+      { to: "/guess-color", label: "Guess Color", Icon: Palette },
       { to: "/refer-earn", label: "Refer & Earn", Icon: Gift },
     ],
   },

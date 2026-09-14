@@ -1857,3 +1857,129 @@ export async function collectMathQuizRewardImpl({ userId }: Ctx, data: { quizId:
   await logLedger(userId, "math-quiz", "Math Quiz — correct answer", quiz.reward as number);
   return { coins: quiz.reward as number };
 }
+
+/* ---------------- guess color ---------------- */
+
+export const GUESS_COLORS_PER_DAY = 10;
+const GUESS_COLOR_REWARD = 10;
+const GUESS_COLOR_OPTIONS = [
+  { name: "Red", value: "#ef4444" },
+  { name: "Blue", value: "#3b82f6" },
+  { name: "Green", value: "#22c55e" },
+  { name: "Yellow", value: "#eab308" },
+  { name: "Orange", value: "#f97316" },
+  { name: "Pink", value: "#ec4899" },
+] as const;
+
+async function guessColorState(userId: string) {
+  const { dateKey, end } = istDayWindow();
+  const { count } = await supabaseAdmin
+    .from("guess_color_rounds")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("round_date", dateKey);
+
+  const { data: earnedRows } = await supabaseAdmin
+    .from("guess_color_rounds")
+    .select("reward")
+    .eq("user_id", userId)
+    .eq("round_date", dateKey)
+    .eq("is_correct", true)
+    .eq("reward_claimed", true);
+
+  const used = count ?? 0;
+  return {
+    dateKey,
+    used,
+    limit: GUESS_COLORS_PER_DAY,
+    remaining: Math.max(0, GUESS_COLORS_PER_DAY - used),
+    earnedToday: (earnedRows ?? []).reduce((sum, row) => sum + (row.reward as number), 0),
+    resetAt: end.toISOString(),
+  };
+}
+
+export async function guessColorStateImpl({ userId }: Ctx) {
+  const state = await guessColorState(userId);
+  const coins = await getCoins(userId);
+  return { ...state, coins };
+}
+
+export async function startGuessColorImpl({ userId }: Ctx) {
+  const state = await guessColorState(userId);
+  if (state.remaining <= 0) throw new Error("Daily Guess Color limit reached. Come back tomorrow!");
+
+  const target = GUESS_COLOR_OPTIONS[Math.floor(Math.random() * GUESS_COLOR_OPTIONS.length)]!;
+  const wrongChoices = GUESS_COLOR_OPTIONS.filter((color) => color.name !== target.name);
+  const wrong = wrongChoices[Math.floor(Math.random() * wrongChoices.length)]!;
+  const options = shuffle([target, wrong]);
+
+  const { data, error } = await supabaseAdmin
+    .from("guess_color_rounds")
+    .insert({
+      user_id: userId,
+      round_date: state.dateKey,
+      target_color: target.name,
+      options,
+      reward: GUESS_COLOR_REWARD,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error("Could not start Guess Color — try again.");
+
+  return {
+    id: data.id as string,
+    targetColor: target.name,
+    options,
+    reward: GUESS_COLOR_REWARD,
+    remaining: state.remaining - 1,
+  };
+}
+
+export async function answerGuessColorImpl(
+  { userId }: Ctx,
+  data: { roundId: string; choice: string },
+) {
+  const { data: round, error } = await supabaseAdmin
+    .from("guess_color_rounds")
+    .select("id, target_color, reward, answered")
+    .eq("id", data.roundId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !round) throw new Error("Color round not found");
+  if (round.answered) throw new Error("This color round is already answered");
+
+  const isCorrect = data.choice === round.target_color;
+  const { data: updated, error: updateError } = await supabaseAdmin
+    .from("guess_color_rounds")
+    .update({ answered: true, is_correct: isCorrect })
+    .eq("id", round.id)
+    .eq("answered", false)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updated) throw new Error("This color round is already answered");
+
+  return {
+    roundId: round.id as string,
+    correct: isCorrect,
+    coins: isCorrect ? (round.reward as number) : 0,
+    correctAnswer: round.target_color as string,
+  };
+}
+
+export async function collectGuessColorRewardImpl({ userId }: Ctx, data: { roundId: string }) {
+  const { data: round, error } = await supabaseAdmin
+    .from("guess_color_rounds")
+    .update({ reward_claimed: true })
+    .eq("id", data.roundId)
+    .eq("user_id", userId)
+    .eq("answered", true)
+    .eq("is_correct", true)
+    .eq("reward_claimed", false)
+    .select("reward")
+    .maybeSingle();
+  if (error || !round) throw new Error("Reward already collected or unavailable");
+
+  await addCoins(userId, round.reward as number);
+  await logLedger(userId, "guess-color", "Guess Color — correct answer", round.reward as number);
+  return { coins: round.reward as number };
+}
