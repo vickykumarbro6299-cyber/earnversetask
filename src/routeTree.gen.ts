@@ -21,6 +21,7 @@ import { Route as AuthenticatedAddTaskRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedCreatorStudioRouteImport } from './routes/_authenticated/creator-studio'
 import { Route as AuthenticatedDailyBonusRouteImport } from './routes/_authenticated/daily-bonus'
+import { Route as AuthenticatedGuessColorRouteImport } from './routes/_authenticated/guess-color'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
 import { Route as AuthenticatedMathQuizRouteImport } from './routes/_authenticated/math-quiz'
@@ -92,6 +93,11 @@ const AuthenticatedDailyBonusRoute = AuthenticatedDailyBonusRouteImport.update({
   path: '/daily-bonus',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGuessColorRoute = AuthenticatedGuessColorRouteImport.update({
+  id: '/guess-color',
+  path: '/guess-color',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/daily-bonus': typeof AuthenticatedDailyBonusRoute
+  '/guess-color': typeof AuthenticatedGuessColorRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/math-quiz': typeof AuthenticatedMathQuizRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/daily-bonus': typeof AuthenticatedDailyBonusRoute
+  '/guess-color': typeof AuthenticatedGuessColorRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/math-quiz': typeof AuthenticatedMathQuizRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/creator-studio': typeof AuthenticatedCreatorStudioRoute
   '/_authenticated/daily-bonus': typeof AuthenticatedDailyBonusRoute
+  '/_authenticated/guess-color': typeof AuthenticatedGuessColorRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/_authenticated/math-quiz': typeof AuthenticatedMathQuizRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/creator-studio'
     | '/daily-bonus'
+    | '/guess-color'
     | '/history'
     | '/leaderboard'
     | '/math-quiz'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/creator-studio'
     | '/daily-bonus'
+    | '/guess-color'
     | '/history'
     | '/leaderboard'
     | '/math-quiz'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/creator-studio'
     | '/_authenticated/daily-bonus'
+    | '/_authenticated/guess-color'
     | '/_authenticated/history'
     | '/_authenticated/leaderboard'
     | '/_authenticated/math-quiz'
@@ -386,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDailyBonusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/guess-color': {
+      id: '/_authenticated/guess-color'
+      path: '/guess-color'
+      fullPath: '/guess-color'
+      preLoaderRoute: typeof AuthenticatedGuessColorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/history': {
       id: '/_authenticated/history'
       path: '/history'
@@ -464,6 +483,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCreatorStudioRoute: typeof AuthenticatedCreatorStudioRoute
   AuthenticatedDailyBonusRoute: typeof AuthenticatedDailyBonusRoute
+  AuthenticatedGuessColorRoute: typeof AuthenticatedGuessColorRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
   AuthenticatedMathQuizRoute: typeof AuthenticatedMathQuizRoute
@@ -481,6 +501,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCreatorStudioRoute: AuthenticatedCreatorStudioRoute,
   AuthenticatedDailyBonusRoute: AuthenticatedDailyBonusRoute,
+  AuthenticatedGuessColorRoute: AuthenticatedGuessColorRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
   AuthenticatedMathQuizRoute: AuthenticatedMathQuizRoute,

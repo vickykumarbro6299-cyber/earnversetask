@@ -146,6 +146,45 @@ export type Database = {
         }
         Relationships: []
       }
+      guess_color_rounds: {
+        Row: {
+          answered: boolean
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          options: Json
+          reward: number
+          reward_claimed: boolean
+          round_date: string
+          target_color: string
+          user_id: string
+        }
+        Insert: {
+          answered?: boolean
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          options: Json
+          reward?: number
+          reward_claimed?: boolean
+          round_date: string
+          target_color: string
+          user_id: string
+        }
+        Update: {
+          answered?: boolean
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          options?: Json
+          reward?: number
+          reward_claimed?: boolean
+          round_date?: string
+          target_color?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard_payouts: {
         Row: {
           coins: number

@@ -47,8 +47,7 @@ export const WITHDRAW_PACKS: { rupees: number; coins: number }[] = [
   { coins: 11000, rupees: 100 },
 ];
 
-export const payableAmount = (rupees: number) =>
-  Number((rupees * (1 + DEPOSIT_TAX)).toFixed(2));
+export const payableAmount = (rupees: number) => Number((rupees * (1 + DEPOSIT_TAX)).toFixed(2));
 
 export const TASK_CATEGORIES = [
   { key: "video", label: "Long Video" },
@@ -68,7 +67,7 @@ export const CATEGORY_MIN_REWARD: Record<string, number> = {
   app: 300,
   telegram: 20,
   instagram: 20,
-  other: 50,
+  other: 20,
 };
 
 /** Categories where a task link makes no sense. */
@@ -119,7 +118,6 @@ export function autoDescription(category: string): string | null {
 }
 
 export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
-
 
 /** Public site URL used for shareable links (referral, profile). */
 export const SITE_URL = "https://earnverse.life";
