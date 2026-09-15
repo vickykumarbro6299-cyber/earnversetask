@@ -98,58 +98,68 @@ export async function meImpl({ userId }: Ctx) {
   }
 
   // Auto-create profile if the handle_new_user trigger didn't fire
-  if (!profile && authUser?.user) {
-    const email = authUser.user.email ?? "";
-    const meta = (authUser.user.user_metadata ?? {}) as Record<string, unknown>;
+  if (!profile) {
+    console.log("[meImpl] Profile not found, attempting auto-create for", userId);
+    if (authUser?.user) {
+      const email = authUser.user.email ?? "";
+      const meta = (authUser.user.user_metadata ?? {}) as Record<string, unknown>;
 
-    // Generate a unique referral code
-    let referralCode = `EV${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    try {
-      const { data: code } = await supabaseAdmin.rpc("gen_referral_code");
-      if (code) referralCode = code as string;
-    } catch {
-      /* use fallback code */
-    }
+      // Generate a unique referral code
+      let referralCode = `EV${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      try {
+        const { data: code } = await supabaseAdmin.rpc("gen_referral_code");
+        if (code) referralCode = code as string;
+      } catch (e) {
+        console.log("[meImpl] gen_referral_code failed, using fallback:", e instanceof Error ? e.message : e);
+      }
 
-    // Look up referrer from metadata
-    let referredBy: string | null = null;
-    const refCode = String(meta.referral_code ?? "").trim().toUpperCase();
-    if (refCode) {
-      const { data: refUser } = await supabaseAdmin
+      // Look up referrer from metadata
+      let referredBy: string | null = null;
+      const refCode = String(meta.referral_code ?? "").trim().toUpperCase();
+      if (refCode) {
+        const { data: refUser } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("referral_code", refCode)
+          .maybeSingle();
+        if (refUser) referredBy = refUser.id;
+      }
+
+      const { data: created, error } = await supabaseAdmin
         .from("profiles")
-        .select("id")
-        .eq("referral_code", refCode)
+        .insert({
+          id: userId,
+          name: String(meta.name ?? ""),
+          mobile: String(meta.mobile ?? ""),
+          email,
+          coins: 50,
+          referral_code: referralCode,
+          referred_by: referredBy,
+        })
+        .select("*")
         .maybeSingle();
-      if (refUser) referredBy = refUser.id;
+
+      if (error) {
+        console.error("[meImpl] Profile insert failed:", JSON.stringify(error));
+      } else if (created) {
+        console.log("[meImpl] Profile auto-created for", userId);
+        profile = created;
+      }
+
+      // Ensure user_roles entry exists
+      const adminEmail = "trustmeiamjonathan12@gmail.com";
+      await supabaseAdmin
+        .from("user_roles")
+        .upsert(
+          {
+            user_id: userId,
+            role: email.toLowerCase() === adminEmail ? "admin" : "user",
+          },
+          { onConflict: "user_id,role" },
+        );
+    } else {
+      console.error("[meImpl] Cannot auto-create profile: authUser is null for", userId);
     }
-
-    const { data: created, error } = await supabaseAdmin
-      .from("profiles")
-      .insert({
-        id: userId,
-        name: String(meta.name ?? ""),
-        mobile: String(meta.mobile ?? ""),
-        email,
-        coins: 50,
-        referral_code: referralCode,
-        referred_by: referredBy,
-      })
-      .select("*")
-      .maybeSingle();
-
-    if (!error && created) profile = created;
-
-    // Ensure user_roles entry exists
-    const adminEmail = "trustmeiamjonathan12@gmail.com";
-    await supabaseAdmin
-      .from("user_roles")
-      .upsert(
-        {
-          user_id: userId,
-          role: email.toLowerCase() === adminEmail ? "admin" : "user",
-        },
-        { onConflict: "user_id,role" },
-      );
   }
 
   const { data: settings } = await supabaseAdmin.from("app_settings").select("*");
