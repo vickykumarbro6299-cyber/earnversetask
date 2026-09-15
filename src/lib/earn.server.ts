@@ -82,21 +82,81 @@ async function logLedger(
 /* ---------------- user side ---------------- */
 
 export async function meImpl({ userId }: Ctx) {
-  const { data: profile } = await supabaseAdmin
+  let { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("*")
     .eq("id", userId)
     .maybeSingle();
+
+  // Fetch auth user data (needed for emailVerified and profile auto-creation)
+  let authUser: Awaited<ReturnType<typeof supabaseAdmin.auth.admin.getUserById>>["data"] = null;
+  try {
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+    authUser = u;
+  } catch {
+    /* ignore */
+  }
+
+  // Auto-create profile if the handle_new_user trigger didn't fire
+  if (!profile && authUser?.user) {
+    const email = authUser.user.email ?? "";
+    const meta = (authUser.user.user_metadata ?? {}) as Record<string, unknown>;
+
+    // Generate a unique referral code
+    let referralCode = `EV${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    try {
+      const { data: code } = await supabaseAdmin.rpc("gen_referral_code");
+      if (code) referralCode = code as string;
+    } catch {
+      /* use fallback code */
+    }
+
+    // Look up referrer from metadata
+    let referredBy: string | null = null;
+    const refCode = String(meta.referral_code ?? "").trim().toUpperCase();
+    if (refCode) {
+      const { data: refUser } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", refCode)
+        .maybeSingle();
+      if (refUser) referredBy = refUser.id;
+    }
+
+    const { data: created, error } = await supabaseAdmin
+      .from("profiles")
+      .insert({
+        id: userId,
+        name: String(meta.name ?? ""),
+        mobile: String(meta.mobile ?? ""),
+        email,
+        coins: 50,
+        referral_code: referralCode,
+        referred_by: referredBy,
+      })
+      .select("*")
+      .maybeSingle();
+
+    if (!error && created) profile = created;
+
+    // Ensure user_roles entry exists
+    const adminEmail = "trustmeiamjonathan12@gmail.com";
+    await supabaseAdmin
+      .from("user_roles")
+      .upsert(
+        {
+          user_id: userId,
+          role: email.toLowerCase() === adminEmail ? "admin" : "user",
+        },
+        { onConflict: "user_id,role" },
+      );
+  }
+
   const { data: settings } = await supabaseAdmin.from("app_settings").select("*");
   const map: Record<string, string> = {};
   (settings ?? []).forEach((s) => (map[s.key] = s.value));
-  let emailVerified = false;
-  try {
-    const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
-    emailVerified = !!u.user?.email_confirmed_at;
-  } catch {
-    emailVerified = false;
-  }
+  const emailVerified = !!authUser?.user?.email_confirmed_at;
+
   return { profile, isAdmin: await isAdmin(userId), settings: map, emailVerified };
 }
 
