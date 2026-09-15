@@ -443,23 +443,33 @@ export async function adminReviewTaskImpl(
     .eq("id", data.taskId)
     .single();
   if (error) throw new Error("Task not found");
-  if (task.approved) throw new Error("This task is already approved");
+  if (task.approved || task.disabled) throw new Error("This task is already reviewed");
 
   if (data.approve) {
-    await supabaseAdmin
+    const { data: approved } = await supabaseAdmin
       .from("tasks")
       .update({ approved: true, active: true, disabled: false })
-      .eq("id", task.id);
+      .eq("id", task.id)
+      .eq("approved", false)
+      .eq("disabled", false)
+      .select("id")
+      .maybeSingle();
+    if (!approved) throw new Error("This task is already reviewed");
     await recountTask(task.id);
     return { approved: true, refund: 0 };
   }
 
   // Rejected — full slot value goes back to the creator (platform fee is kept).
   const refund = task.is_admin_task || !task.created_by ? 0 : task.total_slots * task.reward_coins;
-  await supabaseAdmin
+  const { data: rejected } = await supabaseAdmin
     .from("tasks")
     .update({ approved: false, active: false, disabled: true })
-    .eq("id", task.id);
+    .eq("id", task.id)
+    .eq("approved", false)
+    .eq("disabled", false)
+    .select("id")
+    .maybeSingle();
+  if (!rejected) throw new Error("This task is already reviewed");
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
     await logLedger(
@@ -806,14 +816,19 @@ export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: strin
     .eq("id", data.taskId)
     .single();
   if (error) throw new Error("Task not found");
+  if (task.disabled) throw new Error("This task is already cancelled");
 
   const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
   const refund = task.is_admin_task || !task.created_by ? 0 : unusedSlots * task.reward_coins;
 
-  await supabaseAdmin
+  const { data: cancelled } = await supabaseAdmin
     .from("tasks")
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
-    .eq("id", task.id);
+    .eq("id", task.id)
+    .eq("disabled", false)
+    .select("id")
+    .maybeSingle();
+  if (!cancelled) throw new Error("This task is already cancelled");
 
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
@@ -906,7 +921,7 @@ export async function adminReviewSubmissionImpl(
 
   // Write the final status FIRST, then recount — otherwise the recount still
   // sees this row as pending and the rejected slot never returns to the pool.
-  const { error: upErr } = await supabaseAdmin
+  const { data: reviewed, error: upErr } = await supabaseAdmin
     .from("submissions")
     .update({
       status: data.approve ? "approved" : "rejected",
@@ -914,8 +929,11 @@ export async function adminReviewSubmissionImpl(
       admin_note: data.note?.trim() ? data.note.trim() : null,
     })
     .eq("id", data.id)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
   if (upErr) throw upErr;
+  if (!reviewed) throw new Error("Already reviewed");
 
   if (data.approve) {
     await addCoins(sub.user_id, sub.reward_coins);
@@ -999,14 +1017,18 @@ export async function adminReviewDepositImpl(
     .single();
   if (error) throw error;
   if (dep.status !== "pending") throw new Error("Already reviewed");
-  if (data.approve) await addCoins(dep.user_id, dep.coins);
-  await supabaseAdmin
+  const { data: reviewed } = await supabaseAdmin
     .from("deposits")
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", data.id);
+    .eq("id", data.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+  if (!reviewed) throw new Error("Already reviewed");
+  if (data.approve) await addCoins(dep.user_id, dep.coins);
   return { ok: true };
 }
 
@@ -1022,15 +1044,19 @@ export async function adminReviewWithdrawalImpl(
     .single();
   if (error) throw error;
   if (wd.status !== "pending") throw new Error("Already reviewed");
-  if (!data.approve) await addCoins(wd.user_id, wd.coins);
-  await supabaseAdmin
+  const { data: reviewed } = await supabaseAdmin
     .from("withdrawals")
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
       admin_note: data.note?.trim() ? data.note.trim() : null,
     })
-    .eq("id", data.id);
+    .eq("id", data.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+  if (!reviewed) throw new Error("Already reviewed");
+  if (!data.approve) await addCoins(wd.user_id, wd.coins);
   return { ok: true };
 }
 
@@ -1117,16 +1143,21 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
     .single();
   if (error) throw new Error("Task not found");
   if (task.is_admin_task) throw new Error("This task cannot be cancelled");
+  if (task.disabled) throw new Error("This task is already cancelled");
   if (!task.active && task.claimed_count >= task.total_slots)
     throw new Error("This task is already finished");
 
   const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
   const refund = unusedSlots * task.reward_coins;
 
-  await supabaseAdmin
+  const { data: cancelled } = await supabaseAdmin
     .from("tasks")
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
-    .eq("id", task.id);
+    .eq("id", task.id)
+    .eq("disabled", false)
+    .select("id")
+    .maybeSingle();
+  if (!cancelled) throw new Error("This task is already cancelled");
 
   if (refund > 0) {
     await addCoins(userId, refund);
