@@ -15,6 +15,13 @@
       "when": 1789523616563,
       "tag": "0001_atomic_coin_balance_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789523660611,
+      "tag": "0002_lock_referral_milestone_awards",
+      "breakpoints": true
     }
   ]
 }
