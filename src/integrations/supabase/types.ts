@@ -596,6 +596,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_referral_milestone: {
+        Args: {
+          p_bonus_coins: number
+          p_earner_id: string
+          p_task_goal: number
+        }
+        Returns: boolean
+      }
+      change_user_coins: {
+        Args: { p_delta: number; p_user_id: string }
+        Returns: number
+      }
       claim_task_slot: {
         Args: { p_minutes: number; p_task_id: string; p_user_id: string }
         Returns: string
