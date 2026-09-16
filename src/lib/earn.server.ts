@@ -55,10 +55,10 @@ async function getCoins(userId: string) {
 }
 
 async function addCoins(userId: string, delta: number) {
-  const current = await getCoins(userId);
-  const next = current + delta;
-  if (next < 0) throw new Error("Not enough coins");
-  const { error } = await supabaseAdmin.from("profiles").update({ coins: next }).eq("id", userId);
+  const { data: next, error } = await supabaseAdmin.rpc("change_user_coins", {
+    p_user_id: userId,
+    p_delta: delta,
+  });
   if (error) throw error;
   return next;
 }
@@ -877,14 +877,6 @@ async function maybePayReferralMilestone(earnerId: string) {
   const referrer = prof?.referred_by;
   if (!referrer) return;
 
-  const { count: paid } = await supabaseAdmin
-    .from("referral_earnings")
-    .select("id", { count: "exact", head: true })
-    .eq("referrer_id", referrer)
-    .eq("referred_id", earnerId)
-    .eq("source", "milestone");
-  if ((paid ?? 0) > 0) return;
-
   const { count: done } = await supabaseAdmin
     .from("submissions")
     .select("id", { count: "exact", head: true })
@@ -892,13 +884,17 @@ async function maybePayReferralMilestone(earnerId: string) {
     .eq("status", "approved");
   if ((done ?? 0) < REFERRAL_TASK_GOAL) return;
 
-  await addCoins(referrer, REFERRAL_BONUS_COINS);
-  await supabaseAdmin.from("referral_earnings").insert({
+  const { error: insertError } = await supabaseAdmin.from("referral_earnings").insert({
     referrer_id: referrer,
     referred_id: earnerId,
     coins: REFERRAL_BONUS_COINS,
     source: "milestone",
   });
+  if (insertError) {
+    if (insertError.code === "23505") return;
+    throw insertError;
+  }
+  await addCoins(referrer, REFERRAL_BONUS_COINS);
 }
 
 /** Give the reserved slot back to the pool (recalculated from real submissions). */
