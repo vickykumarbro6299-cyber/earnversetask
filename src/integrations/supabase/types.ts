@@ -596,6 +596,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      change_user_coins: {
+        Args: { p_delta: number; p_user_id: string }
+        Returns: number
+      }
       claim_task_slot: {
         Args: { p_minutes: number; p_task_id: string; p_user_id: string }
         Returns: string
