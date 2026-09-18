@@ -7,3 +7,4 @@
 - [ ] Set a 5-credit daily build-usage block if an existing limit supports updates (blocked: no matching limit exists).
 - [x] Stop duplicate coin credits across admin reviews, task refunds, and referral milestones.
 - [x] Remove only confirmed duplicate bug credits from affected users and record each correction.
+- [ ] Audit all earning credits for duplicate payouts and reverse only confirmed duplicates.
