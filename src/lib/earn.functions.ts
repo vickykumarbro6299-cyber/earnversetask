@@ -105,6 +105,7 @@ export const adminSetPromoActive = createServerFn({ method: "POST" })
     return m.adminSetPromoActiveImpl({ userId: context.userId }, data);
   });
 
+
 export const createDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { rupees: number; utr: string; proofPath?: string | undefined }) => d)
@@ -120,6 +121,7 @@ export const createWithdrawal = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.createWithdrawalImpl({ userId: context.userId }, data);
   });
+
 
 export const getWallet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -156,6 +158,7 @@ export const adminCreateTask = createServerFn({ method: "POST" })
       sampleImageUrl?: string;
       allowMultiple?: boolean;
     }) => d,
+
   )
 
   .handler(async ({ context, data }) => {
@@ -224,7 +227,7 @@ export const adminReviewWithdrawal = createServerFn({ method: "POST" })
 
 export const adminUpdateSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { upi: string; name: string; maintenanceMode: boolean }) => d)
+  .inputValidator((d: { upi: string; name: string }) => d)
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.adminUpdateSettingsImpl({ userId: context.userId }, data);
@@ -244,6 +247,7 @@ export const getReferral = createServerFn({ method: "GET" })
     const m = await import("./earn.server");
     return m.referralImpl({ userId: context.userId });
   });
+
 
 export const listMyCreatedTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -332,6 +336,7 @@ export const trackDevice = createServerFn({ method: "POST" })
     );
   });
 
+
 export const adminDeviceReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -346,6 +351,7 @@ export const adminTaskDetail = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.adminTaskDetailImpl({ userId: context.userId }, data);
   });
+
 
 export const adminReviewTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -398,14 +404,6 @@ export const spinWheel = createServerFn({ method: "POST" })
     return m.spinImpl({ userId: context.userId });
   });
 
-export const collectSpinReward = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { spinId: string }) => d)
-  .handler(async ({ context, data }) => {
-    const m = await import("./earn.server");
-    return m.collectSpinRewardImpl({ userId: context.userId }, data);
-  });
-
 export const getMathQuizState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -426,42 +424,4 @@ export const answerMathQuiz = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const m = await import("./earn.server");
     return m.answerMathQuizImpl({ userId: context.userId }, data);
-  });
-
-export const collectMathQuizReward = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { quizId: string }) => d)
-  .handler(async ({ context, data }) => {
-    const m = await import("./earn.server");
-    return m.collectMathQuizRewardImpl({ userId: context.userId }, data);
-  });
-
-export const getGuessColorState = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const m = await import("./earn.server");
-    return m.guessColorStateImpl({ userId: context.userId });
-  });
-
-export const startGuessColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const m = await import("./earn.server");
-    return m.startGuessColorImpl({ userId: context.userId });
-  });
-
-export const answerGuessColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { roundId: string; choice: string }) => d)
-  .handler(async ({ context, data }) => {
-    const m = await import("./earn.server");
-    return m.answerGuessColorImpl({ userId: context.userId }, data);
-  });
-
-export const collectGuessColorReward = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { roundId: string }) => d)
-  .handler(async ({ context, data }) => {
-    const m = await import("./earn.server");
-    return m.collectGuessColorRewardImpl({ userId: context.userId }, data);
   });

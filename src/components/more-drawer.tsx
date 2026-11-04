@@ -10,7 +10,8 @@ import {
   CalendarCheck,
   Disc3,
   Calculator,
-  Palette,
+
+
   UserCircle,
   ShieldCheck,
   Rocket,
@@ -18,6 +19,7 @@ import {
   FileText,
   ScrollText,
   ReceiptText,
+
   LogOut,
   Moon,
   Sun,
@@ -57,7 +59,6 @@ const groups: { title: string; items: Item[] }[] = [
       { to: "/daily-bonus", label: "Daily Bonus", Icon: CalendarCheck },
       { to: "/spin-win", label: "Spin & Win", Icon: Disc3 },
       { to: "/math-quiz", label: "Math Quiz", Icon: Calculator },
-      { to: "/guess-color", label: "Guess Color", Icon: Palette },
       { to: "/refer-earn", label: "Refer & Earn", Icon: Gift },
     ],
   },
@@ -73,6 +74,7 @@ const groups: { title: string; items: Item[] }[] = [
     ],
   },
 ];
+
 
 export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const me = useMe();
@@ -192,6 +194,7 @@ export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             ))}
           </div>
         </nav>
+
 
         <div className="border-t border-border px-3 py-2">
           <button

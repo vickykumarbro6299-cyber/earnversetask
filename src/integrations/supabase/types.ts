@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -146,45 +146,6 @@ export type Database = {
         }
         Relationships: []
       }
-      guess_color_rounds: {
-        Row: {
-          answered: boolean
-          created_at: string
-          id: string
-          is_correct: boolean | null
-          options: Json
-          reward: number
-          reward_claimed: boolean
-          round_date: string
-          target_color: string
-          user_id: string
-        }
-        Insert: {
-          answered?: boolean
-          created_at?: string
-          id?: string
-          is_correct?: boolean | null
-          options: Json
-          reward?: number
-          reward_claimed?: boolean
-          round_date: string
-          target_color: string
-          user_id: string
-        }
-        Update: {
-          answered?: boolean
-          created_at?: string
-          id?: string
-          is_correct?: boolean | null
-          options?: Json
-          reward?: number
-          reward_claimed?: boolean
-          round_date?: string
-          target_color?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       leaderboard_payouts: {
         Row: {
           coins: number
@@ -227,7 +188,6 @@ export type Database = {
           options: Json
           quiz_date: string
           reward: number
-          reward_claimed: boolean
           user_id: string
         }
         Insert: {
@@ -241,7 +201,6 @@ export type Database = {
           options: Json
           quiz_date: string
           reward: number
-          reward_claimed?: boolean
           user_id: string
         }
         Update: {
@@ -255,7 +214,6 @@ export type Database = {
           options?: Json
           quiz_date?: string
           reward?: number
-          reward_claimed?: boolean
           user_id?: string
         }
         Relationships: []
@@ -400,7 +358,6 @@ export type Database = {
           created_at: string
           id: string
           label: string
-          reward_claimed: boolean
           spin_date: string
           user_id: string
         }
@@ -409,7 +366,6 @@ export type Database = {
           created_at?: string
           id?: string
           label: string
-          reward_claimed?: boolean
           spin_date: string
           user_id: string
         }
@@ -418,7 +374,6 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
-          reward_claimed?: boolean
           spin_date?: string
           user_id?: string
         }
@@ -596,18 +551,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      award_referral_milestone: {
-        Args: {
-          p_bonus_coins: number
-          p_earner_id: string
-          p_task_goal: number
-        }
-        Returns: boolean
-      }
-      change_user_coins: {
-        Args: { p_delta: number; p_user_id: string }
-        Returns: number
-      }
       claim_task_slot: {
         Args: { p_minutes: number; p_task_id: string; p_user_id: string }
         Returns: string

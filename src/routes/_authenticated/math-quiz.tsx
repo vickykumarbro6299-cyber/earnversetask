@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ChevronLeft,
   Wallet,
@@ -16,12 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import {
-  answerMathQuiz,
-  collectMathQuizReward,
-  getMathQuizState,
-  startMathQuiz,
-} from "@/lib/earn.functions";
+import { getMathQuizState, startMathQuiz, answerMathQuiz } from "@/lib/earn.functions";
 
 export const Route = createFileRoute("/_authenticated/math-quiz")({
   head: () => ({
@@ -45,35 +40,24 @@ export const Route = createFileRoute("/_authenticated/math-quiz")({
 });
 
 type Quiz = { id: string; a: number; b: number; options: number[]; reward: number };
-type AnswerResult = { quizId: string; correct: boolean; coins: number; correctAnswer: number };
-const QUIZ_COOLDOWN_KEY = "earnverse:math-quiz-cooldown-until";
+type AnswerResult = { correct: boolean; coins: number; correctAnswer: number };
 
 declare global {
   interface Window {
-    show_11729008?: () => Promise<unknown>;
+    show_11729008?: (type?: "pop") => Promise<unknown>;
   }
 }
 
 /** Plays a rewarded ad. Resolves true when the ad was watched, false otherwise. */
-async function showRewardedAd(): Promise<boolean> {
+async function showRewardedAd(type?: "pop"): Promise<boolean> {
   const fn = window.show_11729008;
   if (typeof fn !== "function") return false;
   try {
-    await fn();
+    await fn(type);
     return true;
   } catch {
     return false;
   }
-}
-
-function saveQuizCooldown(): number {
-  const until = Date.now() + 20_000;
-  try {
-    window.localStorage.setItem(QUIZ_COOLDOWN_KEY, String(until));
-  } catch {
-    // The in-memory timer still works when browser storage is unavailable.
-  }
-  return 20;
 }
 
 function MathQuizPage() {
@@ -81,42 +65,20 @@ function MathQuizPage() {
   const fetchState = useServerFn(getMathQuizState);
   const startFn = useServerFn(startMathQuiz);
   const answerFn = useServerFn(answerMathQuiz);
-  const collectReward = useServerFn(collectMathQuizReward);
   const q = useQuery({ queryKey: ["math-quiz-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
-  const [pending, setPending] = useState<AnswerResult | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
-  const [cooldown, setCooldown] = useState(0);
 
   const coins = q.data?.coins ?? 0;
   const remaining = q.data?.remaining ?? 10;
   const limit = q.data?.limit ?? 10;
   const earnedToday = q.data?.earnedToday ?? 0;
-  const answered = pending ?? result;
-
-  // Keep the cooldown tied to an expiry time so navigation cannot reset it.
-  useEffect(() => {
-    const update = () => {
-      let until = 0;
-      try {
-        until = Number(window.localStorage.getItem(QUIZ_COOLDOWN_KEY) ?? 0);
-      } catch {
-        return;
-      }
-      const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-      setCooldown(seconds);
-      if (seconds === 0 && until > 0) window.localStorage.removeItem(QUIZ_COOLDOWN_KEY);
-    };
-    update();
-    const t = window.setInterval(update, 500);
-    return () => window.clearInterval(t);
-  }, []);
 
   const unlockQuiz = async () => {
-    if (busy || cooldown > 0) return;
+    if (busy) return;
     if (remaining <= 0) {
       toast.error("Daily quiz limit reached. Come back tomorrow!");
       return;
@@ -125,13 +87,12 @@ function MathQuizPage() {
     try {
       const watched = await showRewardedAd();
       if (!watched) {
-        toast.error("Ad not completed — watch the full ad to unlock your quiz.");
+        toast.error("Ad not completed — please watch the full ad to unlock the quiz.");
         return;
       }
       const res = (await startFn()) as Quiz & { remaining: number };
       setQuiz({ id: res.id, a: res.a, b: res.b, options: res.options, reward: res.reward });
       setPicked(null);
-      setPending(null);
       setResult(null);
       void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
     } catch (e) {
@@ -142,13 +103,14 @@ function MathQuizPage() {
   };
 
   const submitAnswer = async (choice: number) => {
-    if (!quiz || answered || busy) return;
+    if (!quiz || result || busy) return;
     setPicked(choice);
     setBusy(true);
     try {
       const res = (await answerFn({ data: { quizId: quiz.id, choice } })) as AnswerResult;
-      setPending(res);
+      setResult(res);
       void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not submit answer");
       setPicked(null);
@@ -157,37 +119,13 @@ function MathQuizPage() {
     }
   };
 
-  const collectCoins = async () => {
-    if (!pending || busy) return;
-    setBusy(true);
-    try {
-      if (pending.correct && pending.coins > 0) {
-        const watched = await showRewardedAd();
-        if (!watched) {
-          toast.error("Ad not completed — please watch the full ad to collect your coins.");
-          return;
-        }
-        await collectReward({ data: { quizId: pending.quizId } });
-      }
-      setResult(pending);
-      setPending(null);
-      setQuiz(null);
-      setPicked(null);
-      setCooldown(saveQuizCooldown());
-      void queryClient.invalidateQueries({ queryKey: ["math-quiz-state"] });
-      void queryClient.invalidateQueries({ queryKey: ["me"] });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const optionClass = (opt: number) => {
-    if (!answered)
+    if (!result)
       return picked === opt
         ? "border-primary bg-primary/10 text-foreground"
         : "border-border bg-card text-foreground active:scale-95";
-    if (opt === answered.correctAnswer) return "border-success bg-success/15 text-success";
-    if (opt === picked && !answered.correct)
+    if (opt === result.correctAnswer) return "border-success bg-success/15 text-success";
+    if (opt === picked && !result.correct)
       return "border-destructive bg-destructive/15 text-destructive";
     return "border-border bg-card text-muted-foreground opacity-60";
   };
@@ -242,11 +180,9 @@ function MathQuizPage() {
           <div className="flex items-center justify-center gap-3 rounded-2xl bg-success/15 px-4 py-4">
             <Calculator className="h-6 w-6 text-success" />
             <p className="text-base font-extrabold text-success">
-              {remaining <= 0
-                ? "Daily quiz limit reached. Come back tomorrow."
-                : cooldown > 0
-                  ? `Next quiz unlocks in ${cooldown}s`
-                  : "Start a quiz and win coins!"}
+              {remaining > 0
+                ? "Watch an ad to unlock a quiz!"
+                : "Daily quiz limit reached. Come back tomorrow."}
             </p>
           </div>
         ) : (
@@ -261,7 +197,7 @@ function MathQuizPage() {
               {quiz.options.map((opt) => (
                 <button
                   key={opt}
-                  disabled={!!answered || busy}
+                  disabled={!!result || busy}
                   onClick={() => submitAnswer(opt)}
                   className={`rounded-2xl border-2 py-4 text-xl font-extrabold transition-all ${optionClass(opt)}`}
                 >
@@ -269,23 +205,36 @@ function MathQuizPage() {
                 </button>
               ))}
             </div>
-            {answered && (
+            {result && (
               <div className="mt-4 space-y-3">
                 <p
                   className={`flex items-center justify-center gap-2 text-base font-extrabold ${
-                    answered.correct ? "text-success" : "text-destructive"
+                    result.correct ? "text-success" : "text-destructive"
                   }`}
                 >
-                  {answered.correct ? (
+                  {result.correct ? (
                     <>
-                      <CheckCircle2 className="h-5 w-5" /> Correct! +{answered.coins} coins
+                      <CheckCircle2 className="h-5 w-5" /> Correct! +{result.coins} coins
                     </>
                   ) : (
                     <>
-                      <XCircle className="h-5 w-5" /> Wrong! Answer was {answered.correctAnswer}
+                      <XCircle className="h-5 w-5" /> Wrong! Answer was {result.correctAnswer}
                     </>
                   )}
                 </p>
+                <button
+                  onClick={() => {
+                    setQuiz(null);
+                    setResult(null);
+                    setPicked(null);
+                    void unlockQuiz();
+                  }}
+                  disabled={busy || remaining <= 0}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
+                >
+                  <Play className="h-5 w-5" />
+                  {busy ? "Loading Ad…" : "Watch Ad & Next Quiz"}
+                </button>
               </div>
             )}
           </div>
@@ -294,53 +243,22 @@ function MathQuizPage() {
         {!quiz && (
           <button
             onClick={unlockQuiz}
-            disabled={busy || remaining <= 0 || cooldown > 0}
+            disabled={busy || remaining <= 0}
             className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
           >
             <Play className="h-6 w-6" />
-            {cooldown > 0
-              ? `Next Quiz in ${cooldown}s`
-              : busy
-                ? "Loading Ad…"
-                : "Watch Ad & Unlock Quiz"}
+            {busy ? "Loading Ad…" : "Watch Ad & Unlock Quiz"}
           </button>
         )}
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Answer a two-digit math quiz, then watch a short ad to collect your coins. Correct
-            answer wins 10–50 coins, added straight to your EarnVerse wallet. You get up to {limit}{" "}
-            quizzes a day.
+            Watch a short ad to unlock a two-digit math quiz. Correct answer wins 10–50 coins,
+            added straight to your EarnVerse wallet. You get up to {limit} quizzes a day.
           </p>
         </div>
       </main>
-
-      {pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
-          <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
-            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/20">
-              <Gift className="h-8 w-8 text-gold" />
-            </span>
-            <p className="mt-3 text-2xl font-extrabold text-foreground">
-              {pending.correct ? `You Won ${pending.coins} Coins 🎉` : "Wrong Answer!"}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-muted-foreground">
-              {pending.correct
-                ? "Watch a short ad to collect your coins."
-                : `The correct answer was ${pending.correctAnswer}.`}
-            </p>
-            <button
-              onClick={collectCoins}
-              disabled={busy}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
-            >
-              <Play className="h-4 w-4" />
-              {busy ? "Loading Ad…" : pending.correct ? "Watch Ad & Collect" : "Continue"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {result?.correct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
@@ -349,7 +267,7 @@ function MathQuizPage() {
               <PartyPopper className="h-8 w-8 text-success" />
             </span>
             <p className="mt-3 text-2xl font-extrabold text-foreground">
-              {result.coins} Coins Credited ✅
+              You Won {result.coins} Coins 🎉
             </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               Coins have been added to your wallet.

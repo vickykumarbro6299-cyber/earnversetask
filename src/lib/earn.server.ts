@@ -24,11 +24,14 @@ export const REFERRAL_BONUS_COINS = 200;
 /** Approved tasks a referred user must complete before the referrer gets the bonus. */
 export const REFERRAL_TASK_GOAL = 10;
 
+
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
 const normalizeCategory = (c: string | undefined) =>
   c && VALID_CATEGORIES.includes(c) ? c : "other";
 
+
 type Ctx = { userId: string };
+
 
 export async function isAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -55,10 +58,10 @@ async function getCoins(userId: string) {
 }
 
 async function addCoins(userId: string, delta: number) {
-  const { data: next, error } = await supabaseAdmin.rpc("change_user_coins", {
-    p_user_id: userId,
-    p_delta: delta,
-  });
+  const current = await getCoins(userId);
+  const next = current + delta;
+  if (next < 0) throw new Error("Not enough coins");
+  const { error } = await supabaseAdmin.from("profiles").update({ coins: next }).eq("id", userId);
   if (error) throw error;
   return next;
 }
@@ -180,7 +183,10 @@ export async function listTasksImpl({ userId }: Ctx) {
     .eq("active", true)
     .eq("approved", true)
     .order("created_at", { ascending: false });
-  const { data: mine } = await supabaseAdmin.from("submissions").select("*").eq("user_id", userId);
+  const { data: mine } = await supabaseAdmin
+    .from("submissions")
+    .select("*")
+    .eq("user_id", userId);
   return { tasks: tasks ?? [], mySubmissions: mine ?? [] };
 }
 
@@ -222,6 +228,9 @@ export async function cancelMyClaimImpl({ userId }: Ctx, data: { submissionId: s
   await recountTask(sub.task_id);
   return { ok: true };
 }
+
+
+
 
 export async function submitProofImpl(
   { userId }: Ctx,
@@ -401,7 +410,8 @@ export async function createUserTaskImpl(
 ) {
   const category = normalizeCategory(data.category);
   const min = CATEGORY_MIN_REWARD[category] ?? MIN_TASK_REWARD;
-  if (data.rewardCoins < min) throw new Error(`Minimum reward for this category is ${min} coins`);
+  if (data.rewardCoins < min)
+    throw new Error(`Minimum reward for this category is ${min} coins`);
   const minSlots = minSlotsFor(category);
   if (data.totalSlots < minSlots)
     throw new Error(`Minimum ${minSlots} slots required for this category`);
@@ -443,45 +453,30 @@ export async function adminReviewTaskImpl(
     .eq("id", data.taskId)
     .single();
   if (error) throw new Error("Task not found");
-  if (task.approved || task.disabled) throw new Error("This task is already reviewed");
+  if (task.approved) throw new Error("This task is already approved");
 
   if (data.approve) {
-    const { data: approved } = await supabaseAdmin
+    await supabaseAdmin
       .from("tasks")
       .update({ approved: true, active: true, disabled: false })
-      .eq("id", task.id)
-      .eq("approved", false)
-      .eq("disabled", false)
-      .select("id")
-      .maybeSingle();
-    if (!approved) throw new Error("This task is already reviewed");
+      .eq("id", task.id);
     await recountTask(task.id);
     return { approved: true, refund: 0 };
   }
 
   // Rejected — full slot value goes back to the creator (platform fee is kept).
   const refund = task.is_admin_task || !task.created_by ? 0 : task.total_slots * task.reward_coins;
-  const { data: rejected } = await supabaseAdmin
+  await supabaseAdmin
     .from("tasks")
     .update({ approved: false, active: false, disabled: true })
-    .eq("id", task.id)
-    .eq("approved", false)
-    .eq("disabled", false)
-    .select("id")
-    .maybeSingle();
-  if (!rejected) throw new Error("This task is already reviewed");
+    .eq("id", task.id);
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
-    await logLedger(
-      task.created_by,
-      "refund",
-      `Task refund • ${task.title}`,
-      refund,
-      "Task rejected by admin",
-    );
+    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, "Task rejected by admin");
   }
   return { approved: false, refund };
 }
+
 
 export async function createDepositImpl(
   { userId }: Ctx,
@@ -537,6 +532,7 @@ export async function createWithdrawalImpl(
     throw error;
   }
   return { amount };
+
 }
 
 export async function walletImpl({ userId }: Ctx) {
@@ -607,7 +603,7 @@ export async function adminDataImpl({ userId }: Ctx) {
   const subRows = subs.data ?? [];
   const userRows = users.data ?? [];
 
-  const sum = <T>(rows: T[], pick: (r: T) => number) => rows.reduce((n, r) => n + pick(r), 0);
+  const sum = <T,>(rows: T[], pick: (r: T) => number) => rows.reduce((n, r) => n + pick(r), 0);
 
   const overview = {
     totalUsers: userRows.length,
@@ -726,6 +722,7 @@ export async function adminCreateTaskImpl(
 
   if (error) throw error;
   return { ok: true };
+
 }
 
 /** Admin: update the reward coins of any task. */
@@ -816,32 +813,22 @@ export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: strin
     .eq("id", data.taskId)
     .single();
   if (error) throw new Error("Task not found");
-  if (task.disabled) throw new Error("This task is already cancelled");
 
   const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
   const refund = task.is_admin_task || !task.created_by ? 0 : unusedSlots * task.reward_coins;
 
-  const { data: cancelled } = await supabaseAdmin
+  await supabaseAdmin
     .from("tasks")
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
-    .eq("id", task.id)
-    .eq("disabled", false)
-    .select("id")
-    .maybeSingle();
-  if (!cancelled) throw new Error("This task is already cancelled");
+    .eq("id", task.id);
 
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
-    await logLedger(
-      task.created_by,
-      "refund",
-      `Task refund • ${task.title}`,
-      refund,
-      `${unusedSlots} unused slots (cancelled by admin)`,
-    );
+    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by admin)`);
   }
   return { refund, unusedSlots };
 }
+
 
 /** Pay 2% lifetime commission to the referrer of `earnerId`. */
 async function payReferralCommission(earnerId: string, earnedCoins: number) {
@@ -869,18 +856,43 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
  * REFERRAL_TASK_GOAL approved tasks. Safe to call after every approval.
  */
 async function maybePayReferralMilestone(earnerId: string) {
-  const { error } = await supabaseAdmin.rpc("award_referral_milestone", {
-    p_earner_id: earnerId,
-    p_task_goal: REFERRAL_TASK_GOAL,
-    p_bonus_coins: REFERRAL_BONUS_COINS,
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("referred_by")
+    .eq("id", earnerId)
+    .maybeSingle();
+  const referrer = prof?.referred_by;
+  if (!referrer) return;
+
+  const { count: paid } = await supabaseAdmin
+    .from("referral_earnings")
+    .select("id", { count: "exact", head: true })
+    .eq("referrer_id", referrer)
+    .eq("referred_id", earnerId)
+    .eq("source", "milestone");
+  if ((paid ?? 0) > 0) return;
+
+  const { count: done } = await supabaseAdmin
+    .from("submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", earnerId)
+    .eq("status", "approved");
+  if ((done ?? 0) < REFERRAL_TASK_GOAL) return;
+
+  await addCoins(referrer, REFERRAL_BONUS_COINS);
+  await supabaseAdmin.from("referral_earnings").insert({
+    referrer_id: referrer,
+    referred_id: earnerId,
+    coins: REFERRAL_BONUS_COINS,
+    source: "milestone",
   });
-  if (error) throw error;
 }
 
 /** Give the reserved slot back to the pool (recalculated from real submissions). */
 async function releaseTaskSlot(taskId: string) {
   await recountTask(taskId);
 }
+
 
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
@@ -897,7 +909,7 @@ export async function adminReviewSubmissionImpl(
 
   // Write the final status FIRST, then recount — otherwise the recount still
   // sees this row as pending and the rejected slot never returns to the pool.
-  const { data: reviewed, error: upErr } = await supabaseAdmin
+  const { error: upErr } = await supabaseAdmin
     .from("submissions")
     .update({
       status: data.approve ? "approved" : "rejected",
@@ -905,11 +917,8 @@ export async function adminReviewSubmissionImpl(
       admin_note: data.note?.trim() ? data.note.trim() : null,
     })
     .eq("id", data.id)
-    .eq("status", "pending")
-    .select("id")
-    .maybeSingle();
+    .eq("status", "pending");
   if (upErr) throw upErr;
-  if (!reviewed) throw new Error("Already reviewed");
 
   if (data.approve) {
     await addCoins(sub.user_id, sub.reward_coins);
@@ -981,6 +990,8 @@ export async function referralImpl({ userId }: Ctx) {
   };
 }
 
+
+
 export async function adminReviewDepositImpl(
   { userId }: Ctx,
   data: { id: string; approve: boolean },
@@ -993,18 +1004,14 @@ export async function adminReviewDepositImpl(
     .single();
   if (error) throw error;
   if (dep.status !== "pending") throw new Error("Already reviewed");
-  const { data: reviewed } = await supabaseAdmin
+  if (data.approve) await addCoins(dep.user_id, dep.coins);
+  await supabaseAdmin
     .from("deposits")
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", data.id)
-    .eq("status", "pending")
-    .select("id")
-    .maybeSingle();
-  if (!reviewed) throw new Error("Already reviewed");
-  if (data.approve) await addCoins(dep.user_id, dep.coins);
+    .eq("id", data.id);
   return { ok: true };
 }
 
@@ -1020,40 +1027,37 @@ export async function adminReviewWithdrawalImpl(
     .single();
   if (error) throw error;
   if (wd.status !== "pending") throw new Error("Already reviewed");
-  const { data: reviewed } = await supabaseAdmin
+  if (!data.approve) await addCoins(wd.user_id, wd.coins);
+  await supabaseAdmin
     .from("withdrawals")
     .update({
       status: data.approve ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
       admin_note: data.note?.trim() ? data.note.trim() : null,
     })
-    .eq("id", data.id)
-    .eq("status", "pending")
-    .select("id")
-    .maybeSingle();
-  if (!reviewed) throw new Error("Already reviewed");
-  if (!data.approve) await addCoins(wd.user_id, wd.coins);
+    .eq("id", data.id);
   return { ok: true };
 }
 
 export async function adminUpdateSettingsImpl(
   { userId }: Ctx,
-  data: { upi: string; name: string; maintenanceMode: boolean },
+  data: { upi: string; name: string },
 ) {
   await requireAdmin(userId);
-  const { error } = await supabaseAdmin.from("app_settings").upsert([
-    { key: "deposit_upi", value: data.upi },
-    { key: "deposit_name", value: data.name },
-    { key: "maintenance_mode", value: data.maintenanceMode ? "true" : "false" },
-  ]);
-  if (error) throw error;
+  await supabaseAdmin
+    .from("app_settings")
+    .upsert([
+      { key: "deposit_upi", value: data.upi },
+      { key: "deposit_name", value: data.name },
+    ]);
   return { ok: true };
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
   const isSample = data.path.includes("/samples/") || data.path.includes("/avatars/");
   const admin = isSample ? false : await isAdmin(userId);
-  if (!isSample && !admin && !data.path.startsWith(`${userId}/`)) throw new Error("Forbidden");
+  if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
+    throw new Error("Forbidden");
 
   const { data: signed, error } = await supabaseAdmin.storage
     .from("proofs")
@@ -1119,31 +1123,21 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
     .single();
   if (error) throw new Error("Task not found");
   if (task.is_admin_task) throw new Error("This task cannot be cancelled");
-  if (task.disabled) throw new Error("This task is already cancelled");
   if (!task.active && task.claimed_count >= task.total_slots)
     throw new Error("This task is already finished");
 
   const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
   const refund = unusedSlots * task.reward_coins;
 
-  const { data: cancelled } = await supabaseAdmin
+  await supabaseAdmin
     .from("tasks")
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
-    .eq("id", task.id)
-    .eq("disabled", false)
-    .select("id")
-    .maybeSingle();
-  if (!cancelled) throw new Error("This task is already cancelled");
+    .eq("id", task.id);
+
 
   if (refund > 0) {
     await addCoins(userId, refund);
-    await logLedger(
-      userId,
-      "refund",
-      `Task refund • ${task.title}`,
-      refund,
-      `${unusedSlots} unused slots (cancelled by you)`,
-    );
+    await logLedger(userId, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by you)`);
   }
   return { refund, unusedSlots };
 }
@@ -1175,7 +1169,10 @@ export async function adminSetUserCoinsImpl(
   return { coins };
 }
 
-export async function adminDeleteUserImpl({ userId }: Ctx, data: { targetUserId: string }) {
+export async function adminDeleteUserImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string },
+) {
   await requireAdmin(userId);
   if (data.targetUserId === userId) throw new Error("You cannot delete your own account");
   if (await isAdmin(data.targetUserId)) throw new Error("Admin accounts cannot be deleted");
@@ -1185,7 +1182,10 @@ export async function adminDeleteUserImpl({ userId }: Ctx, data: { targetUserId:
 }
 
 /** Admin: read any user's earning / deposit / withdrawal ledger. */
-export async function adminUserHistoryImpl({ userId }: Ctx, data: { targetUserId: string }) {
+export async function adminUserHistoryImpl(
+  { userId }: Ctx,
+  data: { targetUserId: string },
+) {
   await requireAdmin(userId);
   return earningHistoryImpl({ userId: data.targetUserId });
 }
@@ -1251,6 +1251,7 @@ export function requestFingerprint() {
     "";
   return serverFingerprint(ua, ip);
 }
+
 
 /** Public check used before sign-up: has any account already been created on this device? */
 export async function checkDeviceImpl(data: { deviceId: string; fingerprint?: string }) {
@@ -1330,6 +1331,7 @@ export async function trackDeviceImpl(
   return { ok: true };
 }
 
+
 /** Admin: devices that carry more than one account. */
 export async function adminDeviceReportImpl({ userId }: Ctx) {
   await requireAdmin(userId);
@@ -1353,10 +1355,7 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
   };
   const seen = new Map<string, number>();
   allRows.forEach((row, index) => {
-    [
-      row.device_id && `device:${row.device_id}`,
-      row.fingerprint && `fingerprint:${row.fingerprint}`,
-    ]
+    [row.device_id && `device:${row.device_id}`, row.fingerprint && `fingerprint:${row.fingerprint}`]
       .filter((key): key is string => Boolean(key))
       .forEach((key) => {
         const previous = seen.get(key);
@@ -1435,6 +1434,7 @@ async function weeklyTaskEarnings(start: Date, end: Date) {
     .filter((r) => r.coins > 0)
     .sort((a, b) => b.coins - a.coins);
 }
+
 
 /** Pays last week's prizes exactly once (idempotent via unique week_start+user_id). */
 async function settlePreviousWeek() {
@@ -1614,12 +1614,16 @@ export async function adminProofsImpl(
     .order("submitted_at", { ascending: false })
     .limit(5000);
 
-  query = data.gmail ? query.eq("tasks.category", "gmail") : query.neq("tasks.category", "gmail");
+  query = data.gmail
+    ? query.eq("tasks.category", "gmail")
+    : query.neq("tasks.category", "gmail");
 
   if (data.gmail && data.date) {
     const start = new Date(new Date(`${data.date}T00:00:00.000Z`).getTime() - IST_OFFSET_MS);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    query = query.gte("submitted_at", start.toISOString()).lt("submitted_at", end.toISOString());
+    query = query
+      .gte("submitted_at", start.toISOString())
+      .lt("submitted_at", end.toISOString());
   }
 
   const { data: rows, error } = await query;
@@ -1631,14 +1635,14 @@ export async function adminProofsImpl(
 
 export const SPINS_PER_DAY = 10;
 
-/** key -> weight. 5 coins is intentionally ~80% of all outcomes. */
+/** key -> weight. 5 coins is intentionally 80% of all outcomes. */
 const SPIN_WEIGHTS: { key: string; coins: number; label: string; weight: number }[] = [
   { key: "c5", coins: 5, label: "5 Coins", weight: 80 },
   { key: "c15", coins: 15, label: "15 Coins", weight: 8 },
   { key: "luck", coins: 0, label: "Better Luck", weight: 7 },
   { key: "c50", coins: 50, label: "50 Coins", weight: 3 },
   { key: "c200", coins: 200, label: "200 Coins", weight: 1.5 },
-  { key: "jackpot", coins: 250, label: "JACKPOT!", weight: 2 },
+  { key: "jackpot", coins: 1000, label: "JACKPOT!", weight: 0.5 },
 ];
 
 async function spinState(userId: string) {
@@ -1688,43 +1692,25 @@ export async function spinImpl({ userId }: Ctx) {
     }
   }
 
-  const { data: spin, error } = await supabaseAdmin
-    .from("spin_results")
-    .insert({
-      user_id: userId,
-      spin_date: state.dateKey,
-      label: picked.label,
-      coins: picked.coins,
-      reward_claimed: picked.coins <= 0,
-    })
-    .select("id")
-    .single();
-  if (error || !spin) throw new Error("Could not record spin");
+  const { error } = await supabaseAdmin.from("spin_results").insert({
+    user_id: userId,
+    spin_date: state.dateKey,
+    label: picked.label,
+    coins: picked.coins,
+  });
+  if (error) throw new Error("Could not record spin");
+
+  if (picked.coins > 0) {
+    await addCoins(userId, picked.coins);
+    await logLedger(userId, "spin", `Spin & Win — ${picked.label}`, picked.coins);
+  }
 
   return {
-    id: spin.id as string,
     key: picked.key,
     label: picked.label,
     coins: picked.coins,
     remaining: state.remaining - 1,
   };
-}
-
-export async function collectSpinRewardImpl({ userId }: Ctx, data: { spinId: string }) {
-  const { data: spin, error } = await supabaseAdmin
-    .from("spin_results")
-    .update({ reward_claimed: true })
-    .eq("id", data.spinId)
-    .eq("user_id", userId)
-    .eq("reward_claimed", false)
-    .gt("coins", 0)
-    .select("coins, label")
-    .maybeSingle();
-  if (error || !spin) throw new Error("Reward already collected or unavailable");
-
-  await addCoins(userId, spin.coins as number);
-  await logLedger(userId, "spin", `Spin & Win — ${spin.label}`, spin.coins as number);
-  return { coins: spin.coins as number };
 }
 
 /* ---------------- math quiz ---------------- */
@@ -1775,23 +1761,13 @@ export async function mathQuizStateImpl({ userId }: Ctx) {
 /** Starts a new quiz (call after the user watched the rewarded ad). */
 export async function startMathQuizImpl({ userId }: Ctx) {
   const state = await mathQuizState(userId);
-  if (state.remaining <= 0) throw new Error("Daily quiz limit reached. Come back tomorrow!");
+  if (state.remaining <= 0)
+    throw new Error("Daily quiz limit reached. Come back tomorrow!");
 
   const a = 10 + Math.floor(Math.random() * 90);
   const b = 10 + Math.floor(Math.random() * 90);
   const correct = a + b;
-  // 10/20 most common; 30 occasional; 40/50 only ~3% combined.
-  const rewardRoll = Math.random();
-  const reward =
-    rewardRoll < 0.45
-      ? 10
-      : rewardRoll < 0.9
-        ? 20
-        : rewardRoll < 0.97
-          ? 30
-          : rewardRoll < 0.985
-            ? 40
-            : 50;
+  const reward = 10 + Math.floor(Math.random() * 41); // 10–50 coins
 
   const wrong = new Set<number>();
   while (wrong.size < 3) {
@@ -1839,154 +1815,14 @@ export async function answerMathQuizImpl(
     .eq("answered", false);
   if (upErr) throw new Error("This quiz is already answered");
 
+  if (isCorrect) {
+    await addCoins(userId, quiz.reward as number);
+    await logLedger(userId, "math-quiz", "Math Quiz — correct answer", quiz.reward as number);
+  }
+
   return {
-    quizId: quiz.id as string,
     correct: isCorrect,
     coins: isCorrect ? (quiz.reward as number) : 0,
     correctAnswer: quiz.correct as number,
   };
-}
-
-export async function collectMathQuizRewardImpl({ userId }: Ctx, data: { quizId: string }) {
-  const { data: quiz, error } = await supabaseAdmin
-    .from("math_quizzes")
-    .update({ reward_claimed: true })
-    .eq("id", data.quizId)
-    .eq("user_id", userId)
-    .eq("answered", true)
-    .eq("is_correct", true)
-    .eq("reward_claimed", false)
-    .select("reward")
-    .maybeSingle();
-  if (error || !quiz) throw new Error("Reward already collected or unavailable");
-
-  await addCoins(userId, quiz.reward as number);
-  await logLedger(userId, "math-quiz", "Math Quiz — correct answer", quiz.reward as number);
-  return { coins: quiz.reward as number };
-}
-
-/* ---------------- guess color ---------------- */
-
-export const GUESS_COLORS_PER_DAY = 10;
-const GUESS_COLOR_REWARD = 10;
-const GUESS_COLOR_OPTIONS = [
-  { name: "Red", value: "#ef4444" },
-  { name: "Blue", value: "#3b82f6" },
-  { name: "Green", value: "#22c55e" },
-  { name: "Yellow", value: "#eab308" },
-  { name: "Orange", value: "#f97316" },
-  { name: "Pink", value: "#ec4899" },
-] as const;
-
-async function guessColorState(userId: string) {
-  const { dateKey, end } = istDayWindow();
-  const { count } = await supabaseAdmin
-    .from("guess_color_rounds")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("round_date", dateKey);
-
-  const { data: earnedRows } = await supabaseAdmin
-    .from("guess_color_rounds")
-    .select("reward")
-    .eq("user_id", userId)
-    .eq("round_date", dateKey)
-    .eq("is_correct", true)
-    .eq("reward_claimed", true);
-
-  const used = count ?? 0;
-  return {
-    dateKey,
-    used,
-    limit: GUESS_COLORS_PER_DAY,
-    remaining: Math.max(0, GUESS_COLORS_PER_DAY - used),
-    earnedToday: (earnedRows ?? []).reduce((sum, row) => sum + (row.reward as number), 0),
-    resetAt: end.toISOString(),
-  };
-}
-
-export async function guessColorStateImpl({ userId }: Ctx) {
-  const state = await guessColorState(userId);
-  const coins = await getCoins(userId);
-  return { ...state, coins };
-}
-
-export async function startGuessColorImpl({ userId }: Ctx) {
-  const state = await guessColorState(userId);
-  if (state.remaining <= 0) throw new Error("Daily Guess Color limit reached. Come back tomorrow!");
-
-  const target = GUESS_COLOR_OPTIONS[Math.floor(Math.random() * GUESS_COLOR_OPTIONS.length)]!;
-  const wrongChoices = GUESS_COLOR_OPTIONS.filter((color) => color.name !== target.name);
-  const wrong = wrongChoices[Math.floor(Math.random() * wrongChoices.length)]!;
-  const options = shuffle([target, wrong]);
-
-  const { data, error } = await supabaseAdmin
-    .from("guess_color_rounds")
-    .insert({
-      user_id: userId,
-      round_date: state.dateKey,
-      target_color: target.name,
-      options,
-      reward: GUESS_COLOR_REWARD,
-    })
-    .select("id")
-    .single();
-  if (error || !data) throw new Error("Could not start Guess Color — try again.");
-
-  return {
-    id: data.id as string,
-    targetColor: target.name,
-    options,
-    reward: GUESS_COLOR_REWARD,
-    remaining: state.remaining - 1,
-  };
-}
-
-export async function answerGuessColorImpl(
-  { userId }: Ctx,
-  data: { roundId: string; choice: string },
-) {
-  const { data: round, error } = await supabaseAdmin
-    .from("guess_color_rounds")
-    .select("id, target_color, reward, answered")
-    .eq("id", data.roundId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error || !round) throw new Error("Color round not found");
-  if (round.answered) throw new Error("This color round is already answered");
-
-  const isCorrect = data.choice === round.target_color;
-  const { data: updated, error: updateError } = await supabaseAdmin
-    .from("guess_color_rounds")
-    .update({ answered: true, is_correct: isCorrect })
-    .eq("id", round.id)
-    .eq("answered", false)
-    .select("id")
-    .maybeSingle();
-  if (updateError || !updated) throw new Error("This color round is already answered");
-
-  return {
-    roundId: round.id as string,
-    correct: isCorrect,
-    coins: isCorrect ? (round.reward as number) : 0,
-    correctAnswer: round.target_color as string,
-  };
-}
-
-export async function collectGuessColorRewardImpl({ userId }: Ctx, data: { roundId: string }) {
-  const { data: round, error } = await supabaseAdmin
-    .from("guess_color_rounds")
-    .update({ reward_claimed: true })
-    .eq("id", data.roundId)
-    .eq("user_id", userId)
-    .eq("answered", true)
-    .eq("is_correct", true)
-    .eq("reward_claimed", false)
-    .select("reward")
-    .maybeSingle();
-  if (error || !round) throw new Error("Reward already collected or unavailable");
-
-  await addCoins(userId, round.reward as number);
-  await logLedger(userId, "guess-color", "Guess Color — correct answer", round.reward as number);
-  return { coins: round.reward as number };
 }

@@ -47,7 +47,8 @@ export const WITHDRAW_PACKS: { rupees: number; coins: number }[] = [
   { coins: 11000, rupees: 100 },
 ];
 
-export const payableAmount = (rupees: number) => Number((rupees * (1 + DEPOSIT_TAX)).toFixed(2));
+export const payableAmount = (rupees: number) =>
+  Number((rupees * (1 + DEPOSIT_TAX)).toFixed(2));
 
 export const TASK_CATEGORIES = [
   { key: "video", label: "Long Video" },
@@ -67,7 +68,7 @@ export const CATEGORY_MIN_REWARD: Record<string, number> = {
   app: 300,
   telegram: 20,
   instagram: 20,
-  other: 20,
+  other: 50,
 };
 
 /** Categories where a task link makes no sense. */
@@ -119,6 +120,7 @@ export function autoDescription(category: string): string | null {
 
 export type TaskCategory = (typeof TASK_CATEGORIES)[number]["key"];
 
+
 /** Public site URL used for shareable links (referral, profile). */
 export const SITE_URL = "https://earnverse.life";
 
@@ -129,7 +131,7 @@ export const SPIN_SEGMENTS: { key: string; label: string; coins: number; color: 
   { key: "luck", label: "Better Luck", coins: 0, color: "#e5413f" },
   { key: "c50", label: "50 Coins", coins: 50, color: "#f0a319" },
   { key: "c200", label: "200 Coins", coins: 200, color: "#8b5cf6" },
-  { key: "jackpot", label: "JACKPOT!", coins: 250, color: "#ec4899" },
+  { key: "jackpot", label: "JACKPOT!", coins: 1000, color: "#ec4899" },
 ];
 
 /** Maximum spins a user can make per day. */

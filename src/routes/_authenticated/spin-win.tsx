@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { collectSpinReward, getSpinState, spinWheel } from "@/lib/earn.functions";
+import { getSpinState, spinWheel } from "@/lib/earn.functions";
 import { SPIN_SEGMENTS, SPINS_PER_DAY } from "@/lib/earn-constants";
 
 export const Route = createFileRoute("/_authenticated/spin-win")({
@@ -29,107 +29,60 @@ export const Route = createFileRoute("/_authenticated/spin-win")({
   component: SpinWinPage,
 });
 
-type SpinResult = { id: string; key: string; label: string; coins: number; remaining: number };
-const SPIN_COOLDOWN_KEY = "earnverse:spin-cooldown-until";
+type SpinResult = { key: string; label: string; coins: number; remaining: number };
 
 declare global {
   interface Window {
-    show_11729008?: () => Promise<unknown>;
+    show_11729008?: (type?: "pop") => Promise<unknown>;
   }
 }
 
 /** Plays a rewarded ad. Resolves true when the ad was watched, false otherwise. */
-async function showRewardedAd(): Promise<boolean> {
+async function showRewardedAd(type?: "pop"): Promise<boolean> {
   const fn = window.show_11729008;
   if (typeof fn !== "function") return false;
   try {
-    await fn();
+    await fn(type);
     return true;
   } catch {
     return false;
   }
 }
 
-function saveSpinCooldown(): number {
-  const until = Date.now() + 20_000;
-  try {
-    window.localStorage.setItem(SPIN_COOLDOWN_KEY, String(until));
-  } catch {
-    // The in-memory timer still works when browser storage is unavailable.
-  }
-  return 20;
-}
-
 function SpinWinPage() {
   const queryClient = useQueryClient();
   const fetchState = useServerFn(getSpinState);
   const runSpin = useServerFn(spinWheel);
-  const collectReward = useServerFn(collectSpinReward);
   const q = useQuery({ queryKey: ["spin-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [pending, setPending] = useState<SpinResult | null>(null);
   const [result, setResult] = useState<SpinResult | null>(null);
-  const [cooldown, setCooldown] = useState(0);
-  const [unlocked, setUnlocked] = useState(false);
   const rotationRef = useRef(0);
 
   const coins = q.data?.coins ?? 0;
-  const last = pending ?? result;
-  const remaining = last ? last.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
-
-  // Keep the cooldown tied to an expiry time so navigation cannot reset it.
-  useEffect(() => {
-    const update = () => {
-      let until = 0;
-      try {
-        until = Number(window.localStorage.getItem(SPIN_COOLDOWN_KEY) ?? 0);
-      } catch {
-        return;
-      }
-      const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-      setCooldown(seconds);
-      if (seconds === 0 && until > 0) window.localStorage.removeItem(SPIN_COOLDOWN_KEY);
-    };
-    update();
-    const t = window.setInterval(update, 500);
-    return () => window.clearInterval(t);
-  }, []);
-
-  const unlockSpin = async () => {
-    if (busy || spinning || cooldown > 0 || unlocked) return;
-    if (remaining <= 0) {
-      toast.error("Daily spin limit reached. Come back tomorrow!");
-      return;
-    }
-    setBusy(true);
-    try {
-      const watched = await showRewardedAd();
-      if (!watched) {
-        toast.error("Ad not completed — watch the full ad to unlock your spin.");
-        return;
-      }
-      setUnlocked(true);
-      toast.success("Spin unlocked! Tap Spin Now.");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const remaining = result ? result.remaining : (q.data?.remaining ?? SPINS_PER_DAY);
 
   const handleSpin = async () => {
-    if (busy || spinning || cooldown > 0 || !unlocked) return;
+    if (busy || spinning) return;
     if (remaining <= 0) {
       toast.error("Daily spin limit reached. Come back tomorrow!");
       return;
     }
     setBusy(true);
     try {
-      // Step 1: record the spin on the server and get the result.
+      // Step 1: user must watch the rewarded ad first.
+      const watched = await showRewardedAd();
+      if (!watched) {
+        toast.error("Ad not completed — please watch the full ad to spin.");
+        return;
+      }
+
+      // Step 2: record the spin on the server and get the result.
       const res = (await runSpin()) as SpinResult;
 
-      // Step 2: animate the wheel to the winning segment.
+      // Step 3: animate the wheel to the winning segment.
       const idx = Math.max(
         0,
         SPIN_SEGMENTS.findIndex((s) => s.key === res.key),
@@ -145,34 +98,12 @@ function SpinWinPage() {
 
       window.setTimeout(() => {
         setSpinning(false);
-        // Step 3: ask the user to watch an ad to collect the reward.
-        setPending(res);
+        setResult(res);
+        void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
+        void queryClient.invalidateQueries({ queryKey: ["me"] });
       }, 5200);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not spin — try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const collectCoins = async () => {
-    if (!pending || busy) return;
-    setBusy(true);
-    try {
-      if (pending.coins > 0) {
-        const watched = await showRewardedAd();
-        if (!watched) {
-          toast.error("Ad not completed — please watch the full ad to collect your coins.");
-          return;
-        }
-        await collectReward({ data: { spinId: pending.id } });
-      }
-      setResult(pending);
-      setPending(null);
-      setUnlocked(false);
-      setCooldown(saveSpinCooldown());
-      void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
-      void queryClient.invalidateQueries({ queryKey: ["me"] });
     } finally {
       setBusy(false);
     }
@@ -217,75 +148,31 @@ function SpinWinPage() {
         <div className="flex items-center justify-center gap-3 rounded-2xl bg-success/15 px-4 py-4">
           <Unlock className="h-6 w-6 text-success" />
           <p className="text-base font-extrabold text-success">
-            {remaining <= 0
-              ? "Daily spin limit reached. Come back tomorrow."
-              : unlocked
-                ? "Spin unlocked! Tap Spin Now."
-                : "Watch an ad to unlock your spin."}
+            {remaining > 0
+              ? "Great! The wheel is ready to spin."
+              : "Daily spin limit reached. Come back tomorrow."}
           </p>
         </div>
 
         <Wheel rotation={rotation} spinning={spinning} />
 
-        {unlocked ? (
-          <button
-            onClick={handleSpin}
-            disabled={busy || spinning || remaining <= 0 || cooldown > 0 || !!pending}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
-          >
-            <Play className="h-6 w-6" />
-            {busy ? "Please wait…" : spinning ? "Spinning…" : "Spin Now"}
-          </button>
-        ) : (
-          <button
-            onClick={unlockSpin}
-            disabled={busy || remaining <= 0 || cooldown > 0 || !!pending}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
-          >
-            <Unlock className="h-6 w-6" />
-            {cooldown > 0
-              ? `Next Spin in ${cooldown}s`
-              : busy
-                ? "Loading Ad…"
-                : "Watch Ad & Unlock Spin"}
-          </button>
-        )}
+        <button
+          onClick={handleSpin}
+          disabled={busy || spinning || remaining <= 0}
+          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
+        >
+          <Play className="h-6 w-6" />
+          {busy ? "Loading Ad…" : spinning ? "Spinning…" : "Watch Ad & Spin"}
+        </button>
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Watch a short ad to unlock a spin, then watch one more ad to collect your winnings. You
-            get up to {SPINS_PER_DAY} spins a day — rewards are added straight to your EarnVerse
-            coin balance.
+            Watch a short ad to spin the wheel. You get up to {SPINS_PER_DAY} spins a day — rewards
+            are added straight to your EarnVerse coin balance.
           </p>
         </div>
       </main>
-
-      {pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
-          <div className="w-full max-w-xs rounded-3xl bg-card p-6 text-center shadow-pop">
-            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/20">
-              <Gift className="h-8 w-8 text-gold" />
-            </span>
-            <p className="mt-3 text-2xl font-extrabold text-foreground">
-              {pending.coins > 0 ? `You Won ${pending.coins} Coins 🎉` : "Better Luck Next Time!"}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-muted-foreground">
-              {pending.coins > 0
-                ? "Watch a short ad to collect your coins."
-                : "Close this and spin again for another chance."}
-            </p>
-            <button
-              onClick={collectCoins}
-              disabled={busy}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95 disabled:opacity-60"
-            >
-              <Play className="h-4 w-4" />
-              {busy ? "Loading Ad…" : pending.coins > 0 ? "Watch Ad & Collect" : "Continue"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 px-6">
@@ -294,7 +181,7 @@ function SpinWinPage() {
               <PartyPopper className="h-8 w-8 text-success" />
             </span>
             <p className="mt-3 text-2xl font-extrabold text-foreground">
-              {result.coins > 0 ? `${result.coins} Coins Credited ✅` : "Better Luck Next Time!"}
+              {result.coins > 0 ? `You Won ${result.coins} Coins 🎉` : "Better Luck Next Time!"}
             </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               {result.coins > 0
