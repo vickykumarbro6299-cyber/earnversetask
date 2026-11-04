@@ -1,1 +1,0 @@
-CREATE POLICY "No direct access to math quizzes" ON public.math_quizzes FOR ALL TO authenticated USING (false) WITH CHECK (false);
