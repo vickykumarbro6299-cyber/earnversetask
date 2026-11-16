@@ -14,16 +14,535 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      coin_ledger: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_bonus_claims: {
+        Row: {
+          bonus_date: string
+          coins: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bonus_date: string
+          coins?: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bonus_date?: string
+          coins?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deposits: {
+        Row: {
+          amount_inr: number
+          coins: number
+          created_at: string
+          id: string
+          proof_url: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["req_status"]
+          user_id: string
+          utr: string
+        }
+        Insert: {
+          amount_inr: number
+          coins: number
+          created_at?: string
+          id?: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id: string
+          utr?: string
+        }
+        Update: {
+          amount_inr?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id?: string
+          utr?: string
+        }
+        Relationships: []
+      }
+      device_accounts: {
+        Row: {
+          created_at: string
+          device_id: string
+          fingerprint: string
+          id: string
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          fingerprint?: string
+          id?: string
+          user_agent?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          fingerprint?: string
+          id?: string
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leaderboard_payouts: {
+        Row: {
+          coins: number
+          created_at: string
+          earned_coins: number
+          id: string
+          rank: number
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          earned_coins?: number
+          id?: string
+          rank: number
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          earned_coins?: number
+          id?: string
+          rank?: number
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          coins: number
+          created_at: string
+          dob: string | null
+          email: string
+          id: string
+          mobile: string
+          name: string
+          referral_code: string
+          referred_by: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          coins?: number
+          created_at?: string
+          dob?: string | null
+          email?: string
+          id: string
+          mobile?: string
+          name?: string
+          referral_code: string
+          referred_by?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          coins?: number
+          created_at?: string
+          dob?: string | null
+          email?: string
+          id?: string
+          mobile?: string
+          name?: string
+          referral_code?: string
+          referred_by?: string | null
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          active: boolean
+          code: string
+          coins: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_uses: number
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          coins: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          coins?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
+      promo_redemptions: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          promo_id: string
+          user_id: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          promo_id: string
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          promo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_redemptions_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_earnings: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          source: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          source?: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      spin_results: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          label: string
+          spin_date: string
+          user_id: string
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          id?: string
+          label: string
+          spin_date: string
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          label?: string
+          spin_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          admin_note: string | null
+          claimed_at: string
+          expires_at: string | null
+          id: string
+          note: string | null
+          proof_url: string | null
+          reviewed_at: string | null
+          reward_coins: number
+          status: Database["public"]["Enums"]["req_status"]
+          submitted_at: string | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          claimed_at?: string
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reward_coins?: number
+          status?: Database["public"]["Enums"]["req_status"]
+          submitted_at?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          claimed_at?: string
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reward_coins?: number
+          status?: Database["public"]["Enums"]["req_status"]
+          submitted_at?: string | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          active: boolean
+          allow_multiple: boolean
+          approved: boolean
+          category: string
+          claimed_count: number
+          created_at: string
+          created_by: string | null
+          description: string
+          disabled: boolean
+          id: string
+          is_admin_task: boolean
+          link: string | null
+          reward_coins: number
+          sample_image_url: string | null
+          title: string
+          total_slots: number
+        }
+        Insert: {
+          active?: boolean
+          allow_multiple?: boolean
+          approved?: boolean
+          category?: string
+          claimed_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          disabled?: boolean
+          id?: string
+          is_admin_task?: boolean
+          link?: string | null
+          reward_coins: number
+          sample_image_url?: string | null
+          title: string
+          total_slots?: number
+        }
+        Update: {
+          active?: boolean
+          allow_multiple?: boolean
+          approved?: boolean
+          category?: string
+          claimed_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          disabled?: boolean
+          id?: string
+          is_admin_task?: boolean
+          link?: string | null
+          reward_coins?: number
+          sample_image_url?: string | null
+          title?: string
+          total_slots?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          admin_note: string | null
+          amount_inr: number
+          coins: number
+          created_at: string
+          id: string
+          method: string
+          payout_detail: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["req_status"]
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_inr: number
+          coins: number
+          created_at?: string
+          id?: string
+          method: string
+          payout_detail?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_inr?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          method?: string
+          payout_detail?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["req_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_task_slot: {
+        Args: { p_minutes: number; p_task_id: string; p_user_id: string }
+        Returns: string
+      }
+      gen_referral_code: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      recount_task_slots: { Args: { p_task_id: string }; Returns: undefined }
+      register_device_account: {
+        Args: {
+          p_device_id: string
+          p_fingerprint: string
+          p_user_agent: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      weekly_task_earnings: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          coins: number
+          tasks: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      req_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +669,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      req_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const

@@ -1,5 +1,27 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794840044321,
+      "tag": "0000_restore_earnverse_base_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794840100655,
+      "tag": "0001_restore_earnverse_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794840170464,
+      "tag": "0002_restore_earnverse_remaining_schema",
+      "breakpoints": true
+    }
+  ]
 }
