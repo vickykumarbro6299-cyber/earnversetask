@@ -14,7 +14,7 @@ export function ReferEarn() {
 
   const code = data?.code ?? "";
   const goal = data?.taskGoal ?? 0;
-  const bonus = data?.bonusCoins ?? 200;
+  const bonus = data?.bonusCoins ?? 500;
   const link = code ? `${SITE_URL}/auth?ref=${code}` : "";
 
   const copy = async (text: string, label: string) => {
@@ -55,7 +55,7 @@ export function ReferEarn() {
           {bonus} coins per referral
         </p>
         <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
-          Condition: your referral must complete {goal} tasks before the reward is credited.
+          Condition: your referral must complete the NEWBIE TASK to receive the reward.
         </p>
       </div>
 

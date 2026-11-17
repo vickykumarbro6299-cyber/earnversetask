@@ -20,18 +20,14 @@ export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
 export const REFERRAL_RATE = 0.02;
 /** One-time coins paid to the referrer once their invite completes the task goal. */
-export const REFERRAL_BONUS_COINS = 200;
+export const REFERRAL_BONUS_COINS = 500;
 /** Approved tasks a referred user must complete before the referrer gets the bonus. */
-export const REFERRAL_TASK_GOAL = 10;
-
+export const REFERRAL_TASK_GOAL = 0;
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
-const normalizeCategory = (c: string | undefined) =>
-  c && VALID_CATEGORIES.includes(c) ? c : "other";
-
+const normalizeCategory = (c: string | undefined) => (c && VALID_CATEGORIES.includes(c) ? c : "other");
 
 type Ctx = { userId: string };
-
 
 export async function isAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -48,11 +44,7 @@ async function requireAdmin(userId: string) {
 }
 
 async function getCoins(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("profiles")
-    .select("coins")
-    .eq("id", userId)
-    .single();
+  const { data, error } = await supabaseAdmin.from("profiles").select("coins").eq("id", userId).single();
   if (error) throw error;
   return data.coins;
 }
@@ -66,17 +58,9 @@ async function addCoins(userId: string, delta: number) {
   return next;
 }
 
-async function logLedger(
-  userId: string,
-  kind: string,
-  title: string,
-  coins: number,
-  note?: string | null,
-) {
+async function logLedger(userId: string, kind: string, title: string, coins: number, note?: string | null) {
   try {
-    await supabaseAdmin
-      .from("coin_ledger")
-      .insert({ user_id: userId, kind, title, coins, note: note ?? null });
+    await supabaseAdmin.from("coin_ledger").insert({ user_id: userId, kind, title, coins, note: note ?? null });
   } catch {
     /* ledger is best-effort */
   }
@@ -85,11 +69,7 @@ async function logLedger(
 /* ---------------- user side ---------------- */
 
 export async function meImpl({ userId }: Ctx) {
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle();
+  const { data: profile } = await supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle();
   const { data: settings } = await supabaseAdmin.from("app_settings").select("*");
   const map: Record<string, string> = {};
   (settings ?? []).forEach((s) => (map[s.key] = s.value));
@@ -125,15 +105,8 @@ export async function updateMyProfileImpl(
 /** Profile page stats: lifetime task coins, approved tasks, referrals. */
 export async function profileStatsImpl({ userId }: Ctx) {
   const [{ data: subs }, { count: referrals }, { data: refEarn }] = await Promise.all([
-    supabaseAdmin
-      .from("submissions")
-      .select("reward_coins")
-      .eq("user_id", userId)
-      .eq("status", "approved"),
-    supabaseAdmin
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("referred_by", userId),
+    supabaseAdmin.from("submissions").select("reward_coins").eq("user_id", userId).eq("status", "approved"),
+    supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }).eq("referred_by", userId),
     supabaseAdmin.from("referral_earnings").select("coins").eq("referrer_id", userId),
   ]);
   const taskCoins = (subs ?? []).reduce((n, s) => n + s.reward_coins, 0);
@@ -183,10 +156,7 @@ export async function listTasksImpl({ userId }: Ctx) {
     .eq("active", true)
     .eq("approved", true)
     .order("created_at", { ascending: false });
-  const { data: mine } = await supabaseAdmin
-    .from("submissions")
-    .select("*")
-    .eq("user_id", userId);
+  const { data: mine } = await supabaseAdmin.from("submissions").select("*").eq("user_id", userId);
   return { tasks: tasks ?? [], mySubmissions: mine ?? [] };
 }
 
@@ -221,16 +191,12 @@ export async function cancelMyClaimImpl({ userId }: Ctx, data: { submissionId: s
     .eq("user_id", userId)
     .single();
   if (error) throw new Error("Claim not found");
-  if (sub.submitted_at || sub.status !== "pending")
-    throw new Error("This task can no longer be cancelled");
+  if (sub.submitted_at || sub.status !== "pending") throw new Error("This task can no longer be cancelled");
 
   await supabaseAdmin.from("submissions").delete().eq("id", sub.id).eq("user_id", userId);
   await recountTask(sub.task_id);
   return { ok: true };
 }
-
-
-
 
 export async function submitProofImpl(
   { userId }: Ctx,
@@ -290,10 +256,7 @@ export async function earningHistoryImpl({ userId }: Ctx) {
       .eq("user_id", userId)
       .not("submitted_at", "is", null)
       .order("submitted_at", { ascending: false }),
-    supabaseAdmin
-      .from("deposits")
-      .select("id, coins, amount_inr, status, created_at")
-      .eq("user_id", userId),
+    supabaseAdmin.from("deposits").select("id, coins, amount_inr, status, created_at").eq("user_id", userId),
     supabaseAdmin
       .from("withdrawals")
       .select("id, coins, amount_inr, method, status, created_at, admin_note")
@@ -384,13 +347,9 @@ export async function earningHistoryImpl({ userId }: Ctx) {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const totalEarned =
-    (subs.data ?? [])
-      .filter((s) => s.status === "approved")
-      .reduce((n, s) => n + s.reward_coins, 0) +
+    (subs.data ?? []).filter((s) => s.status === "approved").reduce((n, s) => n + s.reward_coins, 0) +
     (refEarn.data ?? []).reduce((n, r) => n + r.coins, 0);
-  const totalWithdrawn = (wds.data ?? [])
-    .filter((w) => w.status === "approved")
-    .reduce((n, w) => n + w.coins, 0);
+  const totalWithdrawn = (wds.data ?? []).filter((w) => w.status === "approved").reduce((n, w) => n + w.coins, 0);
 
   return { items, totalEarned, totalWithdrawn };
 }
@@ -410,11 +369,9 @@ export async function createUserTaskImpl(
 ) {
   const category = normalizeCategory(data.category);
   const min = CATEGORY_MIN_REWARD[category] ?? MIN_TASK_REWARD;
-  if (data.rewardCoins < min)
-    throw new Error(`Minimum reward for this category is ${min} coins`);
+  if (data.rewardCoins < min) throw new Error(`Minimum reward for this category is ${min} coins`);
   const minSlots = minSlotsFor(category);
-  if (data.totalSlots < minSlots)
-    throw new Error(`Minimum ${minSlots} slots required for this category`);
+  if (data.totalSlots < minSlots) throw new Error(`Minimum ${minSlots} slots required for this category`);
   if (!data.sampleImageUrl) throw new Error("Sample photo is required");
   const base = data.rewardCoins * data.totalSlots;
   const total = Math.ceil(base * (1 + TASK_PLATFORM_FEE));
@@ -442,41 +399,27 @@ export async function createUserTaskImpl(
 }
 
 /** Admin approves or rejects a user-submitted task waiting for review. */
-export async function adminReviewTaskImpl(
-  { userId }: Ctx,
-  data: { taskId: string; approve: boolean },
-) {
+export async function adminReviewTaskImpl({ userId }: Ctx, data: { taskId: string; approve: boolean }) {
   await requireAdmin(userId);
-  const { data: task, error } = await supabaseAdmin
-    .from("tasks")
-    .select("*")
-    .eq("id", data.taskId)
-    .single();
+  const { data: task, error } = await supabaseAdmin.from("tasks").select("*").eq("id", data.taskId).single();
   if (error) throw new Error("Task not found");
   if (task.approved) throw new Error("This task is already approved");
 
   if (data.approve) {
-    await supabaseAdmin
-      .from("tasks")
-      .update({ approved: true, active: true, disabled: false })
-      .eq("id", task.id);
+    await supabaseAdmin.from("tasks").update({ approved: true, active: true, disabled: false }).eq("id", task.id);
     await recountTask(task.id);
     return { approved: true, refund: 0 };
   }
 
   // Rejected — full slot value goes back to the creator (platform fee is kept).
   const refund = task.is_admin_task || !task.created_by ? 0 : task.total_slots * task.reward_coins;
-  await supabaseAdmin
-    .from("tasks")
-    .update({ approved: false, active: false, disabled: true })
-    .eq("id", task.id);
+  await supabaseAdmin.from("tasks").update({ approved: false, active: false, disabled: true }).eq("id", task.id);
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
     await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, "Task rejected by admin");
   }
   return { approved: false, refund };
 }
-
 
 export async function createDepositImpl(
   { userId }: Ctx,
@@ -502,8 +445,7 @@ export async function createWithdrawalImpl(
 ) {
   const pack = WITHDRAW_PACKS.find((p) => p.rupees === data.rupees);
   if (!pack) throw new Error("Please choose a valid withdrawal amount");
-  if (pack.coins < MIN_WITHDRAW_COINS)
-    throw new Error(`You can withdraw after reaching ${MIN_WITHDRAW_COINS} coins`);
+  if (pack.coins < MIN_WITHDRAW_COINS) throw new Error(`You can withdraw after reaching ${MIN_WITHDRAW_COINS} coins`);
 
   // Daily limit: only MAX_WITHDRAWALS_PER_DAY requests in the last 24 hours.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -514,9 +456,7 @@ export async function createWithdrawalImpl(
     .neq("status", "rejected")
     .gte("created_at", since);
   if ((count ?? 0) >= MAX_WITHDRAWALS_PER_DAY)
-    throw new Error(
-      `Daily limit reached — you can request only ${MAX_WITHDRAWALS_PER_DAY} withdrawals in 24 hours`,
-    );
+    throw new Error(`Daily limit reached — you can request only ${MAX_WITHDRAWALS_PER_DAY} withdrawals in 24 hours`);
 
   const amount = Number(pack.rupees.toFixed(2));
   await addCoins(userId, -pack.coins);
@@ -532,7 +472,6 @@ export async function createWithdrawalImpl(
     throw error;
   }
   return { amount };
-
 }
 
 export async function walletImpl({ userId }: Ctx) {
@@ -554,10 +493,7 @@ export async function walletImpl({ userId }: Ctx) {
 async function withUser<T extends { user_id: string }>(rows: T[]) {
   const ids = [...new Set(rows.map((r) => r.user_id))];
   if (!ids.length) return rows.map((r) => ({ ...r, user: null }));
-  const { data: profiles } = await supabaseAdmin
-    .from("profiles")
-    .select("id,name,email,mobile,coins")
-    .in("id", ids);
+  const { data: profiles } = await supabaseAdmin.from("profiles").select("id,name,email,mobile,coins").in("id", ids);
   const map = new Map((profiles ?? []).map((p) => [p.id, p]));
   return rows.map((r) => ({ ...r, user: map.get(r.user_id) ?? null }));
 }
@@ -641,10 +577,7 @@ export async function adminDataImpl({ userId }: Ctx) {
 
 /* ---------------- promo codes ---------------- */
 
-export async function adminCreatePromoImpl(
-  { userId }: Ctx,
-  data: { code: string; coins: number; maxUses: number },
-) {
+export async function adminCreatePromoImpl({ userId }: Ctx, data: { code: string; coins: number; maxUses: number }) {
   await requireAdmin(userId);
   const code = data.code.trim().toUpperCase();
   if (code.length < 3) throw new Error("Code must be at least 3 characters");
@@ -658,10 +591,7 @@ export async function adminCreatePromoImpl(
   return { ok: true };
 }
 
-export async function adminSetPromoActiveImpl(
-  { userId }: Ctx,
-  data: { id: string; active: boolean },
-) {
+export async function adminSetPromoActiveImpl({ userId }: Ctx, data: { id: string; active: boolean }) {
   await requireAdmin(userId);
   await supabaseAdmin.from("promo_codes").update({ active: data.active }).eq("id", data.id);
   return { ok: true };
@@ -669,11 +599,7 @@ export async function adminSetPromoActiveImpl(
 
 export async function redeemPromoImpl({ userId }: Ctx, data: { code: string }) {
   const code = data.code.trim().toUpperCase();
-  const { data: promo } = await supabaseAdmin
-    .from("promo_codes")
-    .select("*")
-    .eq("code", code)
-    .maybeSingle();
+  const { data: promo } = await supabaseAdmin.from("promo_codes").select("*").eq("code", code).maybeSingle();
   if (!promo || !promo.active) throw new Error("Invalid promo code");
   if (promo.expires_at && new Date(promo.expires_at).getTime() < Date.now())
     throw new Error("This promo code has expired");
@@ -722,21 +648,14 @@ export async function adminCreateTaskImpl(
 
   if (error) throw error;
   return { ok: true };
-
 }
 
 /** Admin: update the reward coins of any task. */
-export async function adminUpdateTaskRewardImpl(
-  { userId }: Ctx,
-  data: { taskId: string; rewardCoins: number },
-) {
+export async function adminUpdateTaskRewardImpl({ userId }: Ctx, data: { taskId: string; rewardCoins: number }) {
   await requireAdmin(userId);
   const coins = Math.floor(data.rewardCoins);
   if (!Number.isFinite(coins) || coins < 1) throw new Error("Enter a valid coin amount");
-  const { error } = await supabaseAdmin
-    .from("tasks")
-    .update({ reward_coins: coins })
-    .eq("id", data.taskId);
+  const { error } = await supabaseAdmin.from("tasks").update({ reward_coins: coins }).eq("id", data.taskId);
   if (error) throw error;
   return { ok: true };
 }
@@ -756,11 +675,7 @@ export async function adminUpdateTaskImpl(
   },
 ) {
   await requireAdmin(userId);
-  const { data: task } = await supabaseAdmin
-    .from("tasks")
-    .select("claimed_count")
-    .eq("id", data.taskId)
-    .maybeSingle();
+  const { data: task } = await supabaseAdmin.from("tasks").select("claimed_count").eq("id", data.taskId).maybeSingle();
   if (!task) throw new Error("Task not found");
 
   const title = data.title.trim();
@@ -769,8 +684,7 @@ export async function adminUpdateTaskImpl(
   if (!Number.isFinite(coins) || coins < 1) throw new Error("Enter a valid coin amount");
   const slots = Math.floor(data.totalSlots);
   if (!Number.isFinite(slots) || slots < 1) throw new Error("Enter valid slots");
-  if (slots < task.claimed_count)
-    throw new Error(`Slots cannot be less than already claimed (${task.claimed_count})`);
+  if (slots < task.claimed_count) throw new Error(`Slots cannot be less than already claimed (${task.claimed_count})`);
   if (!data.sampleImageUrl.trim()) throw new Error("At least one sample photo is required");
 
   const { error } = await supabaseAdmin
@@ -790,15 +704,9 @@ export async function adminUpdateTaskImpl(
   return { ok: true };
 }
 
-export async function adminSetTaskActiveImpl(
-  { userId }: Ctx,
-  data: { taskId: string; active: boolean },
-) {
+export async function adminSetTaskActiveImpl({ userId }: Ctx, data: { taskId: string; active: boolean }) {
   await requireAdmin(userId);
-  await supabaseAdmin
-    .from("tasks")
-    .update({ disabled: !data.active, active: data.active })
-    .eq("id", data.taskId);
+  await supabaseAdmin.from("tasks").update({ disabled: !data.active, active: data.active }).eq("id", data.taskId);
   await recountTask(data.taskId);
   return { ok: true };
 }
@@ -807,11 +715,7 @@ export async function adminSetTaskActiveImpl(
 export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: string }) {
   await requireAdmin(userId);
   await expireStaleClaims();
-  const { data: task, error } = await supabaseAdmin
-    .from("tasks")
-    .select("*")
-    .eq("id", data.taskId)
-    .single();
+  const { data: task, error } = await supabaseAdmin.from("tasks").select("*").eq("id", data.taskId).single();
   if (error) throw new Error("Task not found");
 
   const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
@@ -824,20 +728,21 @@ export async function adminCancelTaskImpl({ userId }: Ctx, data: { taskId: strin
 
   if (refund > 0 && task.created_by) {
     await addCoins(task.created_by, refund);
-    await logLedger(task.created_by, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by admin)`);
+    await logLedger(
+      task.created_by,
+      "refund",
+      `Task refund • ${task.title}`,
+      refund,
+      `${unusedSlots} unused slots (cancelled by admin)`,
+    );
   }
   return { refund, unusedSlots };
 }
 
-
 /** Pay 2% lifetime commission to the referrer of `earnerId`. */
 async function payReferralCommission(earnerId: string, earnedCoins: number) {
   if (earnedCoins <= 0) return;
-  const { data: prof } = await supabaseAdmin
-    .from("profiles")
-    .select("referred_by")
-    .eq("id", earnerId)
-    .maybeSingle();
+  const { data: prof } = await supabaseAdmin.from("profiles").select("referred_by").eq("id", earnerId).maybeSingle();
   const referrer = prof?.referred_by;
   if (!referrer) return;
   const bonus = Math.floor(earnedCoins * REFERRAL_RATE);
@@ -856,11 +761,7 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
  * REFERRAL_TASK_GOAL approved tasks. Safe to call after every approval.
  */
 async function maybePayReferralMilestone(earnerId: string) {
-  const { data: prof } = await supabaseAdmin
-    .from("profiles")
-    .select("referred_by")
-    .eq("id", earnerId)
-    .maybeSingle();
+  const { data: prof } = await supabaseAdmin.from("profiles").select("referred_by").eq("id", earnerId).maybeSingle();
   const referrer = prof?.referred_by;
   if (!referrer) return;
 
@@ -893,17 +794,12 @@ async function releaseTaskSlot(taskId: string) {
   await recountTask(taskId);
 }
 
-
 export async function adminReviewSubmissionImpl(
   { userId }: Ctx,
   data: { id: string; approve: boolean; note?: string },
 ) {
   await requireAdmin(userId);
-  const { data: sub, error } = await supabaseAdmin
-    .from("submissions")
-    .select("*")
-    .eq("id", data.id)
-    .single();
+  const { data: sub, error } = await supabaseAdmin.from("submissions").select("*").eq("id", data.id).single();
   if (error) throw error;
   if (sub.status !== "pending") throw new Error("Already reviewed");
 
@@ -931,11 +827,7 @@ export async function adminReviewSubmissionImpl(
 }
 
 export async function referralImpl({ userId }: Ctx) {
-  const { data: me } = await supabaseAdmin
-    .from("profiles")
-    .select("referral_code")
-    .eq("id", userId)
-    .maybeSingle();
+  const { data: me } = await supabaseAdmin.from("profiles").select("referral_code").eq("id", userId).maybeSingle();
 
   const [{ data: invited }, { data: earnings }, { data: settings }] = await Promise.all([
     supabaseAdmin
@@ -990,18 +882,9 @@ export async function referralImpl({ userId }: Ctx) {
   };
 }
 
-
-
-export async function adminReviewDepositImpl(
-  { userId }: Ctx,
-  data: { id: string; approve: boolean },
-) {
+export async function adminReviewDepositImpl({ userId }: Ctx, data: { id: string; approve: boolean }) {
   await requireAdmin(userId);
-  const { data: dep, error } = await supabaseAdmin
-    .from("deposits")
-    .select("*")
-    .eq("id", data.id)
-    .single();
+  const { data: dep, error } = await supabaseAdmin.from("deposits").select("*").eq("id", data.id).single();
   if (error) throw error;
   if (dep.status !== "pending") throw new Error("Already reviewed");
   if (data.approve) await addCoins(dep.user_id, dep.coins);
@@ -1020,11 +903,7 @@ export async function adminReviewWithdrawalImpl(
   data: { id: string; approve: boolean; note?: string | undefined },
 ) {
   await requireAdmin(userId);
-  const { data: wd, error } = await supabaseAdmin
-    .from("withdrawals")
-    .select("*")
-    .eq("id", data.id)
-    .single();
+  const { data: wd, error } = await supabaseAdmin.from("withdrawals").select("*").eq("id", data.id).single();
   if (error) throw error;
   if (wd.status !== "pending") throw new Error("Already reviewed");
   if (!data.approve) await addCoins(wd.user_id, wd.coins);
@@ -1039,37 +918,26 @@ export async function adminReviewWithdrawalImpl(
   return { ok: true };
 }
 
-export async function adminUpdateSettingsImpl(
-  { userId }: Ctx,
-  data: { upi: string; name: string },
-) {
+export async function adminUpdateSettingsImpl({ userId }: Ctx, data: { upi: string; name: string }) {
   await requireAdmin(userId);
-  await supabaseAdmin
-    .from("app_settings")
-    .upsert([
-      { key: "deposit_upi", value: data.upi },
-      { key: "deposit_name", value: data.name },
-    ]);
+  await supabaseAdmin.from("app_settings").upsert([
+    { key: "deposit_upi", value: data.upi },
+    { key: "deposit_name", value: data.name },
+  ]);
   return { ok: true };
 }
 
 export async function proofUrlImpl({ userId }: Ctx, data: { path: string }) {
   const isSample = data.path.includes("/samples/") || data.path.includes("/avatars/");
   const admin = isSample ? false : await isAdmin(userId);
-  if (!isSample && !admin && !data.path.startsWith(`${userId}/`))
-    throw new Error("Forbidden");
+  if (!isSample && !admin && !data.path.startsWith(`${userId}/`)) throw new Error("Forbidden");
 
-  const { data: signed, error } = await supabaseAdmin.storage
-    .from("proofs")
-    .createSignedUrl(data.path, 60 * 10);
+  const { data: signed, error } = await supabaseAdmin.storage.from("proofs").createSignedUrl(data.path, 60 * 10);
   if (error) throw error;
   return { url: signed.signedUrl };
 }
 
-export async function adminSetUserPasswordImpl(
-  { userId }: Ctx,
-  data: { targetUserId: string; password: string },
-) {
+export async function adminSetUserPasswordImpl({ userId }: Ctx, data: { targetUserId: string; password: string }) {
   await requireAdmin(userId);
   if (data.password.length < 6) throw new Error("Password must be at least 6 characters");
   const { error } = await supabaseAdmin.auth.admin.updateUserById(data.targetUserId, {
@@ -1093,10 +961,7 @@ export async function myCreatedTasksImpl({ userId }: Ctx) {
   const ids = (tasks ?? []).map((t) => t.id);
   const counts: Record<string, { pending: number; approved: number; rejected: number }> = {};
   if (ids.length) {
-    const { data: subs } = await supabaseAdmin
-      .from("submissions")
-      .select("task_id, status")
-      .in("task_id", ids);
+    const { data: subs } = await supabaseAdmin.from("submissions").select("task_id, status").in("task_id", ids);
     (subs ?? []).forEach((s) => {
       const c = (counts[s.task_id] ??= { pending: 0, approved: 0, rejected: 0 });
       c[s.status as "pending" | "approved" | "rejected"] += 1;
@@ -1123,8 +988,7 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
     .single();
   if (error) throw new Error("Task not found");
   if (task.is_admin_task) throw new Error("This task cannot be cancelled");
-  if (!task.active && task.claimed_count >= task.total_slots)
-    throw new Error("This task is already finished");
+  if (!task.active && task.claimed_count >= task.total_slots) throw new Error("This task is already finished");
 
   const unusedSlots = Math.max(0, task.total_slots - task.claimed_count);
   const refund = unusedSlots * task.reward_coins;
@@ -1134,28 +998,27 @@ export async function cancelMyTaskImpl({ userId }: Ctx, data: { taskId: string }
     .update({ disabled: true, active: false, total_slots: task.claimed_count })
     .eq("id", task.id);
 
-
   if (refund > 0) {
     await addCoins(userId, refund);
-    await logLedger(userId, "refund", `Task refund • ${task.title}`, refund, `${unusedSlots} unused slots (cancelled by you)`);
+    await logLedger(
+      userId,
+      "refund",
+      `Task refund • ${task.title}`,
+      refund,
+      `${unusedSlots} unused slots (cancelled by you)`,
+    );
   }
   return { refund, unusedSlots };
 }
 
 /* ---------------- admin user management ---------------- */
 
-export async function adminSetUserCoinsImpl(
-  { userId }: Ctx,
-  data: { targetUserId: string; coins: number },
-) {
+export async function adminSetUserCoinsImpl({ userId }: Ctx, data: { targetUserId: string; coins: number }) {
   await requireAdmin(userId);
   const coins = Math.floor(data.coins);
   if (!Number.isFinite(coins) || coins < 0) throw new Error("Enter a valid coin balance");
   const before = await getCoins(data.targetUserId);
-  const { error } = await supabaseAdmin
-    .from("profiles")
-    .update({ coins })
-    .eq("id", data.targetUserId);
+  const { error } = await supabaseAdmin.from("profiles").update({ coins }).eq("id", data.targetUserId);
   if (error) throw error;
   const delta = coins - before;
   if (delta !== 0)
@@ -1169,10 +1032,7 @@ export async function adminSetUserCoinsImpl(
   return { coins };
 }
 
-export async function adminDeleteUserImpl(
-  { userId }: Ctx,
-  data: { targetUserId: string },
-) {
+export async function adminDeleteUserImpl({ userId }: Ctx, data: { targetUserId: string }) {
   await requireAdmin(userId);
   if (data.targetUserId === userId) throw new Error("You cannot delete your own account");
   if (await isAdmin(data.targetUserId)) throw new Error("Admin accounts cannot be deleted");
@@ -1182,10 +1042,7 @@ export async function adminDeleteUserImpl(
 }
 
 /** Admin: read any user's earning / deposit / withdrawal ledger. */
-export async function adminUserHistoryImpl(
-  { userId }: Ctx,
-  data: { targetUserId: string },
-) {
+export async function adminUserHistoryImpl({ userId }: Ctx, data: { targetUserId: string }) {
   await requireAdmin(userId);
   return earningHistoryImpl({ userId: data.targetUserId });
 }
@@ -1194,19 +1051,11 @@ export async function adminUserHistoryImpl(
 
 export async function adminTaskDetailImpl({ userId }: Ctx, data: { taskId: string }) {
   await requireAdmin(userId);
-  const { data: task } = await supabaseAdmin
-    .from("tasks")
-    .select("*")
-    .eq("id", data.taskId)
-    .maybeSingle();
+  const { data: task } = await supabaseAdmin.from("tasks").select("*").eq("id", data.taskId).maybeSingle();
   if (!task) throw new Error("Task not found");
 
   const { data: creator } = task.created_by
-    ? await supabaseAdmin
-        .from("profiles")
-        .select("id,name,email,mobile,coins")
-        .eq("id", task.created_by)
-        .maybeSingle()
+    ? await supabaseAdmin.from("profiles").select("id,name,email,mobile,coins").eq("id", task.created_by).maybeSingle()
     : { data: null };
 
   const { data: subs } = await supabaseAdmin
@@ -1251,7 +1100,6 @@ export function requestFingerprint() {
     "";
   return serverFingerprint(ua, ip);
 }
-
 
 /** Public check used before sign-up: has any account already been created on this device? */
 export async function checkDeviceImpl(data: { deviceId: string; fingerprint?: string }) {
@@ -1300,9 +1148,7 @@ export async function registerDeviceImpl(
   if (registeredUser && registeredUser !== userId) {
     if (!(await isAdmin(userId))) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
-      throw new Error(
-        "Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.",
-      );
+      throw new Error("Multiple Accounts in same device Warning — We Couldn't Create A New Account For You.");
     }
     return { ok: true };
   }
@@ -1330,7 +1176,6 @@ export async function trackDeviceImpl(
   if (error) throw error;
   return { ok: true };
 }
-
 
 /** Admin: devices that carry more than one account. */
 export async function adminDeviceReportImpl({ userId }: Ctx) {
@@ -1368,9 +1213,7 @@ export async function adminDeviceReportImpl({ userId }: Ctx) {
     const key = root(index);
     byDevice.set(key, [...(byDevice.get(key) ?? []), row]);
   });
-  const flagged = [...byDevice.values()].filter(
-    (list) => new Set(list.map((row) => row.user_id)).size > 1,
-  );
+  const flagged = [...byDevice.values()].filter((list) => new Set(list.map((row) => row.user_id)).size > 1);
   const ids = [...new Set(flagged.flatMap((list) => list.map((r) => r.user_id)))];
   const { data: profiles } = ids.length
     ? await supabaseAdmin.from("profiles").select("id,name,email,mobile,coins").in("id", ids)
@@ -1434,7 +1277,6 @@ async function weeklyTaskEarnings(start: Date, end: Date) {
     .filter((r) => r.coins > 0)
     .sort((a, b) => b.coins - a.coins);
 }
-
 
 /** Pays last week's prizes exactly once (idempotent via unique week_start+user_id). */
 async function settlePreviousWeek() {
@@ -1600,10 +1442,7 @@ export async function claimDailyBonusImpl({ userId }: Ctx) {
 }
 
 /** Admin: proofs filtered server-side (gmail vs other + optional IST date). */
-export async function adminProofsImpl(
-  { userId }: Ctx,
-  data: { gmail: boolean; date?: string | null },
-) {
+export async function adminProofsImpl({ userId }: Ctx, data: { gmail: boolean; date?: string | null }) {
   await requireAdmin(userId);
   const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
@@ -1614,16 +1453,12 @@ export async function adminProofsImpl(
     .order("submitted_at", { ascending: false })
     .limit(5000);
 
-  query = data.gmail
-    ? query.eq("tasks.category", "gmail")
-    : query.neq("tasks.category", "gmail");
+  query = data.gmail ? query.eq("tasks.category", "gmail") : query.neq("tasks.category", "gmail");
 
   if (data.gmail && data.date) {
     const start = new Date(new Date(`${data.date}T00:00:00.000Z`).getTime() - IST_OFFSET_MS);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    query = query
-      .gte("submitted_at", start.toISOString())
-      .lt("submitted_at", end.toISOString());
+    query = query.gte("submitted_at", start.toISOString()).lt("submitted_at", end.toISOString());
   }
 
   const { data: rows, error } = await query;
