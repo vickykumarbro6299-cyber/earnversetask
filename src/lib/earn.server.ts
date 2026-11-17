@@ -800,7 +800,7 @@ export async function adminReviewSubmissionImpl(
   data: { id: string; approve: boolean; note?: string },
 ) {
   await requireAdmin(userId);
-  const { data: sub, error } = await supabaseAdmin.from("submissions").select("*").eq("id", data.id).single();
+  const { data: sub, error } = await supabaseAdmin.from("submissions").select("*, tasks(title)").eq("id", data.id).single();
   if (error) throw error;
   if (sub.status !== "pending") throw new Error("Already reviewed");
 
@@ -820,7 +820,7 @@ export async function adminReviewSubmissionImpl(
   if (data.approve) {
     await addCoins(sub.user_id, sub.reward_coins);
     await payReferralCommission(sub.user_id, sub.reward_coins);
-    await maybePayReferralMilestone(sub.user_id);
+    await maybePayReferralMilestone(sub.user_id, sub.tasks?.title ?? "");
   }
   // Always recount so approved/rejected slot maths stay correct.
   await releaseTaskSlot(sub.task_id);
