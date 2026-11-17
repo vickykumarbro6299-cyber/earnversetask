@@ -22,7 +22,7 @@ export const REFERRAL_RATE = 0.02;
 /** One-time coins paid to the referrer once their invite completes the task goal. */
 export const REFERRAL_BONUS_COINS = 500;
 /** Approved tasks a referred user must complete before the referrer gets the bonus. */
-export const REFERRAL_TASK_GOAL = 0;
+export const REFERRAL_TASK_GOAL = 1;
 
 const VALID_CATEGORIES = TASK_CATEGORIES.map((c) => c.key) as readonly string[];
 const normalizeCategory = (c: string | undefined) => (c && VALID_CATEGORIES.includes(c) ? c : "other");
