@@ -13,7 +13,7 @@ export function ReferEarn() {
   const [showList, setShowList] = useState(false);
 
   const code = data?.code ?? "";
-  const goal = data?.taskGoal ?? 10;
+  const goal = data?.taskGoal ?? 15;
   const bonus = data?.bonusCoins ?? 200;
   const link = code ? `${SITE_URL}/auth?ref=${code}` : "";
 
@@ -45,9 +45,8 @@ export function ReferEarn() {
         <Gift className="h-5 w-5 text-primary" /> Refer &amp; Earn
       </h2>
       <p className="mt-1 text-xs font-medium text-muted-foreground">
-        Share your link and get <span className="font-bold text-foreground">{bonus} coins</span> per
-        referral, plus <span className="font-bold text-foreground">2% lifetime commission</span> on
-        every task your friends complete.
+        Share your link and get <span className="font-bold text-foreground">{bonus} coins</span> per referral, plus{" "}
+        <span className="font-bold text-foreground">2% lifetime commission</span> on every task your friends complete.
       </p>
 
       <div className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5">
@@ -61,9 +60,7 @@ export function ReferEarn() {
       </div>
 
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-primary/50 bg-primary/5 px-3 py-2.5">
-        <span className="flex-1 text-lg font-extrabold tracking-widest text-foreground">
-          {code || "…"}
-        </span>
+        <span className="flex-1 text-lg font-extrabold tracking-widest text-foreground">{code || "…"}</span>
         <button
           type="button"
           onClick={() => copy(code, "Referral code")}
@@ -111,9 +108,7 @@ export function ReferEarn() {
         Check Referral List
         <span className="ml-auto flex items-center gap-1 text-xs font-bold text-muted-foreground">
           {data?.invites.length ?? 0}
-          <ChevronDown
-            className={`h-4 w-4 transition-transform ${showList ? "rotate-180" : ""}`}
-          />
+          <ChevronDown className={`h-4 w-4 transition-transform ${showList ? "rotate-180" : ""}`} />
         </span>
       </button>
 
@@ -130,17 +125,9 @@ export function ReferEarn() {
                   {u.name.charAt(0).toUpperCase()}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-foreground">
-                    {u.name}
-                  </span>
-                  <span
-                    className={`text-[11px] font-bold ${
-                      u.qualified ? "text-success" : "text-muted-foreground"
-                    }`}
-                  >
-                    {u.qualified
-                      ? `Reward credited • ${u.tasksDone} tasks`
-                      : `${u.tasksDone}/${goal} tasks completed`}
+                  <span className="block truncate text-sm font-semibold text-foreground">{u.name}</span>
+                  <span className={`text-[11px] font-bold ${u.qualified ? "text-success" : "text-muted-foreground"}`}>
+                    {u.qualified ? `Reward credited • ${u.tasksDone} tasks` : `${u.tasksDone}/${goal} tasks completed`}
                   </span>
                 </span>
                 <span className="flex items-center gap-1 text-sm font-bold text-foreground">
@@ -158,9 +145,7 @@ export function ReferEarn() {
 function Stat({ label, value, coin }: { label: string; value: string; coin?: boolean }) {
   return (
     <div className="rounded-xl bg-muted/50 p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-0.5 flex items-center gap-1 text-lg font-extrabold text-foreground">
         {coin && <CoinIcon className="h-4 w-4" />}
         {value}
