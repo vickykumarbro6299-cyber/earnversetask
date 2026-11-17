@@ -13,7 +13,7 @@ export function ReferEarn() {
   const [showList, setShowList] = useState(false);
 
   const code = data?.code ?? "";
-  const goal = data?.taskGoal ?? 15;
+  const goal = data?.taskGoal ?? 0;
   const bonus = data?.bonusCoins ?? 200;
   const link = code ? `${SITE_URL}/auth?ref=${code}` : "";
 
