@@ -310,6 +310,62 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_event_rewards: {
+        Row: {
+          coins: number
+          created_at: string
+          event_key: string
+          referred_id: string
+          referrer_id: string
+          submission_id: string
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          event_key: string
+          referred_id: string
+          referrer_id: string
+          submission_id: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          event_key?: string
+          referred_id?: string
+          referrer_id?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_event_rewards_event_key_fkey"
+            columns: ["event_key"]
+            isOneToOne: false
+            referencedRelation: "referral_events"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      referral_events: {
+        Row: {
+          delivery_id: string
+          ends_at: string
+          key: string
+          published_at: string
+        }
+        Insert: {
+          delivery_id: string
+          ends_at: string
+          key: string
+          published_at: string
+        }
+        Update: {
+          delivery_id?: string
+          ends_at?: string
+          key?: string
+          published_at?: string
+        }
+        Relationships: []
+      }
       spin_results: {
         Row: {
           coins: number
@@ -521,6 +577,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      pay_newbie_referral_event: {
+        Args: { p_submission_id: string }
+        Returns: boolean
+      }
       recount_task_slots: { Args: { p_task_id: string }; Returns: undefined }
       register_device_account: {
         Args: {
@@ -530,6 +590,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      start_newbie_referral_event: {
+        Args: { p_delivery_id: string; p_published_at: string }
+        Returns: undefined
       }
       weekly_task_earnings: {
         Args: { p_end: string; p_start: string }

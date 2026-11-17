@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Start timed referral promotions from verified publish webhooks and persist the first publication; preview visits and republishing must not restart an event.
+- Pay referral event rewards through an atomic database function with a unique event/referral key so duplicate approvals cannot pay twice.
+- Keep referral event eligibility in a browser-safe module with tests; the database payout must enforce the same title and time window.

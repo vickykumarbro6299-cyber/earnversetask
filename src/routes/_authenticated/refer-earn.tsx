@@ -9,13 +9,15 @@ export const Route = createFileRoute("/_authenticated/refer-earn")({
       { title: "Refer & Earn — EarnVerse" },
       {
         name: "description",
-        content: "Invite friends to EarnVerse and earn 2% lifetime commission on every task they complete.",
+        content: "Earn 800 coins per valid referral when a NEWBIE task is approved during EarnVerse’s 24-hour event.",
       },
       { property: "og:title", content: "Refer & Earn — EarnVerse" },
       {
         property: "og:description",
-        content: "Invite friends and earn lifetime commission on EarnVerse.",
+        content: "Earn 800 referral coins for approved NEWBIE tasks during EarnVerse’s 24-hour event.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ReferEarnPage,

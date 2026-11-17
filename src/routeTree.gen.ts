@@ -29,6 +29,7 @@ import { Route as AuthenticatedReferEarnRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSpinWinRouteImport } from './routes/_authenticated/spin-win'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as ApiPublicPublishEventRouteImport } from './routes/api/public/publish-event'
 import { Route as AuthenticatedAdminTaskTaskIdRouteImport } from './routes/_authenticated/admin_.task.$taskId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -132,6 +133,11 @@ const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicPublishEventRoute = ApiPublicPublishEventRouteImport.update({
+  id: '/api/public/publish-event',
+  path: '/api/public/publish-event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminTaskTaskIdRoute =
   AuthenticatedAdminTaskTaskIdRouteImport.update({
     id: '/admin_/task/$taskId',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/spin-win': typeof AuthenticatedSpinWinRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/publish-event': typeof ApiPublicPublishEventRoute
   '/admin/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
 }
 export interface FileRoutesByTo {
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/spin-win': typeof AuthenticatedSpinWinRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/publish-event': typeof ApiPublicPublishEventRoute
   '/admin/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
 }
 export interface FileRoutesById {
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/_authenticated/spin-win': typeof AuthenticatedSpinWinRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/publish-event': typeof ApiPublicPublishEventRoute
   '/_authenticated/admin_/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
 }
 export interface FileRouteTypes {
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/spin-win'
     | '/tasks'
     | '/wallet'
+    | '/api/public/publish-event'
     | '/admin/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/spin-win'
     | '/tasks'
     | '/wallet'
+    | '/api/public/publish-event'
     | '/admin/task/$taskId'
   id:
     | '__root__'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/_authenticated/spin-win'
     | '/_authenticated/tasks'
     | '/_authenticated/wallet'
+    | '/api/public/publish-event'
     | '/_authenticated/admin_/task/$taskId'
   fileRoutesById: FileRoutesById
 }
@@ -286,6 +298,7 @@ export interface RootRouteChildren {
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  ApiPublicPublishEventRoute: typeof ApiPublicPublishEventRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWalletRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/publish-event': {
+      id: '/api/public/publish-event'
+      path: '/api/public/publish-event'
+      fullPath: '/api/public/publish-event'
+      preLoaderRoute: typeof ApiPublicPublishEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin_/task/$taskId': {
       id: '/_authenticated/admin_/task/$taskId'
       path: '/admin/task/$taskId'
@@ -484,6 +504,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  ApiPublicPublishEventRoute: ApiPublicPublishEventRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

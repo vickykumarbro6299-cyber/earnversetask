@@ -1,5 +1,6 @@
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { REFERRAL_EVENT_KEY, REFERRAL_EVENT_COINS, referralEventState } from "./referral-event";
 import {
   DEPOSIT_PACKS,
   WITHDRAW_PACKS,
@@ -20,7 +21,7 @@ export const DEPOSIT_TAX = 0.01;
 export const TASK_PLATFORM_FEE = 0.06;
 export const REFERRAL_RATE = 0.02;
 /** One-time coins paid to the referrer once their invite completes the task goal. */
-export const REFERRAL_BONUS_COINS = 500;
+export const REFERRAL_BONUS_COINS = REFERRAL_EVENT_COINS;
 /** Approved tasks a referred user must complete before the referrer gets the bonus. */
 export const REFERRAL_TASK_GOAL = 1;
 
@@ -756,38 +757,10 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
   });
 }
 
-/**
- * One-time REFERRAL_BONUS_COINS to the referrer once this user has completed
- * REFERRAL_TASK_GOAL approved tasks. Safe to call after every approval.
- */
-async function maybePayReferralMilestone(earnerId: string, taskTitle: string) {
-  if (taskTitle.trim().toLowerCase() !== "newbie task") return;
-  const { data: prof } = await supabaseAdmin.from("profiles").select("referred_by").eq("id", earnerId).maybeSingle();
-  const referrer = prof?.referred_by;
-  if (!referrer) return;
-
-  const { count: paid } = await supabaseAdmin
-    .from("referral_earnings")
-    .select("id", { count: "exact", head: true })
-    .eq("referrer_id", referrer)
-    .eq("referred_id", earnerId)
-    .eq("source", "milestone");
-  if ((paid ?? 0) > 0) return;
-
-  const { count: done } = await supabaseAdmin
-    .from("submissions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", earnerId)
-    .eq("status", "approved");
-  if ((done ?? 0) < REFERRAL_TASK_GOAL) return;
-
-  await addCoins(referrer, REFERRAL_BONUS_COINS);
-  await supabaseAdmin.from("referral_earnings").insert({
-    referrer_id: referrer,
-    referred_id: earnerId,
-    coins: REFERRAL_BONUS_COINS,
-    source: "milestone",
-  });
+/** Atomic, once-per-referral event payout; the database checks title and approval time. */
+async function maybePayReferralMilestone(submissionId: string) {
+  const { error } = await supabaseAdmin.rpc("pay_newbie_referral_event", { p_submission_id: submissionId });
+  if (error) throw error;
 }
 
 /** Give the reserved slot back to the pool (recalculated from real submissions). */
@@ -820,7 +793,7 @@ export async function adminReviewSubmissionImpl(
   if (data.approve) {
     await addCoins(sub.user_id, sub.reward_coins);
     await payReferralCommission(sub.user_id, sub.reward_coins);
-    await maybePayReferralMilestone(sub.user_id, sub.tasks?.title ?? "");
+    await maybePayReferralMilestone(sub.id);
   }
   // Always recount so approved/rejected slot maths stay correct.
   await releaseTaskSlot(sub.task_id);
@@ -830,21 +803,20 @@ export async function adminReviewSubmissionImpl(
 export async function referralImpl({ userId }: Ctx) {
   const { data: me } = await supabaseAdmin.from("profiles").select("referral_code").eq("id", userId).maybeSingle();
 
-  const [{ data: invited }, { data: earnings }, { data: settings }] = await Promise.all([
+  const [{ data: invited }, { data: earnings }, { data: event }, { data: rewards }] = await Promise.all([
     supabaseAdmin
       .from("profiles")
       .select("id, name, created_at")
       .eq("referred_by", userId)
       .order("created_at", { ascending: false }),
     supabaseAdmin.from("referral_earnings").select("referred_id, coins").eq("referrer_id", userId),
-    supabaseAdmin
-      .from("app_settings")
-      .select("key, value")
-      .in("key", ["referral_signup_bonus_coins", "referral_signup_bonus_until"]),
+    supabaseAdmin.from("referral_events").select("published_at, ends_at").eq("key", REFERRAL_EVENT_KEY).maybeSingle(),
+    supabaseAdmin.from("referral_event_rewards").select("referred_id").eq("event_key", REFERRAL_EVENT_KEY).eq("referrer_id", userId),
   ]);
 
-  const setting = (k: string) => (settings ?? []).find((s) => s.key === k)?.value ?? "";
-  const bonusUntil = setting("referral_signup_bonus_until") || null;
+  const bonusUntil = event?.ends_at ?? null;
+  const eventState = referralEventState(event?.published_at ?? null, Date.now());
+  const creditedUsers = new Set((rewards ?? []).map((r) => r.referred_id));
 
   const perUser: Record<string, number> = {};
   (earnings ?? []).forEach((e) => {
@@ -870,7 +842,8 @@ export async function referralImpl({ userId }: Ctx) {
     bonusCoins: REFERRAL_BONUS_COINS,
     taskGoal: REFERRAL_TASK_GOAL,
     bonusUntil,
-    bonusActive: true,
+    bonusActive: eventState === "active",
+    eventState,
     totalCoins: (earnings ?? []).reduce((n, e) => n + e.coins, 0),
     invites: (invited ?? []).map((u) => ({
       id: u.id,
@@ -878,7 +851,7 @@ export async function referralImpl({ userId }: Ctx) {
       joinedAt: u.created_at,
       coins: perUser[u.id] ?? 0,
       tasksDone: doneByUser[u.id] ?? 0,
-      qualified: (doneByUser[u.id] ?? 0) >= REFERRAL_TASK_GOAL,
+      qualified: creditedUsers.has(u.id),
     })),
   };
 }
