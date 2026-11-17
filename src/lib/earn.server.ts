@@ -760,7 +760,8 @@ async function payReferralCommission(earnerId: string, earnedCoins: number) {
  * One-time REFERRAL_BONUS_COINS to the referrer once this user has completed
  * REFERRAL_TASK_GOAL approved tasks. Safe to call after every approval.
  */
-async function maybePayReferralMilestone(earnerId: string) {
+async function maybePayReferralMilestone(earnerId: string, taskTitle: string) {
+  if (taskTitle.trim().toLowerCase() !== "newbie task") return;
   const { data: prof } = await supabaseAdmin.from("profiles").select("referred_by").eq("id", earnerId).maybeSingle();
   const referrer = prof?.referred_by;
   if (!referrer) return;
