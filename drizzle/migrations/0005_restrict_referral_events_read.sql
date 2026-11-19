@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "signed in event read" ON public.referral_events;
+CREATE POLICY "admins read referral events" ON public.referral_events FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::public.app_role));

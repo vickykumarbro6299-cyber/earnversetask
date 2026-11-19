@@ -36,6 +36,13 @@
       "when": 1795056860693,
       "tag": "0004_allow_reclaim_after_reject",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795057176027,
+      "tag": "0005_restrict_referral_events_read",
+      "breakpoints": true
     }
   ]
 }
