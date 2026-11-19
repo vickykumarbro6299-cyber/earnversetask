@@ -29,6 +29,13 @@
       "when": 1794921948154,
       "tag": "0003_newbie_publish_referral_event",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795056860693,
+      "tag": "0004_allow_reclaim_after_reject",
+      "breakpoints": true
     }
   ]
 }
