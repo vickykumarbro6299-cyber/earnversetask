@@ -173,7 +173,7 @@ function TasksPage() {
           {tasks.map((t) => {
             const left = Math.max(0, t.total_slots - t.claimed_count);
             const openSub = subs.some(
-              (s) => s.task_id === t.id && (!s.submitted_at || s.status === "pending"),
+              (s) => s.task_id === t.id && s.status === "pending",
             );
             const mine = t.allow_multiple ? openSub : claimedIds.has(t.id);
             const Logo = CAT_LOGO[t.category] ?? OtherLogo;
