@@ -68,7 +68,7 @@ export const CATEGORY_MIN_REWARD: Record<string, number> = {
   app: 300,
   telegram: 20,
   instagram: 20,
-  other: 50,
+  other: 20,
 };
 
 /** Categories where a task link makes no sense. */
