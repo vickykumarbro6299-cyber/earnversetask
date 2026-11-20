@@ -92,8 +92,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: "twitter:site", content: "@Lovable" },
         { name: "twitter:title", content: "EarnVerse — Watch, Work & Earn Daily Rewards" },
         { name: "twitter:description", content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes." },
-        { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/D5sU4GLp2aT3AK8U44Ivh1P2Vrs2/social-images/social-1785686268359-social-image.webp" },
-        { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/D5sU4GLp2aT3AK8U44Ivh1P2Vrs2/social-images/social-1785686268359-social-image.webp" },
       ],
       links: [
         {
@@ -104,8 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       scripts: [
         // Telegram Mini App SDK — must load before the app initialises.
         { src: "https://telegram.org/js/telegram-web-app.js" },
-        // Monetag rewarded ads SDK (Spin & Win).
-        { src: "https://libtl.com/sdk.js", "data-zone": "11729008", "data-sdk": "show_11729008" },
+        // AdsGram rewarded ads SDK (Spin & Win).
+        { src: "https://sad.adsgram.ai/js/sad.min.js" },
       ],
   }),
 

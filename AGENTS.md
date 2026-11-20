@@ -12,3 +12,4 @@
 - Start timed referral promotions from verified publish webhooks and persist the first publication; preview visits and republishing must not restart an event.
 - Pay referral event rewards through an atomic database function with a unique event/referral key so duplicate approvals cannot pay twice.
 - Keep referral event eligibility in a browser-safe module with tests; the database payout must enforce the same title and time window.
+- Keep rewarded-ad completion checks in a browser-safe adapter; only completed, error-free ads may invoke the existing spin function.

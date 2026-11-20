@@ -1,3 +1,6 @@
+## Spin & Win ads
+- [x] Replace Monetag with AdsGram block 60806 and test completion handling.
+
 ## Referral event
 - [x] Add a one-time 800-coin reward for approved NEWBIE tasks during a 24-hour publish event.
 - [x] Show event state and accurate reward status in Refer & Earn.

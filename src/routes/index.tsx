@@ -14,6 +14,8 @@ export const Route = createFileRoute("/")({
           "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes.",
       },
       { property: "og:title", content: "EarnVerse — Watch, Work & Earn Daily Rewards" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content: "EarnVerse lets you complete simple tasks, earn coins and withdraw real cash via UPI or Google Play redeem codes.",

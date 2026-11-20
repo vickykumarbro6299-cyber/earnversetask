@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
 import { getSpinState, spinWheel } from "@/lib/earn.functions";
 import { SPIN_SEGMENTS, SPINS_PER_DAY } from "@/lib/earn-constants";
+import { showRewardedAd } from "@/lib/adsgram";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/spin-win")({
   head: () => ({
@@ -30,24 +32,6 @@ export const Route = createFileRoute("/_authenticated/spin-win")({
 });
 
 type SpinResult = { key: string; label: string; coins: number; remaining: number };
-
-declare global {
-  interface Window {
-    show_11729008?: (type?: "pop") => Promise<unknown>;
-  }
-}
-
-/** Plays a rewarded ad. Resolves true when the ad was watched, false otherwise. */
-async function showRewardedAd(type?: "pop"): Promise<boolean> {
-  const fn = window.show_11729008;
-  if (typeof fn !== "function") return false;
-  try {
-    await fn(type);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function SpinWinPage() {
   const queryClient = useQueryClient();
@@ -73,7 +57,7 @@ function SpinWinPage() {
     setBusy(true);
     try {
       // Step 1: user must watch the rewarded ad first.
-      const watched = await showRewardedAd();
+      const watched = await showRewardedAd(window.Adsgram);
       if (!watched) {
         toast.error("Ad not completed — please watch the full ad to spin.");
         return;
@@ -156,14 +140,14 @@ function SpinWinPage() {
 
         <Wheel rotation={rotation} spinning={spinning} />
 
-        <button
+        <Button
           onClick={handleSpin}
           disabled={busy || spinning || remaining <= 0}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
+          className="flex h-auto w-full items-center justify-center gap-3 rounded-2xl bg-gradient-brand py-4 text-lg font-extrabold uppercase tracking-wide text-primary-foreground shadow-pop active:scale-95 disabled:opacity-60"
         >
           <Play className="h-6 w-6" />
           {busy ? "Loading Ad…" : spinning ? "Spinning…" : "Watch Ad & Spin"}
-        </button>
+        </Button>
 
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
@@ -188,12 +172,12 @@ function SpinWinPage() {
                 ? "Coins have been added to your wallet."
                 : "Spin again for another chance to win."}
             </p>
-            <button
+            <Button
               onClick={() => setResult(null)}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95"
+              className="mt-5 flex h-auto w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95"
             >
               <X className="h-4 w-4" /> Close
-            </button>
+            </Button>
           </div>
         </div>
       )}
