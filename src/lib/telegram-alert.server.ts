@@ -1,7 +1,7 @@
 import { TASK_CATEGORIES } from "./earn-constants";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-const CHANNEL = "@EarnVerseTask";
+const CHANNEL = "@earnversetaskpush";
 
 /** Posts a "New Task Added" alert to the Telegram channel. Never throws. */
 export async function sendNewTaskAlert(task: { reward_coins: number; category: string | null }) {
