@@ -1,3 +1,4 @@
+import { sendNewTaskAlert } from "./telegram-alert.server";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { REFERRAL_EVENT_KEY, REFERRAL_EVENT_COINS, referralEventState } from "./referral-event";
@@ -409,6 +410,7 @@ export async function adminReviewTaskImpl({ userId }: Ctx, data: { taskId: strin
   if (data.approve) {
     await supabaseAdmin.from("tasks").update({ approved: true, active: true, disabled: false }).eq("id", task.id);
     await recountTask(task.id);
+    await sendNewTaskAlert(task);
     return { approved: true, refund: 0 };
   }
 
@@ -648,6 +650,7 @@ export async function adminCreateTaskImpl(
   });
 
   if (error) throw error;
+  await sendNewTaskAlert({ reward_coins: data.rewardCoins, category: normalizeCategory(data.category) });
   return { ok: true };
 }
 
