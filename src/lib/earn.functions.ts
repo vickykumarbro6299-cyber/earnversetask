@@ -403,3 +403,10 @@ export const spinWheel = createServerFn({ method: "POST" })
     const m = await import("./earn.server");
     return m.spinImpl({ userId: context.userId });
   });
+
+export const collectSpin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const m = await import("./earn.server");
+    return m.collectSpinImpl({ userId: context.userId });
+  });

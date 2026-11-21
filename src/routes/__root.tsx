@@ -102,8 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       scripts: [
         // Telegram Mini App SDK — must load before the app initialises.
         { src: "https://telegram.org/js/telegram-web-app.js" },
-        // AdsGram rewarded ads SDK (Spin & Win).
-        { src: "https://sad.adsgram.ai/js/sad.min.js" },
+        // GigaPub rewarded ads SDK (Spin & Win).
+        { src: "https://ad.gigapub.tech/script?id=9290" },
       ],
   }),
 

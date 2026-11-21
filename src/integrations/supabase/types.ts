@@ -369,6 +369,7 @@ export type Database = {
       spin_results: {
         Row: {
           coins: number
+          collected: boolean
           created_at: string
           id: string
           label: string
@@ -377,6 +378,7 @@ export type Database = {
         }
         Insert: {
           coins?: number
+          collected?: boolean
           created_at?: string
           id?: string
           label: string
@@ -385,6 +387,7 @@ export type Database = {
         }
         Update: {
           coins?: number
+          collected?: boolean
           created_at?: string
           id?: string
           label?: string

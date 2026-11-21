@@ -5,9 +5,9 @@ import { useRef, useState } from "react";
 import { ChevronLeft, Wallet, Gift, Unlock, Play, Info, X, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
-import { getSpinState, spinWheel } from "@/lib/earn.functions";
+import { collectSpin, getSpinState, spinWheel } from "@/lib/earn.functions";
 import { SPIN_SEGMENTS, SPINS_PER_DAY } from "@/lib/earn-constants";
-import { showRewardedAd } from "@/lib/adsgram";
+import { showRewardedAd } from "@/lib/gigapub";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/spin-win")({
@@ -37,6 +37,29 @@ function SpinWinPage() {
   const queryClient = useQueryClient();
   const fetchState = useServerFn(getSpinState);
   const runSpin = useServerFn(spinWheel);
+  const runCollect = useServerFn(collectSpin);
+  const [collecting, setCollecting] = useState(false);
+
+  const handleCollect = async () => {
+    if (!result || collecting) return;
+    setCollecting(true);
+    try {
+      const watched = await showRewardedAd(window.showGiga);
+      if (!watched) {
+        toast.error("Ad not completed — watch the full ad to collect coins.");
+        return;
+      }
+      await runCollect();
+      toast.success(`${result.coins} coins added to your wallet!`);
+      setResult(null);
+      void queryClient.invalidateQueries({ queryKey: ["spin-state"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not collect — try again.");
+    } finally {
+      setCollecting(false);
+    }
+  };
   const q = useQuery({ queryKey: ["spin-state"], queryFn: () => fetchState() });
 
   const [busy, setBusy] = useState(false);
@@ -57,7 +80,7 @@ function SpinWinPage() {
     setBusy(true);
     try {
       // Step 1: user must watch the rewarded ad first.
-      const watched = await showRewardedAd(window.Adsgram);
+      const watched = await showRewardedAd(window.showGiga);
       if (!watched) {
         toast.error("Ad not completed — please watch the full ad to spin.");
         return;
@@ -152,7 +175,7 @@ function SpinWinPage() {
         <div className="flex items-start gap-2 rounded-2xl bg-muted p-4 text-sm font-semibold text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Watch a short ad to spin the wheel. You get up to {SPINS_PER_DAY} spins a day — rewards
+            Watch a short ad to spin, and another to collect your coins. You get up to {SPINS_PER_DAY} spins a day — rewards
             are added straight to your EarnVerse coin balance.
           </p>
         </div>
@@ -169,15 +192,25 @@ function SpinWinPage() {
             </p>
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               {result.coins > 0
-                ? "Coins have been added to your wallet."
+                ? "Watch one more ad to collect these coins."
                 : "Spin again for another chance to win."}
             </p>
-            <Button
-              onClick={() => setResult(null)}
-              className="mt-5 flex h-auto w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95"
-            >
-              <X className="h-4 w-4" /> Close
-            </Button>
+            {result.coins > 0 ? (
+              <Button
+                onClick={handleCollect}
+                disabled={collecting}
+                className="mt-5 flex h-auto w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95"
+              >
+                <Play className="h-4 w-4" /> {collecting ? "Loading Ad…" : "Watch Ad & Collect"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setResult(null)}
+                className="mt-5 flex h-auto w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 font-extrabold text-primary-foreground active:scale-95"
+              >
+                <X className="h-4 w-4" /> Close
+              </Button>
+            )}
           </div>
         </div>
       )}

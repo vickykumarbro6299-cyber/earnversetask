@@ -43,6 +43,13 @@
       "when": 1795057176027,
       "tag": "0005_restrict_referral_events_read",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795273369447,
+      "tag": "0006_spin_collect_flag",
+      "breakpoints": true
     }
   ]
 }

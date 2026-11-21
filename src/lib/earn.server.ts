@@ -1489,6 +1489,29 @@ export async function spinStateImpl({ userId }: Ctx) {
   return { ...state, coins };
 }
 
+/** Credits the latest uncollected spin; the flag flip makes it pay only once. */
+export async function collectSpinImpl({ userId }: Ctx) {
+  const { data: pending } = await supabaseAdmin
+    .from("spin_results")
+    .select("id, label, coins")
+    .eq("user_id", userId)
+    .eq("collected", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!pending) throw new Error("No coins to collect");
+  const { data: flipped } = await supabaseAdmin
+    .from("spin_results")
+    .update({ collected: true })
+    .eq("id", pending.id)
+    .eq("collected", false)
+    .select("id");
+  if (!flipped?.length) throw new Error("Coins already collected");
+  await addCoins(userId, pending.coins);
+  await logLedger(userId, "spin", `Spin & Win — ${pending.label}`, pending.coins);
+  return { coins: pending.coins };
+}
+
 export async function spinImpl({ userId }: Ctx) {
   const state = await spinState(userId);
   if (state.remaining <= 0) throw new Error("Daily spin limit reached. Come back tomorrow!");
@@ -1509,13 +1532,9 @@ export async function spinImpl({ userId }: Ctx) {
     spin_date: state.dateKey,
     label: picked.label,
     coins: picked.coins,
+    collected: picked.coins <= 0,
   });
   if (error) throw new Error("Could not record spin");
-
-  if (picked.coins > 0) {
-    await addCoins(userId, picked.coins);
-    await logLedger(userId, "spin", `Spin & Win — ${picked.label}`, picked.coins);
-  }
 
   return {
     key: picked.key,

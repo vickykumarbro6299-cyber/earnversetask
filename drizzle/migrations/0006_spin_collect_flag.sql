@@ -1,0 +1,1 @@
+ALTER TABLE public.spin_results ADD COLUMN IF NOT EXISTS collected boolean NOT NULL DEFAULT true;
