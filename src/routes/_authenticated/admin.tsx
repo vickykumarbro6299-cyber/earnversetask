@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useMe, useRefreshAll } from "@/lib/use-earn";
 import { SamplePhotoInput, splitPaths } from "@/components/sample-photo";
+import { TelegramSignupAdmin } from "@/components/telegram-signup-admin";
 import {
   getAdminData,
   adminCreateTask,
@@ -62,6 +63,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
           "Manage EarnVerse users, tasks, proof verification, deposits and withdrawal approvals.",
       },
       { property: "og:title", content: "Admin Console — EarnVerse" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:description", content: "Approve proofs, deposits and withdrawals." },
     ],
   }),
@@ -121,6 +124,7 @@ function AdminPage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-4">
+        <TelegramSignupAdmin />
         <div className="scrollbar-none mt-4 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
             <button

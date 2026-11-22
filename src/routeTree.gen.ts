@@ -31,6 +31,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as ApiPublicPublishEventRouteImport } from './routes/api/public/publish-event'
 import { Route as AuthenticatedAdminTaskTaskIdRouteImport } from './routes/_authenticated/admin_.task.$taskId'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -144,6 +145,12 @@ const AuthenticatedAdminTaskTaskIdRoute =
     path: '/admin/task/$taskId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof AuthenticatedWalletRoute
   '/api/public/publish-event': typeof ApiPublicPublishEventRoute
   '/admin/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -190,6 +198,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletRoute
   '/api/public/publish-event': typeof ApiPublicPublishEventRoute
   '/admin/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +224,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/api/public/publish-event': typeof ApiPublicPublishEventRoute
   '/_authenticated/admin_/task/$taskId': typeof AuthenticatedAdminTaskTaskIdRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/public/publish-event'
     | '/admin/task/$taskId'
+    | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/public/publish-event'
     | '/admin/task/$taskId'
+    | '/api/public/telegram/webhook'
   id:
     | '__root__'
     | '/'
@@ -287,6 +299,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet'
     | '/api/public/publish-event'
     | '/_authenticated/admin_/task/$taskId'
+    | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -299,6 +312,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
   ApiPublicPublishEventRoute: typeof ApiPublicPublishEventRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -457,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTaskTaskIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -505,6 +526,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
   ApiPublicPublishEventRoute: ApiPublicPublishEventRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

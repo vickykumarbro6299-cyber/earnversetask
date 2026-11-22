@@ -506,6 +506,66 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_identities: {
+        Row: {
+          device_id: string
+          linked_at: string
+          phone: string
+          telegram_id: number
+          user_id: string
+        }
+        Insert: {
+          device_id: string
+          linked_at?: string
+          phone: string
+          telegram_id: number
+          user_id: string
+        }
+        Update: {
+          device_id?: string
+          linked_at?: string
+          phone?: string
+          telegram_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_link_sessions: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          device_id: string
+          expires_at: string
+          owner_id: string | null
+          phone: string | null
+          telegram_id: number | null
+          token_hash: string
+          verified_at: string | null
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          device_id: string
+          expires_at?: string
+          owner_id?: string | null
+          phone?: string | null
+          telegram_id?: number | null
+          token_hash: string
+          verified_at?: string | null
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+          owner_id?: string | null
+          phone?: string | null
+          telegram_id?: number | null
+          token_hash?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -571,6 +631,10 @@ export type Database = {
       claim_task_slot: {
         Args: { p_minutes: number; p_task_id: string; p_user_id: string }
         Returns: string
+      }
+      consume_telegram_link: {
+        Args: { p_signup?: boolean; p_token: string; p_user_id: string }
+        Returns: undefined
       }
       gen_referral_code: { Args: never; Returns: string }
       has_role: {

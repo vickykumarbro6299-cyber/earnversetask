@@ -1,4 +1,9 @@
 ## Spin & Win ads
+## Telegram account linking
+- [ ] Add verified Indian Telegram contact linking, unique identity/device signup enforcement, and existing-user alert.
+- [ ] Register the bot webhook and verify linking/security flows.
+
+## Spin & Win ads
 - [x] Replace Monetag with AdsGram block 60806 and test completion handling.
 
 ## Referral event

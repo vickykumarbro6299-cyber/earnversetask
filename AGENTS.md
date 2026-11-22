@@ -13,3 +13,5 @@
 - Pay referral event rewards through an atomic database function with a unique event/referral key so duplicate approvals cannot pay twice.
 - Keep referral event eligibility in a browser-safe module with tests; the database payout must enforce the same title and time window.
 - Keep rewarded-ad completion checks in a browser-safe adapter; only completed, error-free ads may invoke the existing spin function.
+- Keep Telegram identity verification in private expiring sessions; only verified bot webhooks may attest contacts, and atomic database consumption enforces signup uniqueness independently of client fields.
+- Activate mandatory Telegram signup only after an admin verifies the published webhook receiver and registers the bot; this avoids breaking the currently published signup during rollout.

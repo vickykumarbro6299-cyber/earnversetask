@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand";
 import { getDeviceId } from "@/lib/device-id";
 import { checkDevice, registerDevice, trackDevice } from "@/lib/earn.functions";
+import { TelegramLinkControl } from "@/components/telegram-link-control";
+import type { TelegramVerification } from "@/lib/telegram-link";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -18,6 +20,8 @@ export const Route = createFileRoute("/auth")({
           "Create your free EarnVerse account and get 50 bonus coins instantly, or sign in to continue earning.",
       },
       { property: "og:title", content: "Sign in or Sign up — EarnVerse" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Join EarnVerse and get 50 bonus coins on registration.",
@@ -39,6 +43,7 @@ function AuthPage() {
   const [forgotBusy, setForgotBusy] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [resendBusy, setResendBusy] = useState(false);
+  const [telegramVerification, setTelegramVerification] = useState<TelegramVerification | null>(null);
   const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "", referral: "" });
 
   useEffect(() => {
@@ -106,6 +111,7 @@ function AuthPage() {
       if (mode === "signup") {
 
         setVerificationEmail("");
+        if (!telegramVerification) throw new Error("Link and verify your Telegram account first");
 
         if (form.name.trim().length < 2) throw new Error("Please enter your name");
         if (!/^\d{10,15}$/.test(form.mobile.trim()))
@@ -133,7 +139,8 @@ function AuthPage() {
             emailRedirectTo: `${window.location.origin}/auth`,
             data: {
               name: form.name.trim(),
-              mobile: form.mobile.trim(),
+               mobile: telegramVerification.mobile,
+               telegram_link_token: telegramVerification.token,
               referral_code: form.referral.trim().toUpperCase(),
             },
           },
@@ -283,7 +290,12 @@ function AuthPage() {
                   value={form.mobile}
                   onChange={set("mobile")}
                   maxLength={15}
+                  readOnly
                 />
+                <TelegramLinkControl onVerified={(value) => {
+                  setTelegramVerification(value);
+                  setForm((previous) => ({ ...previous, mobile: value.mobile }));
+                }} />
               </>
             )}
             <Field
@@ -353,7 +365,7 @@ function AuthPage() {
 
             <button
               type="submit"
-              disabled={loading}
+               disabled={loading || (mode === "signup" && !telegramVerification)}
               className="mt-2 w-full rounded-2xl bg-gradient-purple py-3.5 text-base font-extrabold text-primary-foreground shadow-pop transition active:scale-[0.98] disabled:opacity-60"
             >
               {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}

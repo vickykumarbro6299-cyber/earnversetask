@@ -50,6 +50,20 @@
       "when": 1795273369447,
       "tag": "0006_spin_collect_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795323730821,
+      "tag": "0007_telegram_verified_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795323897098,
+      "tag": "0008_telegram_signup_rollout_guard",
+      "breakpoints": true
     }
   ]
 }

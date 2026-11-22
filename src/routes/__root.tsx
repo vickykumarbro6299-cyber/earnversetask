@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { initTelegramWebApp, isTelegramMiniApp } from "../lib/telegram-webapp";
+import { TelegramLinkAlert } from "@/components/telegram-link-alert";
 
 
 
@@ -134,6 +135,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <TelegramLinkAlert />
       <Toaster
         position="top-center"
         toastOptions={{
