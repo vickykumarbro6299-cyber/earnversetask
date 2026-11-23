@@ -1,6 +1,6 @@
 ## Spin & Win ads
 ## Telegram account linking
-- [ ] Switch linking to @EarnVerseTaskSpinWin_bot with a separate connection, keeping task alerts unchanged.
+- [x] Switch linking to @EarnVerseTaskSpinWin_bot with a separate connection, keeping task alerts unchanged.
 - [ ] Add verified Indian Telegram contact linking, unique identity/device signup enforcement, and existing-user alert.
 - [ ] Register the bot webhook and verify linking/security flows.
 

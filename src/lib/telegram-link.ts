@@ -1,4 +1,4 @@
-export const TELEGRAM_LINK_BOT = "EarnVerseTaskPush_Bot";
+export const TELEGRAM_LINK_BOT = "EarnVerseTaskSpinWin_bot";
 
 export function indianTelegramPhone(phone: string): string | null {
   const digits = phone.replace(/^\+/, "");

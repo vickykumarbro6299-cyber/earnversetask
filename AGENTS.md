@@ -14,4 +14,5 @@
 - Keep referral event eligibility in a browser-safe module with tests; the database payout must enforce the same title and time window.
 - Keep rewarded-ad completion checks in a browser-safe adapter; only completed, error-free ads may invoke the existing spin function.
 - Keep Telegram identity verification in private expiring sessions; only verified bot webhooks may attest contacts, and atomic database consumption enforces signup uniqueness independently of client fields.
+- Use the separate TELEGRAM_API_KEY_1 connection for linking, webhook verification, and registration; retain TELEGRAM_API_KEY for task alerts so switching identity bots cannot redirect alerts.
 - Activate mandatory Telegram signup only after an admin verifies the published webhook receiver and registers the bot; this avoids breaking the currently published signup during rollout.

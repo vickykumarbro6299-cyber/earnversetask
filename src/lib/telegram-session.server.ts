@@ -4,7 +4,7 @@ import { hashLinkToken } from "./telegram-link.server";
 import { TELEGRAM_LINK_BOT } from "./telegram-link";
 
 export async function createLinkSession(deviceId: string, ownerId: string | null) {
-  if (!process.env["TELEGRAM_API_KEY"] || !process.env["LOVABLE_API_KEY"]) throw new Error("Telegram linking is temporarily unavailable");
+  if (!process.env["TELEGRAM_API_KEY_1"] || !process.env["LOVABLE_API_KEY"]) throw new Error("Telegram linking is temporarily unavailable");
   if (!ownerId) {
     const { count, error } = await supabaseAdmin.from("device_accounts").select("id", { head: true, count: "exact" }).eq("device_id", deviceId);
     if (error) throw new Error("Could not check this device; please try again");

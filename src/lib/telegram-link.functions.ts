@@ -79,7 +79,7 @@ export const activateTelegramSignup = createServerFn({ method: "POST" })
     if (probe.status !== 401 || probe.headers.get("X-EarnVerse-Telegram-Link") !== "1") {
       throw new Error("Publish the updated EarnVerse site first, then activate Telegram signup from the live Admin Console.");
     }
-    const key = process.env["TELEGRAM_API_KEY"];
+    const key = process.env["TELEGRAM_API_KEY_1"];
     if (!key) throw new Error("Telegram bot is not connected");
     const { telegramBotCall, telegramWebhookSecret } = await import("./telegram-link.server");
     await telegramBotCall("setWebhook", { url, secret_token: telegramWebhookSecret(key), allowed_updates: ["message"], drop_pending_updates: false });

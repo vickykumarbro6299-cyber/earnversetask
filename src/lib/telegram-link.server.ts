@@ -16,7 +16,7 @@ export function validTelegramWebhook(actual: string, expected: string) {
 
 export async function telegramBotCall(method: string, body: object) {
   const apiKey = process.env["LOVABLE_API_KEY"];
-  const connectionKey = process.env["TELEGRAM_API_KEY"];
+  const connectionKey = process.env["TELEGRAM_API_KEY_1"];
   if (!apiKey || !connectionKey) throw new Error("Telegram linking is temporarily unavailable");
   const response = await fetch(`https://connector-gateway.lovable.dev/telegram/${method}`, {
     method: "POST",

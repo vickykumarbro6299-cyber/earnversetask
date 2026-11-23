@@ -16,7 +16,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
   server: { handlers: {
     POST: async ({ request }) => {
       const { telegramWebhookSecret, validTelegramWebhook, hashLinkToken, telegramBotCall } = await import("@/lib/telegram-link.server");
-      const key = process.env["TELEGRAM_API_KEY"];
+      const key = process.env["TELEGRAM_API_KEY_1"];
       if (!key || !validTelegramWebhook(request.headers.get("X-Telegram-Bot-Api-Secret-Token") ?? "", telegramWebhookSecret(key))) {
         return new Response("Unauthorized", { status: 401, headers: { "X-EarnVerse-Telegram-Link": "1" } });
       }

@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { indianTelegramPhone, verifiedOwnContact } from "./telegram-link";
+import { TELEGRAM_LINK_BOT, indianTelegramPhone, verifiedOwnContact } from "./telegram-link";
 import { hashLinkToken, telegramWebhookSecret, validTelegramWebhook } from "./telegram-link.server";
 
 describe("Telegram linking rules", () => {
+  test("links accounts through the separate EarnVerse bot", () => {
+    expect(TELEGRAM_LINK_BOT).toBe("EarnVerseTaskSpinWin_bot");
+  });
   test("accepts an Indian +91 contact", () => {
     expect(indianTelegramPhone("+919876543210")).toBe("919876543210");
   });
