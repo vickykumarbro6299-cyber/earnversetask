@@ -2,8 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { verifiedOwnContact } from "@/lib/telegram-link";
 
+const CHANNEL = "@EarnVerseTask";
+const SITE = "https://www.earnverse.life";
+
 const updateSchema = z.object({
   update_id: z.number().int(),
+  callback_query: z.object({
+    id: z.string(),
+    data: z.string().max(64).optional(),
+    from: z.object({ id: z.number().int() }),
+    message: z.object({ chat: z.object({ id: z.number().int(), type: z.string() }) }).optional(),
+  }).optional(),
   message: z.object({
     chat: z.object({ id: z.number().int(), type: z.string() }),
     from: z.object({ id: z.number().int(), is_bot: z.boolean().optional() }).optional(),
@@ -22,6 +31,23 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
       }
       const parsed = updateSchema.safeParse(await request.json().catch(() => null));
       if (!parsed.success) return new Response("Invalid update", { status: 400 });
+      const callback = parsed.data.callback_query;
+      if (callback) {
+        try {
+          if (callback.data !== "joined" || callback.message?.chat.type !== "private") return Response.json({ ok: true });
+          const member = await telegramBotCall("getChatMember", { chat_id: CHANNEL, user_id: callback.from.id }) as { result?: { status?: string } };
+          const status = member.result?.status ?? "";
+          if (!["member", "administrator", "creator", "restricted"].includes(status)) {
+            await telegramBotCall("answerCallbackQuery", { callback_query_id: callback.id, text: "Pehle channel join karo, phir Continue dabao.", show_alert: true });
+            return Response.json({ ok: true });
+          }
+          await telegramBotCall("answerCallbackQuery", { callback_query_id: callback.id, text: "Channel joined ✅" });
+          await telegramBotCall("sendMessage", { chat_id: callback.from.id, text: "Ab apna Indian (+91) Telegram contact share karo.", reply_markup: { keyboard: [[{ text: "Share My Contact", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } });
+        } catch (error) {
+          console.error("Telegram callback failed", error);
+        }
+        return Response.json({ ok: true });
+      }
       const message = parsed.data.message;
       if (!message?.from || message.from.is_bot || message.chat.type !== "private" || message.chat.id !== message.from.id) return Response.json({ ok: true });
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -39,7 +65,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           } else {
             const { error: updateError } = await supabaseAdmin.from("telegram_link_sessions").update({ telegram_id: message.from.id }).eq("token_hash", hash).is("telegram_id", null);
             if (updateError) throw updateError;
-            await send("Share your own Indian (+91) Telegram contact to link your EarnVerse account.", { keyboard: [[{ text: "Share My Contact", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true });
+            await send("Step 1: Hamara Telegram channel join karo, phir Continue dabao.", { inline_keyboard: [[{ text: "📢 Join Channel", url: "https://t.me/EarnVerseTask" }], [{ text: "✅ Continue", callback_data: "joined" }]] });
           }
         } else if (message.contact) {
           const phone = verifiedOwnContact(message.from.id, message.contact);
@@ -57,7 +83,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             else {
               const { error: verifyError } = await supabaseAdmin.from("telegram_link_sessions").update({ phone, verified_at: new Date().toISOString() }).eq("token_hash", session.token_hash).is("verified_at", null).is("consumed_at", null);
               if (verifyError) throw verifyError;
-              await send("Telegram verified ✅ Return to EarnVerse and tap Check Status.", { remove_keyboard: true });
+              await send("Contact verified ✅", { remove_keyboard: true });
+              await send("Last step: isi phone ke usi browser me Verify Device dabao jahan signup kar rahe ho.", { inline_keyboard: [[{ text: "📱 Verify Device", url: `${SITE}/telegram-verify?s=${session.token_hash}` }]] });
             }
           }
         } else if (message.text?.startsWith("/start")) {

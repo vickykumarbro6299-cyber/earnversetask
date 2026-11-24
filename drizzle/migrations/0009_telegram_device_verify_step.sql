@@ -1,0 +1,1 @@
+ALTER TABLE public.telegram_link_sessions ADD COLUMN IF NOT EXISTS device_verified_at timestamptz;

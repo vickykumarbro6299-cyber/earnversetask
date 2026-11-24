@@ -16,6 +16,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TelegramVerifyRouteImport } from './routes/telegram-verify'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAddTaskRouteImport } from './routes/_authenticated/add-task'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -65,6 +66,11 @@ const RefundRoute = RefundRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TelegramVerifyRoute = TelegramVerifyRouteImport.update({
+  id: '/telegram-verify',
+  path: '/telegram-verify',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/telegram-verify': typeof TelegramVerifyRoute
   '/terms': typeof TermsRoute
   '/add-task': typeof AuthenticatedAddTaskRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/telegram-verify': typeof TelegramVerifyRoute
   '/terms': typeof TermsRoute
   '/add-task': typeof AuthenticatedAddTaskRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/telegram-verify': typeof TelegramVerifyRoute
   '/terms': typeof TermsRoute
   '/_authenticated/add-task': typeof AuthenticatedAddTaskRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/refund'
     | '/reset-password'
+    | '/telegram-verify'
     | '/terms'
     | '/add-task'
     | '/admin'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/refund'
     | '/reset-password'
+    | '/telegram-verify'
     | '/terms'
     | '/add-task'
     | '/admin'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/refund'
     | '/reset-password'
+    | '/telegram-verify'
     | '/terms'
     | '/_authenticated/add-task'
     | '/_authenticated/admin'
@@ -310,6 +322,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  TelegramVerifyRoute: typeof TelegramVerifyRoute
   TermsRoute: typeof TermsRoute
   ApiPublicPublishEventRoute: typeof ApiPublicPublishEventRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -364,6 +377,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/telegram-verify': {
+      id: '/telegram-verify'
+      path: '/telegram-verify'
+      fullPath: '/telegram-verify'
+      preLoaderRoute: typeof TelegramVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -524,6 +544,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  TelegramVerifyRoute: TelegramVerifyRoute,
   TermsRoute: TermsRoute,
   ApiPublicPublishEventRoute: ApiPublicPublishEventRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,

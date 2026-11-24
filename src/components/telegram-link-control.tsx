@@ -36,7 +36,7 @@ export function TelegramLinkControl({ existing = false, onVerified }: { existing
         throw new Error("Link expired. Tap Link Telegram again.");
       }
       if (result.state !== "verified") {
-        toast.info("Start the bot and share your own contact, then check again.");
+        toast.info("Bot start karo, channel join karo, contact share karo aur Verify Device dabao, phir Check Status.");
         return;
       }
       if (existing) await finish({ data: { token: session.token } });

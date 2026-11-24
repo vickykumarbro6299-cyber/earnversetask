@@ -535,6 +535,7 @@ export type Database = {
           consumed_at: string | null
           created_at: string
           device_id: string
+          device_verified_at: string | null
           expires_at: string
           owner_id: string | null
           phone: string | null
@@ -546,6 +547,7 @@ export type Database = {
           consumed_at?: string | null
           created_at?: string
           device_id: string
+          device_verified_at?: string | null
           expires_at?: string
           owner_id?: string | null
           phone?: string | null
@@ -557,6 +559,7 @@ export type Database = {
           consumed_at?: string | null
           created_at?: string
           device_id?: string
+          device_verified_at?: string | null
           expires_at?: string
           owner_id?: string | null
           phone?: string | null

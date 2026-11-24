@@ -27,13 +27,13 @@ export const telegramLinkStatus = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { hashLinkToken } = await import("./telegram-link.server");
     const { data: session, error } = await supabaseAdmin.from("telegram_link_sessions")
-      .select("verified_at, consumed_at, expires_at, telegram_id, phone")
+      .select("verified_at, device_verified_at, consumed_at, expires_at, telegram_id, phone")
       .eq("token_hash", hashLinkToken(data.token)).maybeSingle();
     if (error) throw new Error("Could not check Telegram verification");
     if (!session || Date.parse(session.expires_at) <= Date.now() || session.consumed_at) {
       return { state: "expired" as const, telegramId: "", mobile: "" };
     }
-    if (!session.verified_at || !session.telegram_id || !session.phone) {
+    if (!session.verified_at || !session.device_verified_at || !session.telegram_id || !session.phone) {
       return { state: "waiting" as const, telegramId: "", mobile: "" };
     }
     return { state: "verified" as const, telegramId: String(session.telegram_id), mobile: session.phone.slice(-10) };
@@ -82,11 +82,31 @@ export const activateTelegramSignup = createServerFn({ method: "POST" })
     const key = process.env["TELEGRAM_API_KEY_1"];
     if (!key) throw new Error("Telegram bot is not connected");
     const { telegramBotCall, telegramWebhookSecret } = await import("./telegram-link.server");
-    await telegramBotCall("setWebhook", { url, secret_token: telegramWebhookSecret(key), allowed_updates: ["message"], drop_pending_updates: false });
+    await telegramBotCall("setWebhook", { url, secret_token: telegramWebhookSecret(key), allowed_updates: ["message", "callback_query"], drop_pending_updates: false });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("app_settings").upsert({ key: "telegram_signup_required", value: "true" });
     if (error) throw new Error("Bot connected but signup protection could not activate; try again.");
     return { active: true };
+  });
+
+export const verifyTelegramDevice = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ hash: z.string().regex(/^[a-f0-9]{64}$/), deviceId: z.string().min(8).max(200) }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin.from("telegram_link_sessions")
+      .select("device_id, verified_at, device_verified_at, consumed_at, expires_at").eq("token_hash", data.hash).maybeSingle();
+    if (error) throw new Error("Could not verify device");
+    if (!session || session.consumed_at || Date.parse(session.expires_at) <= Date.now()) throw new Error("Link expired. Signup page par Link Telegram dobara dabao.");
+    if (!session.verified_at) throw new Error("Pehle bot me channel join karke contact share karo.");
+    if (session.device_id !== data.deviceId) throw new Error("Ye wahi device/browser nahi hai jahan Link Telegram dabaya tha. Usi browser me ye link kholo.");
+    const { count, error: idError } = await supabaseAdmin.from("telegram_identities").select("user_id", { head: true, count: "exact" }).eq("device_id", data.deviceId);
+    if (idError) throw new Error("Could not verify device");
+    if (count) throw new Error("Is device par pehle se ek Telegram ID verified hai. 1 device = 1 ID.");
+    if (!session.device_verified_at) {
+      const { error: upError } = await supabaseAdmin.from("telegram_link_sessions").update({ device_verified_at: new Date().toISOString() }).eq("token_hash", data.hash);
+      if (upError) throw new Error("Could not verify device");
+    }
+    return { ok: true };
   });
 
 export { TELEGRAM_LINK_BOT };

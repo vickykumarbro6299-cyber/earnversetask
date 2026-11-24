@@ -64,6 +64,13 @@
       "when": 1795323897098,
       "tag": "0008_telegram_signup_rollout_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795536118711,
+      "tag": "0009_telegram_device_verify_step",
+      "breakpoints": true
     }
   ]
 }
